@@ -1069,6 +1069,7 @@ function V() { if (!P.vila) P.vila = { i: 0, b: {}, t: Date.now() }; return P.vi
 const vLv = (k) => V().b[k] || 0;
 const vTot = (k) => V().i * 3 + vLv(k);
 const VTEST1 = true; // modo teste: tudo custa 1 moeda
+if (VTEST1 && !P.t100k) { P.coins = Math.max(P.coins || 0, 100000); P.t100k = 1; save(); } // modo teste: 100 mil moedas, uma vez por save
 const vCost = (k) => { if (VTEST1) return 1; const d = VDEF.find((x) => x.k === k), l = vLv(k); return Math.round(d.c * [1, 2.5, 5][l] * Math.pow(2.4, V().i) / 5) * 5; };
 const vRate = (t) => 12 * t;
 const vDone = () => VACT().reduce((a, d) => a + vLv(d.k), 0);
@@ -1309,7 +1310,7 @@ function vBuildObj(d, scale) {
 function vSceneObjs() {
   if (VS.islandI !== V().i) vBuildGround();
   const nh = 0; VS.huts = VHUT.slice(0, nh).map((h, q) => { OUT = []; setTF(h[0], GY, h[1], Math.PI / 4 + (q % 3 - 1) * .4, 1.25); mkHut(q); return { k: 'h' + q, x: h[0], z: h[1], f: OUT }; });
-  VS.objs = VACT().map((d) => vBuildObj(d, 1));
+  VS.objs = VACT().filter((d) => !vNeed(d)).map((d) => vBuildObj(d, 1)); // navio só aparece depois do Cais
 }
 function vProj(x, y, z, S, ox, oy) { return [(x - z) * I3.cA * S + ox, ((x + z) * I3.cA * I3.sE - y * I3.cE) * S + oy]; }
 function vDrawFaces(ctx, faces, S, ox, oy, sorted) {
@@ -1482,7 +1483,7 @@ function renderVila() {
   $('vLab').innerHTML = VACT().map((d) => {
     const l = vLv(d.k), c = vCost(d.k), max = l >= 3, ok = !max && P.coins >= c;
     if (vLock(d)) return `<div class="vlab" data-k="${d.k}"><div class="vin"><div class="vnm">${d.n}</div><div class="vtag no">🔒 Fase ${d.u}</div></div></div>`;
-    if (vNeed(d)) return `<div class="vlab" data-k="${d.k}"><div class="vin"><div class="vnm">${d.n}</div><div class="vtag no">🔒 Faça o Cais</div></div></div>`;
+    if (vNeed(d)) return '';
     const st = l ? '<div class="vst">' + '⭐'.repeat(l) + '<span style="opacity:.35">' + '⭐'.repeat(3 - l) + '</span></div>' : '<div class="vnm">' + d.n + '</div>';
     const tag = max ? '' : `<div class="vtag ${ok ? 'ok' : 'no'}">${l ? '⬆️' : '🔨'} ${ii('coin')}${fmtN(c)}</div>`;
     const bub = d.k === 'tes' && pend > 0 ? `<div class="vbubble">${ii('coin')}+${pend}</div>` : '';
