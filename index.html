@@ -1068,7 +1068,7 @@ const VSAND = ['#edb450', '#f3c9a2', '#e6d6a8', '#f2dca0', '#e8c27a', '#d9c7a0',
 function V() { if (!P.vila) P.vila = { i: 0, b: {}, t: Date.now() }; return P.vila; }
 const vLv = (k) => V().b[k] || 0;
 const vTot = (k) => V().i * 3 + vLv(k);
-const VTEST1 = true; // modo teste: tudo custa 1 moeda
+const VTEST1 = false; // true = modo teste: tudo custa 1 moeda
 const vCost = (k) => { if (VTEST1) return 1; const d = VDEF.find((x) => x.k === k), l = vLv(k); return Math.round(d.c * [1, 2.5, 5][l] * Math.pow(2.4, V().i) / 5) * 5; };
 const vRate = (t) => 12 * t;
 const vDone = () => VACT().reduce((a, d) => a + vLv(d.k), 0);
