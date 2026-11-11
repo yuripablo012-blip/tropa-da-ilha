@@ -13,11 +13,20 @@ Estas regras valem para todas. Leia também o `RECADOS.md` antes de começar.
 
 ## Comunicação entre as sessões
 
-As sessões não conversam direto. O canal é o `RECADOS.md`:
+As sessões não conversam direto. Há dois canais, ambos no GitHub:
 
-- Ao começar a mexer no `index.html`, anote lá (data, branch, o que vai fazer).
+**Issues do GitHub — tarefas e conversa**
+
+- Cada tarefa é uma issue. Antes de começar, leia a issue e os comentários.
+- Ao pegar uma tarefa, comente na issue dizendo qual branch vai usar.
+- Dúvidas, avisos e respostas para a outra sessão vão nos comentários da issue.
+- O pull request cita a issue que resolve (`Closes #N`).
+- Só crie issue ou comente quando o dono da sessão pedir, ou para registrar que pegou/terminou a tarefa.
+
+**`RECADOS.md` — trava do `index.html`**
+
+- Ao começar a mexer no `index.html`, anote lá (data, branch, issue).
 - Ao terminar, marque como liberado e descreva em uma linha o que mudou.
-- Avisos para a outra sessão ou para o dono também vão lá.
 
 ## Sobre o projeto
 
