@@ -10,4 +10,5 @@ Ninguém no momento (livre).
 
 ## Recados
 
+- 2026-11-11 — `claude/hopeful-galileo-t00naw` — `index.html`: navio e cais agora assentam na água (base afundada com linha d'água, espuma, sombra). Código novo: `vWetMake` e o trecho `o.wat` no laço de sprites do `vFrame`. Imagens não foram trocadas.
 - 2026-11-11 — `claude/hopeful-galileo-t00naw` — Adicionadas as pastas `sprites/` e `ferramentas/`, que faltavam no upload inicial. `index.html` não foi alterado. Criados `CLAUDE.md` e este arquivo.
