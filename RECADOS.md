@@ -10,6 +10,7 @@ Ninguém no momento (livre).
 
 ## Recados
 
+- 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: praia estendida por código em volta da ilha pintada (`VBEACH`: 7 unidades para a frente, 2,6 para trás), com areia molhada, espuma e água rasa em degradê (`vRenderCache`); contorno da costa ampliado junto (`vRing`); cais e navio avançados para a nova beira.
 - 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: terreno voltou a ter as clareiras redondas de terra e os caminhos (`VISL`, `sprites/ilha.png`); construções reposicionadas em cima das clareiras (`VDEF`); base sob as construções desligada (`VBASEIMG = false`); câmera abre um pouco mais afastada.
 - 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: construções antigas agora ficam sobre a base pintada recortada da imagem da Torre do Vigia (`VBASE`, `sprites/base.png`), desenhada no `vRenderCache`. A base por código continua desligada (`VBASECODE`).
 - 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: base por código sob as construções antigas desligada (`VBASECODE = false`). O plano é regenerar as imagens antigas já com a base pintada, como a Torre do Vigia.
