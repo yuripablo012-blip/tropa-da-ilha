@@ -1305,7 +1305,7 @@ function vBuildObj(d, scale) {
   const l = vLv(d.k); OUT = []; const k = (scale == null ? 1 : scale) * 1.35;
   const y = d.k === 'nav' ? -.25 : d.k === 'cais' && l > 0 ? 0 : GY; setTF(d.x, y, d.z, VROT[d.k], k);
   const sn = vSprOf(d.k, l);
-  if (sn) { const m = VSPR[sn], yy = d.k === 'cais' ? .25 : d.k === 'nav' ? 0 : GY, us = m.u * (VISL.ring && d.k !== 'cais' && d.k !== 'nav' ? 1.22 : 1), hu = us * m.h / m.w * (m.st || 1); return { k: d.k, x: d.x, z: d.z, y: yy, f: [], l, spr: sn, u: us, wat: d.k === 'cais' || d.k === 'nav', ghost: !l && (d.k === 'cais' || d.k === 'nav'), sm: [], gl: [], beam: null, top: [d.x, yy + (hu * m.ay) / I3.cE + (l ? .2 : .6), d.z] }; }
+  if (sn) { const m = VSPR[sn], yy = d.k === 'cais' ? .25 : d.k === 'nav' ? 0 : GY, us = m.u * (VISL.ring && d.k !== 'cais' && d.k !== 'nav' ? 1 : 1), hu = us * m.h / m.w * (m.st || 1); return { k: d.k, x: d.x, z: d.z, y: yy, f: [], l, spr: sn, u: us, wat: d.k === 'cais' || d.k === 'nav', ghost: !l && (d.k === 'cais' || d.k === 'nav'), sm: [], gl: [], beam: null, top: [d.x, yy + (hu * m.ay) / I3.cE + (l ? .2 : .6), d.z] }; }
   VBUILD[d.k][l]();
   const o = { k: d.k, x: d.x, z: d.z, f: OUT, l };
   // pontos de efeito
