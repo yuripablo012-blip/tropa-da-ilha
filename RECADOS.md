@@ -10,6 +10,7 @@ Ninguém no momento (livre).
 
 ## Recados
 
+- 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: praia refeita — a areia continua submersa e vai escurecendo até a cor do mar, e cada camada ganhou um miolo oval que arredonda a ilha em cima e embaixo (`vRenderCache`, `VBEACH`, `vRing`); cais e navio avançados para a nova beira.
 - 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: todas as 15 clareiras têm obra. Mercado, Forte, Mina e Totem ficaram ativos e entraram 5 `Casa dos Piratas` (`casa1`–`casa5`, +4 moedas/hora por nível cheio); sem imagem própria, usam a de outra construção via `VALIAS`. Todos os saves têm a ilha zerada uma vez (marca `P.vila.z0`).
 - 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: botão de som (`P.mute`, `sndBtn` no lobby e `sndBtn2` na pausa); a ilha completa com as construções que existem (`vAll`); dica da batalha reposicionada (`.hint`); a escolha do pirata só aparece na primeira vez; metas e `manifest.json` + `icon-192.png`/`icon-512.png` para instalar como aplicativo quando o jogo estiver hospedado.
 - 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: praia estendida por código em volta da ilha pintada (`VBEACH`: 7 unidades para a frente, 2,6 para trás), com areia molhada, espuma e água rasa em degradê (`vRenderCache`); contorno da costa ampliado junto (`vRing`); cais e navio avançados para a nova beira.
