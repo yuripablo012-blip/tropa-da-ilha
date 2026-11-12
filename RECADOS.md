@@ -10,6 +10,7 @@ Ninguém no momento (livre).
 
 ## Recados
 
+- 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: o lote sob cada construção deixou de ser uma laje elevada e virou um canteiro plano de grama mais escura, com sombra macia colada no pé (`vRenderCache`).
 - 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: cada construção agora fica sobre um lote em losango, levemente elevado (desenhado no `vRenderCache`). O recorte esverdeado da base (`vGndMake`) foi removido.
 - 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: construções coladas no chão — a base do sprite some em folhinhas irregulares para a grama passar por cima (`vGndMake`, `m.gnd`), e a sombra em volta virou uma sombra curta só do lado direito.
 - 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: terreno sem clareiras nem trilhas de terra — a imagem da ilha (`VISL`, `sprites/ilha.png`) agora é toda gramada, e o anel de terra sob as construções saiu (ficou só a sombra de contato).
