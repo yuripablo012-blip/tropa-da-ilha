@@ -1044,20 +1044,20 @@ function mprog(id, n = 1) {
 /* ---------- VILA (ilha 3D isométrica) ---------- */
 const VDEF = [
   { k: 'tes', u: 1, n: 'Casa do Tesouro', em: '🏦', x: -0.5, z: -0.5, c: 60, d: 'Gera moedas sozinha, até com o jogo fechado.', bt: (t) => vRate(t) + ' moedas/hora' },
-  { k: 'cais', u: 1, n: 'Cais', em: '⚓', x: 11.8, z: 28.1, c: 90, d: 'Mais moedas no fim de toda batalha.', bt: (t) => '+' + (t * 5) + '% moedas' },
-  { k: 'tav', u: 2, n: 'Taverna', em: '🍺', x: -11.1, z: 2.7, c: 120, d: 'O Capitão ganha mais XP.', bt: (t) => '+' + (t * 8) + '% XP' },
-  { k: 'fer', u: 3, n: 'Ferreiro', em: '⚒️', x: 2.7, z: -11.1, c: 160, d: 'Balas mais fortes no canhão.', bt: (t) => '+' + (t * 4) + '% dano' },
-  { k: 'far', u: 4, n: 'Farol', em: '🗼', x: -7.4, z: -12.0, c: 200, d: 'O canhão atira mais rápido.', bt: (t) => '+' + (t * 3) + '% tiros/s' },
+  { k: 'cais', u: 1, n: 'Cais', em: '⚓', x: 11.8, z: 28.1, c: 90, d: 'Mais moedas no fim de toda batalha.', bt: (t) => '+' + vR(t * 5) + '% moedas' },
+  { k: 'tav', u: 2, n: 'Taverna', em: '🍺', x: -11.1, z: 2.7, c: 120, d: 'O Capitão ganha mais XP.', bt: (t) => '+' + vR(t * 8) + '% XP' },
+  { k: 'fer', u: 3, n: 'Ferreiro', em: '⚒️', x: 2.7, z: -11.1, c: 160, d: 'Balas mais fortes no canhão.', bt: (t) => '+' + vR(t * 4) + '% dano' },
+  { k: 'far', u: 4, n: 'Farol', em: '🗼', x: -7.4, z: -12.0, c: 200, d: 'O canhão atira mais rápido.', bt: (t) => '+' + vR(t * 3) + '% tiros/s' },
   { k: 'est', u: 5, n: 'Estaleiro', em: '⛵', x: -3.8, z: 19.8, c: 250, d: 'Mais vidas na cerca.', bt: (t) => '+' + Math.floor(t / 2) + ' vidas' },
-  { k: 'nav', u: 6, n: 'Navio Pirata', em: '🏴‍☠️', x: 24.6, z: 32.2, c: 300, d: 'Atraca no cais e sai pra saquear: mais moedas e mais XP.', bt: (t) => '+' + (t * 6) + '% moedas e XP' },
+  { k: 'nav', u: 6, n: 'Navio Pirata', em: '🏴‍☠️', x: 24.6, z: 32.2, c: 300, d: 'Atraca no cais e sai pra saquear: mais moedas e mais XP.', bt: (t) => '+' + vR(t * 6) + '% moedas e XP' },
   { k: 'vig', u: 8, n: 'Torre do Vigia', em: '🔭', x: 0.2, z: 11.6, c: 450, d: 'O combo demora mais pra cair.', bt: (t) => '+' + (t * .15).toFixed(2).replace('.', ',') + 's de combo' },
-  { k: 'mer', u: 10, n: 'Mercado', em: '🛒', x: 12.4, z: 0.4, c: 600, d: 'Baús de vitória mais raros.', bt: (t) => '+' + (t * 3) + '% de baú raro' },
-  { k: 'forte', u: 12, n: 'Forte', em: '🏰', x: 14.2, z: -12.0, c: 900, d: 'Mais chance de tiro CRÍTICO.', bt: (t) => '+' + (t * 2) + '% crítico' },
-  { k: 'mina', u: 14, n: 'Mina de Ouro', em: '⛏️', x: 1.9, z: -18.7, c: 1300, d: 'Gera ainda mais moedas sozinha.', bt: (t) => '+' + (t * 10) + ' moedas/hora' },
+  { k: 'mer', u: 10, n: 'Mercado', em: '🛒', x: 12.4, z: 0.4, c: 600, d: 'Baús de vitória mais raros.', bt: (t) => '+' + vR(t * 3) + '% de baú raro' },
+  { k: 'forte', u: 12, n: 'Forte', em: '🏰', x: 14.2, z: -12.0, c: 900, d: 'Mais chance de tiro CRÍTICO.', bt: (t) => '+' + vR(t * 2) + '% crítico' },
+  { k: 'mina', u: 14, n: 'Mina de Ouro', em: '⛏️', x: 1.9, z: -18.7, c: 1300, d: 'Gera ainda mais moedas sozinha.', bt: (t) => '+' + vR(t * 10) + ' moedas/hora' },
   { k: 'kra', u: 16, n: 'Totem do Kraken', em: '🐙', x: -14.3, z: 11.2, c: 1800, d: 'A FÚRIA dura mais tempo.', bt: (t) => '+' + (t * .5).toFixed(1).replace('.', ',') + 's de fúria' },
 ];
 const VACT = () => VDEF.filter((d) => VSPR[d.k + '1']);
-const vMax = () => VACT().length * 3;
+const vMax = () => VACT().length * VLMAX;
 const vAll = () => VACT().length === VDEF.length;
 const vLock = (d) => false;
 const vNeed = (d) => d.k === 'nav' && !vLv('cais');
@@ -1065,18 +1065,19 @@ const VHUT = [[-6, 3], [5, -5], [-5, -12], [13, 8], [-10, 16], [7, 6], [-3, 18],
 const VNAMES = ['Vila da Tartaruga', 'Porto do Coral', 'Baía da Caveira', 'Enseada do Kraken', 'Forte Dourado', 'Ilha do Vulcão', 'Recife Esmeralda', 'Trono do Rei Pirata'];
 const VGRASS = ['#55a01a', '#4fbf86', '#9bbf45', '#45b39c', '#b9b548', '#7fae3a', '#3fae6a', '#a0c04a'];
 const VSAND = ['#edb450', '#f3c9a2', '#e6d6a8', '#f2dca0', '#e8c27a', '#d9c7a0', '#efe0b0', '#f5d79a'];
-function V() { if (!P.vila) P.vila = { i: 0, b: {}, t: Date.now() }; return P.vila; }
+const VLMAX = 9, vStg = (l) => l ? Math.ceil(l / 3) : 0, vR = (x) => String(Math.round(x * 10) / 10).replace('.', ',');
+function V() { if (!P.vila) P.vila = { i: 0, b: {}, t: Date.now(), v9: 1 }; if (!P.vila.v9) { for (const k in P.vila.b) P.vila.b[k] *= 3; P.vila.v9 = 1; } return P.vila; } // v9: saves antigos (3 níveis) viram 3/6/9
 const vLv = (k) => V().b[k] || 0;
-const vTot = (k) => V().i * 3 + vLv(k);
+const vTot = (k) => V().i * 3 + vLv(k) / 3; // bônus igual ao de antes no nível cheio; cada passo vale um terço
 const VTEST1 = true; // modo teste: tudo custa 1 moeda
 if (VTEST1 && !P.t100k) { P.coins = Math.max(P.coins || 0, 100000); P.t100k = 1; save(); } // modo teste: 100 mil moedas, uma vez por save
-const vCost = (k) => { if (VTEST1) return 1; const d = VDEF.find((x) => x.k === k), l = vLv(k); return Math.round(d.c * [1, 2.5, 5][l] * Math.pow(2.4, V().i) / 5) * 5; };
-const vRate = (t) => 12 * t;
+const vCost = (k) => { if (VTEST1) return 1; const d = VDEF.find((x) => x.k === k), l = vLv(k); return Math.round(d.c * [.6, .8, 1, 1.3, 1.6, 2, 2.6, 3.2, 4][l] * Math.pow(2.4, V().i) / 5) * 5; };
+const vRate = (t) => Math.round(12 * t);
 const vDone = () => VACT().reduce((a, d) => a + vLv(d.k), 0);
 const VB = () => ({ cr: vTot('forte') * .02, cb: vTot('vig') * .15, fu: vTot('kra') * .5, ch: vTot('mer') * .03, c: vTot('cais') * .05 + vTot('nav') * .06, x: vTot('tav') * .08 + vTot('nav') * .06, d: vTot('fer') * .04, r: vTot('far') * .03, h: Math.floor(vTot('est') / 2) });
-const vHour = () => vRate(vTot('tes')) + vTot('mina') * 10;
+const vHour = () => vRate(vTot('tes')) + Math.round(vTot('mina') * 10);
 function vPend() { const t = vHour(); if (!t) return 0; const h = Math.min(8, (Date.now() - (V().t || Date.now())) / 36e5); return Math.floor(h * t); }
-function vCanAny() { return VACT().some((d) => !vLock(d) && !vNeed(d) && vLv(d.k) < 3 && P.coins >= vCost(d.k)); }
+function vCanAny() { return VACT().some((d) => !vLock(d) && !vNeed(d) && vLv(d.k) < VLMAX && P.coins >= vCost(d.k)); }
 function vilaHud() { const d = $('vilaDot'); if (d) d.classList.toggle('show', vCanAny() || vPend() >= 10); }
 
 /* ===== mini motor 3D isométrico (canvas 2D, sem bibliotecas) ===== */
@@ -1314,8 +1315,8 @@ const vSprOf = (k, l) => l === 0 ? (k === 'nav' ? 'nav1' : k === 'cais' ? 'cais1
 function vBuildObj(d, scale) {
   const l = vLv(d.k); OUT = []; const k = (scale == null ? 1 : scale) * 1.35;
   const y = d.k === 'nav' ? -.25 : d.k === 'cais' && l > 0 ? 0 : GY; setTF(d.x, y, d.z, VROT[d.k], k);
-  const sn = vSprOf(d.k, l);
-  if (sn) { const m = VSPR[sn], yy = d.k === 'cais' ? .25 : d.k === 'nav' ? 0 : GY, us = m.u * (VISL.ring && d.k !== 'cais' && d.k !== 'nav' ? 1 : 1), hu = us * m.h / m.w * (m.st || 1); return { k: d.k, x: d.x, z: d.z, y: yy, f: [], l, spr: sn, u: us, wat: d.k === 'cais' || d.k === 'nav', ghost: !l && (d.k === 'cais' || d.k === 'nav'), sm: [], gl: [], beam: null, top: [d.x, yy + (hu * m.ay) / I3.cE + (l ? .2 : .6), d.z] }; }
+  const sn = vSprOf(d.k, vStg(l));
+  if (sn) { const m = VSPR[sn], yy = d.k === 'cais' ? .25 : d.k === 'nav' ? 0 : GY, sub = l ? (l - 1) % 3 : 2, us = m.u * (d.k !== 'cais' && d.k !== 'nav' ? .8 * [.86, .93, 1][sub] : [.9, .95, 1][sub]), hu = us * m.h / m.w * (m.st || 1); return { k: d.k, x: d.x, z: d.z, y: yy, f: [], l, spr: sn, u: us, wat: d.k === 'cais' || d.k === 'nav', ghost: !l && (d.k === 'cais' || d.k === 'nav'), sm: [], gl: [], beam: null, top: [d.x, yy + (hu * m.ay) / I3.cE + (l ? .2 : .6), d.z] }; }
   VBUILD[d.k][l]();
   const o = { k: d.k, x: d.x, z: d.z, f: OUT, l };
   // pontos de efeito
@@ -1482,7 +1483,7 @@ function vFrame(ts) {
     if (o.beam) { const q = vScr(o.beam[0], o.beam[1], o.beam[2]), a = now * 1.2, len = VS.S * 9; ctx.save(); ctx.globalCompositeOperation = 'lighter'; const gb = ctx.createRadialGradient(q[0], q[1], 0, q[0], q[1], len); gb.addColorStop(0, 'rgba(255,240,160,.45)'); gb.addColorStop(1, 'rgba(255,240,160,0)'); ctx.fillStyle = gb; ctx.beginPath(); ctx.moveTo(q[0], q[1]); ctx.lineTo(q[0] + Math.cos(a - .18) * len, q[1] + Math.sin(a - .18) * len * .55); ctx.lineTo(q[0] + Math.cos(a + .18) * len, q[1] + Math.sin(a + .18) * len * .55); ctx.closePath(); ctx.fill(); ctx.restore(); }
     for (const p of o.sm) if (Math.random() < dt * 3) VS.smoke.push({ x: p[0], y: p[1], z: p[2], t: 0 });
   }
-  if (V().b.tes === 3 && Math.random() < dt * 4) VS.dust.push({ x: (Math.random() - .5) * 3, y: GY + 2 + Math.random() * 2, z: (Math.random() - .5) * 3, vx: 0, vy: .3, vz: 0, t: 0, life: 1, gold: 1 });
+  if (V().b.tes >= 7 && Math.random() < dt * 4) VS.dust.push({ x: (Math.random() - .5) * 3, y: GY + 2 + Math.random() * 2, z: (Math.random() - .5) * 3, vx: 0, vy: .3, vz: 0, t: 0, life: 1, gold: 1 });
   // fumaça
   ctx.fillStyle = '#e8e8e8';
   VS.smoke = VS.smoke.filter((s) => (s.t += dt) < 2.4); for (const s of VS.smoke) { const q = vScr(s.x + s.t * .3, s.y + s.t * 1.1, s.z - s.t * .2); ctx.globalAlpha = .55 * (1 - s.t / 2.4); ctx.beginPath(); ctx.arc(q[0], q[1], VS.S * (.18 + s.t * .22), 0, 6.29); ctx.fill(); }
@@ -1537,10 +1538,10 @@ function renderVila() {
   const n = vDone(); $('vFill').style.width = (n / vMax() * 100) + '%'; $('vBarT').textContent = vAll() && n >= vMax() ? 'ILHA COMPLETA!' : n + '/' + vMax() + ' ⭐ → Baú Lendário';
   const pend = vPend();
   $('vLab').innerHTML = VACT().map((d) => {
-    const l = vLv(d.k), c = vCost(d.k), max = l >= 3, ok = !max && P.coins >= c;
+    const l = vLv(d.k), c = vCost(d.k), max = l >= VLMAX, ok = !max && P.coins >= c, sg = vStg(l);
     if (vLock(d)) return `<div class="vlab" data-k="${d.k}"><div class="vin"><div class="vnm">${d.n}</div><div class="vtag no">🔒 Fase ${d.u}</div></div></div>`;
     if (vNeed(d)) return '';
-    const st = l ? '<div class="vst">' + '⭐'.repeat(l) + '<span style="opacity:.35">' + '⭐'.repeat(3 - l) + '</span></div>' : '<div class="vnm">' + d.n + '</div>';
+    const st = l ? '<div class="vst">' + '⭐'.repeat(sg) + '<span style="opacity:.35">' + '⭐'.repeat(3 - sg) + '</span> <span style="font-size:11px;letter-spacing:0;color:#fff;font-weight:900">' + l + '/' + VLMAX + '</span></div>' : '<div class="vnm">' + d.n + '</div>';
     const tag = max ? '' : `<div class="vtag ${ok ? 'ok' : 'no'}">${l ? '⬆️' : '🔨'} ${ii('coin')}${fmtN(c)}</div>`;
     const bub = d.k === 'tes' && pend > 0 ? `<div class="vbubble">${ii('coin')}+${pend}</div>` : '';
     return `<div class="vlab" data-k="${d.k}"><div class="vin">${bub}${st}${tag}</div></div>`;
@@ -1550,12 +1551,12 @@ function renderVila() {
   VS.dirty = true; if (vSel) openVSheet(vSel, true);
 }
 function openVSheet(k) {
-  vSel = k; const d = VDEF.find((x) => x.k === k), l = vLv(k), max = l >= 3, c = vCost(k), ok = P.coins >= c, t = vTot(k);
+  vSel = k; const d = VDEF.find((x) => x.k === k), l = vLv(k), max = l >= VLMAX, c = vCost(k), ok = P.coins >= c, t = vTot(k);
   const falta = Math.max(0, c - P.coins);
   if (vLock(d)) $('vSheet').innerHTML = `<div class="vsh"><div class="em">${d.em}</div><div><h3>${d.n} 🔒</h3><p>${d.d}</p></div></div><div class="vcmp">Libera quando você chegar na <em>Fase ${d.u}</em> · você está na Fase ${P.level || 1}</div><div class="vbtns"><button class="btn" id="vShClose">FECHAR</button><button class="btn green" id="vGo">⚔️ BATALHAR</button></div>`;
   else if (vNeed(d)) $('vSheet').innerHTML = `<div class="vsh"><div class="em">${d.em}</div><div><h3>${d.n} 🔒</h3><p>${d.d}</p></div></div><div class="vcmp">O navio precisa de um lugar pra atracar: <em>construa o Cais primeiro</em>.</div><div class="vbtns"><button class="btn" id="vShClose">FECHAR</button></div>`;
-  else $('vSheet').innerHTML = `<div class="vsh"><div class="em">${d.em}</div><div><h3>${d.n} ${l ? '<span style="font-size:16px;color:#fff">NV ' + l + '/3</span>' : ''}</h3><p>${d.d}</p></div></div>
-    <div class="vcmp">${max ? '✅ Nível máximo nesta ilha · ' + d.bt(t) : (l ? d.bt(t) : 'Ainda não construído') + ' → <em>' + d.bt(t + 1) + '</em>'}</div>
+  else $('vSheet').innerHTML = `<div class="vsh"><div class="em">${d.em}</div><div><h3>${d.n} ${l ? '<span style="font-size:16px;color:#fff">NV ' + l + '/' + VLMAX + '</span>' : ''}</h3><p>${d.d}</p></div></div>
+    <div class="vcmp">${max ? '✅ Nível máximo nesta ilha · ' + d.bt(t) : (l ? d.bt(t) : 'Ainda não construído') + ' → <em>' + d.bt(t + 1 / 3) + '</em>'}</div>
     <div class="vbtns"><button class="btn" id="vShClose">FECHAR</button>${max ? '' : `<button class="btn green" id="vShBuy" ${ok ? '' : 'disabled'}>${l ? 'MELHORAR' : 'CONSTRUIR'}<small>${ii('coin')} ${fmtN(c)}</small></button>`}</div>
     ${!max && !ok ? '<div style="text-align:center;margin-top:10px;font-weight:900;color:#ffb36b">Faltam ' + fmtN(falta) + ' moedas · vença batalhas! <button class="endvila" id="vGo" style="animation:none">⚔️ BATALHAR</button></div>' : ''}`;
   $('vSheet').classList.add('on');
@@ -1565,7 +1566,7 @@ function openVSheet(k) {
   if ($('vGo')) $('vGo').onclick = () => { showPage('play'); $('play').click(); };
 }
 function vBuild(k) {
-  const l = vLv(k), c = vCost(k); if (vLock(VDEF.find((x) => x.k === k)) || vNeed(VDEF.find((x) => x.k === k)) || l >= 3 || P.coins < c) { beep(160, .12, 'sawtooth', .04); return; }
+  const l = vLv(k), c = vCost(k); if (vLock(VDEF.find((x) => x.k === k)) || vNeed(VDEF.find((x) => x.k === k)) || l >= VLMAX || P.coins < c) { beep(160, .12, 'sawtooth', .04); return; }
   if ((k === 'tes' || k === 'mina') && !vHour()) V().t = Date.now(); P.coins -= c; V().b[k] = l + 1; save();
   [0, 120, 240].forEach((d, j) => setTimeout(() => { noise(.08, 900, 300, .06); beep(220 + j * 60, .05, 'square', .03); }, d));
   setTimeout(() => { [784, 988, 1318].forEach((f, j) => setTimeout(() => beep(f, .12, 'triangle', .06), j * 90)); }, 380);
