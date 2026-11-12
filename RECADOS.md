@@ -10,6 +10,7 @@ Ninguém no momento (livre).
 
 ## Recados
 
+- 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: construções antigas agora ficam sobre a base pintada recortada da imagem da Torre do Vigia (`VBASE`, `sprites/base.png`), desenhada no `vRenderCache`. A base por código continua desligada (`VBASECODE`).
 - 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: base por código sob as construções antigas desligada (`VBASECODE = false`). O plano é regenerar as imagens antigas já com a base pintada, como a Torre do Vigia.
 - 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: construções antigas ganharam base desenhada por código no estilo da Torre do Vigia (lote de grama com borda de terra, piso de pedra, pedras e matinho, no `vRenderCache`). `VOWNBASE` lista as construções cuja imagem já traz a base e ficam sem a de código.
 - 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: Torre do Vigia ganhou imagem (`vig1`–`vig3` em `VSPR`, `sprites/vig*.png`) e passou a aparecer na vila. Novo `ferramentas/nova_construcao.py` recorta uma imagem com 3 níveis em fundo magenta e inclui no `VSPR`.
