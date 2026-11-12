@@ -1305,7 +1305,7 @@ function vBuildObj(d, scale) {
   const l = vLv(d.k); OUT = []; const k = (scale == null ? 1 : scale) * 1.35;
   const y = d.k === 'nav' ? -.25 : d.k === 'cais' && l > 0 ? 0 : GY; setTF(d.x, y, d.z, VROT[d.k], k);
   const sn = vSprOf(d.k, l);
-  if (sn) { const m = VSPR[sn], yy = d.k === 'cais' ? .25 : d.k === 'nav' ? 0 : GY, hu = m.u * m.h / m.w * (m.st || 1); return { k: d.k, x: d.x, z: d.z, y: yy, f: [], l, spr: sn, u: m.u, wat: d.k === 'cais' || d.k === 'nav', ghost: !l && (d.k === 'cais' || d.k === 'nav'), sm: [], gl: [], beam: null, top: [d.x, yy + (hu * m.ay) / I3.cE + (l ? .2 : .6), d.z] }; }
+  if (sn) { const m = VSPR[sn], yy = d.k === 'cais' ? .25 : d.k === 'nav' ? 0 : GY, us = m.u * (VISL.ring && d.k !== 'cais' && d.k !== 'nav' ? 1.22 : 1), hu = us * m.h / m.w * (m.st || 1); return { k: d.k, x: d.x, z: d.z, y: yy, f: [], l, spr: sn, u: us, wat: d.k === 'cais' || d.k === 'nav', ghost: !l && (d.k === 'cais' || d.k === 'nav'), sm: [], gl: [], beam: null, top: [d.x, yy + (hu * m.ay) / I3.cE + (l ? .2 : .6), d.z] }; }
   VBUILD[d.k][l]();
   const o = { k: d.k, x: d.x, z: d.z, f: OUT, l };
   // pontos de efeito
@@ -1386,13 +1386,16 @@ function vRenderCache() {
     const dia = (f) => { ctx.beginPath(); for (let j = 0; j < 20; j++) { const a = j / 20 * 6.283, rr = 1 + .07 * Math.sin(j * 2.7 + o.x); ctx.lineTo(q[0] + Math.cos(a) * hw * f * rr, cy + Math.sin(a) * hh * f * rr); } ctx.closePath(); };
     if (built && !VISL.ok) { ctx.save(); ctx.shadowColor = 'rgba(96,62,24,.85)'; ctx.shadowBlur = .7 * k; ctx.fillStyle = '#9b6a30'; dia(.92); ctx.fill(); ctx.restore();
       ctx.save(); dia(.95); ctx.clip(); texFill(VS.timg.s, o.y, 8); ctx.fillStyle = 'rgba(112,66,22,.5)'; ctx.fillRect(q[0] - hw * 1.2, cy - hh * 1.3, hw * 2.4, hh * 2.6); ctx.restore(); }
+    if (built && VISL.ok) { ctx.save(); ctx.translate(q[0] + hw * .05, cy + hh * .1); ctx.scale(1, .52);
+      let g2 = ctx.createRadialGradient(0, 0, hw * .55, 0, 0, hw * 1.12); g2.addColorStop(0, 'rgba(74,44,16,.55)'); g2.addColorStop(.6, 'rgba(74,44,16,.38)'); g2.addColorStop(1, 'rgba(74,44,16,0)'); ctx.fillStyle = g2; ctx.beginPath(); ctx.arc(0, 0, hw * 1.15, 0, 6.29); ctx.fill();
+      g2 = ctx.createRadialGradient(0, 0, hw * .3, 0, 0, hw * .92); g2.addColorStop(0, 'rgba(20,10,2,.8)'); g2.addColorStop(.78, 'rgba(20,10,2,.62)'); g2.addColorStop(1, 'rgba(20,10,2,0)'); ctx.fillStyle = g2; ctx.beginPath(); ctx.arc(0, 0, hw * .95, 0, 6.29); ctx.fill(); ctx.restore(); }
     ctx.save(); ctx.translate(q[0], cy); ctx.scale(1, .5); const rg = ctx.createRadialGradient(0, 0, hw * .15, 0, 0, hw * (built ? .95 : 1.05)); rg.addColorStop(0, 'rgba(30,16,4,' + (built ? .6 : .4) + ')'); rg.addColorStop(1, 'rgba(30,16,4,0)'); ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(0, 0, hw * 1.1, 0, 6.29); ctx.fill(); ctx.restore(); }
   // sombras projetadas
   sx.clearRect(0, 0, w, h); sx.fillStyle = '#000'; const L = I3.L;
   const all = VS.objs.concat(VS.deco, VS.huts || []);
   for (const o of all) for (const f of o.f) { if (f.ns) continue; sx.beginPath(); f.p.forEach((p, i) => { const t = (p[1] - GY) / L[1], x = p[0] - L[0] * t, z = p[2] - L[2] * t; const X = (x - z) * I3.cA * k + ox, Y = ((x + z) * I3.cA * I3.sE - GY * I3.cE) * k + oy; i ? sx.lineTo(X, Y) : sx.moveTo(X, Y); }); sx.closePath(); sx.fill(); }
-  for (const o of all) { if (!o.spr || o.spr === 'plot' || o.wat) continue; const m = VSPR[o.spr]; if (!m.sil) continue; const sc = o.u * k / m.w, q = PX(o.x, o.y, o.z), fl = o.flip ? -1 : 1; sx.setTransform(sc * fl, 0, -.218 * sc, -.43 * sc, q[0], q[1]); sx.drawImage(m.sil, -m.ax * m.w, -m.ay * m.h); sx.setTransform(1, 0, 0, 1, 0, 0); }
-  ctx.save(); ctx.globalAlpha = .26; ctx.drawImage(SH, 0, 0); ctx.restore();
+  for (const o of all) { if (!o.spr || o.spr === 'plot' || o.wat) continue; const m = VSPR[o.spr]; if (!m.sil) continue; const sc = o.u * k / m.w, q = PX(o.x, o.y, o.z), fl = o.flip ? -1 : 1; if (VISL.ok) sx.setTransform(sc * fl, 0, -.62 * sc, -.2 * sc, q[0], q[1]); else sx.setTransform(sc * fl, 0, -.218 * sc, -.43 * sc, q[0], q[1]); sx.drawImage(m.sil, -m.ax * m.w, -m.ay * m.h); sx.setTransform(1, 0, 0, 1, 0, 0); }
+  ctx.save(); ctx.globalAlpha = VISL.ok ? .36 : .26; ctx.drawImage(SH, 0, 0); ctx.restore();
   const bake = VS.q === 0;
   VS.sprs = all.filter((o) => o.spr && !(bake && o.pre)).sort((a, b) => (a.x + a.z) - (b.x + b.z));
   // objetos em ordem de profundidade
