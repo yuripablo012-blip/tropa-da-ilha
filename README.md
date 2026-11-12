@@ -9,7 +9,7 @@ Abra o `index.html` no navegador do celular. É um arquivo único, com imagens, 
 ## Conteúdo
 
 - `index.html` — o jogo completo.
-- `sprites/` — imagens da ilha já recortadas (construções, coqueiros, terreno).
+- `sprites/` — imagens da ilha já recortadas (construções, coqueiros, terreno). `sprites/ilha.png` é o terreno pintado da ilha.
 - `ferramentas/sprlib.py` — script que recorta o fundo magenta/azul das imagens geradas e separa os 3 níveis de cada construção.
 
 ## Estado atual
