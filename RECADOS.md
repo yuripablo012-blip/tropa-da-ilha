@@ -10,6 +10,7 @@ Ninguém no momento (livre).
 
 ## Recados
 
+- 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: construções sem nenhuma mancha embaixo — saíram o canteiro, a sombra macia e a sombra projetada. No lugar, tufos de grama desenhados na frente do contorno da base (`m.tf` em `vAoMake`, laço de sprites do `vFrame`).
 - 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: assentamento das construções — canteiro quadrado de grama escura, vinco escuro sob o contorno da base e base do sprite escurecida até o chão (`vAoMake`, `m.gnd`). Tamanho das construções de volta ao original.
 - 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: o lote sob cada construção deixou de ser uma laje elevada e virou um canteiro plano de grama mais escura, com sombra macia colada no pé (`vRenderCache`).
 - 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: cada construção agora fica sobre um lote em losango, levemente elevado (desenhado no `vRenderCache`). O recorte esverdeado da base (`vGndMake`) foi removido.
