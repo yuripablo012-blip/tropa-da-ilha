@@ -1043,18 +1043,18 @@ function mprog(id, n = 1) {
 
 /* ---------- VILA (ilha 3D isométrica) ---------- */
 const VDEF = [
-  { k: 'tes', u: 1, n: 'Casa do Tesouro', em: '🏦', x: -0.2, z: -0.2, c: 60, d: 'Gera moedas sozinha, até com o jogo fechado.', bt: (t) => vRate(t) + ' moedas/hora' },
-  { k: 'cais', u: 1, n: 'Cais', em: '⚓', x: -15.6, z: 50.5, c: 90, d: 'Mais moedas no fim de toda batalha.', bt: (t) => '+' + (t * 5) + '% moedas' },
-  { k: 'tav', u: 2, n: 'Taverna', em: '🍺', x: -18.4, z: 14.8, c: 120, d: 'O Capitão ganha mais XP.', bt: (t) => '+' + (t * 8) + '% XP' },
-  { k: 'fer', u: 3, n: 'Ferreiro', em: '⚒️', x: 15.4, z: -14.7, c: 160, d: 'Balas mais fortes no canhão.', bt: (t) => '+' + (t * 4) + '% dano' },
-  { k: 'far', u: 4, n: 'Farol', em: '🗼', x: 20.2, z: -33.9, c: 200, d: 'O canhão atira mais rápido.', bt: (t) => '+' + (t * 3) + '% tiros/s' },
-  { k: 'est', u: 5, n: 'Estaleiro', em: '⛵', x: -20.7, z: 35.6, c: 250, d: 'Mais vidas na cerca.', bt: (t) => '+' + Math.floor(t / 2) + ' vidas' },
-  { k: 'nav', u: 6, n: 'Navio Pirata', em: '🏴‍☠️', x: -2.8, z: 54.6, c: 300, d: 'Atraca no cais e sai pra saquear: mais moedas e mais XP.', bt: (t) => '+' + (t * 6) + '% moedas e XP' },
-  { k: 'vig', u: 8, n: 'Torre do Vigia', em: '🔭', x: -36.3, z: 14.2, c: 450, d: 'O combo demora mais pra cair.', bt: (t) => '+' + (t * .15).toFixed(2).replace('.', ',') + 's de combo' },
-  { k: 'mer', u: 10, n: 'Mercado', em: '🛒', x: -5.4, z: 29.3, c: 600, d: 'Baús de vitória mais raros.', bt: (t) => '+' + (t * 3) + '% de baú raro' },
-  { k: 'forte', u: 12, n: 'Forte', em: '🏰', x: 37.4, z: -16.1, c: 900, d: 'Mais chance de tiro CRÍTICO.', bt: (t) => '+' + (t * 2) + '% crítico' },
-  { k: 'mina', u: 14, n: 'Mina de Ouro', em: '⛏️', x: -2.5, z: -15.4, c: 1300, d: 'Gera ainda mais moedas sozinha.', bt: (t) => '+' + (t * 10) + ' moedas/hora' },
-  { k: 'kra', u: 16, n: 'Totem do Kraken', em: '🐙', x: -13.6, z: -4.3, c: 1800, d: 'A FÚRIA dura mais tempo.', bt: (t) => '+' + (t * .5).toFixed(1).replace('.', ',') + 's de fúria' },
+  { k: 'tes', u: 1, n: 'Casa do Tesouro', em: '🏦', x: -0.5, z: -0.5, c: 60, d: 'Gera moedas sozinha, até com o jogo fechado.', bt: (t) => vRate(t) + ' moedas/hora' },
+  { k: 'cais', u: 1, n: 'Cais', em: '⚓', x: 11.8, z: 28.1, c: 90, d: 'Mais moedas no fim de toda batalha.', bt: (t) => '+' + (t * 5) + '% moedas' },
+  { k: 'tav', u: 2, n: 'Taverna', em: '🍺', x: -11.1, z: 2.7, c: 120, d: 'O Capitão ganha mais XP.', bt: (t) => '+' + (t * 8) + '% XP' },
+  { k: 'fer', u: 3, n: 'Ferreiro', em: '⚒️', x: 2.7, z: -11.1, c: 160, d: 'Balas mais fortes no canhão.', bt: (t) => '+' + (t * 4) + '% dano' },
+  { k: 'far', u: 4, n: 'Farol', em: '🗼', x: -7.4, z: -12.0, c: 200, d: 'O canhão atira mais rápido.', bt: (t) => '+' + (t * 3) + '% tiros/s' },
+  { k: 'est', u: 5, n: 'Estaleiro', em: '⛵', x: -3.8, z: 19.8, c: 250, d: 'Mais vidas na cerca.', bt: (t) => '+' + Math.floor(t / 2) + ' vidas' },
+  { k: 'nav', u: 6, n: 'Navio Pirata', em: '🏴‍☠️', x: 24.6, z: 32.2, c: 300, d: 'Atraca no cais e sai pra saquear: mais moedas e mais XP.', bt: (t) => '+' + (t * 6) + '% moedas e XP' },
+  { k: 'vig', u: 8, n: 'Torre do Vigia', em: '🔭', x: 0.2, z: 11.6, c: 450, d: 'O combo demora mais pra cair.', bt: (t) => '+' + (t * .15).toFixed(2).replace('.', ',') + 's de combo' },
+  { k: 'mer', u: 10, n: 'Mercado', em: '🛒', x: 12.4, z: 0.4, c: 600, d: 'Baús de vitória mais raros.', bt: (t) => '+' + (t * 3) + '% de baú raro' },
+  { k: 'forte', u: 12, n: 'Forte', em: '🏰', x: 14.2, z: -12.0, c: 900, d: 'Mais chance de tiro CRÍTICO.', bt: (t) => '+' + (t * 2) + '% crítico' },
+  { k: 'mina', u: 14, n: 'Mina de Ouro', em: '⛏️', x: 1.9, z: -18.7, c: 1300, d: 'Gera ainda mais moedas sozinha.', bt: (t) => '+' + (t * 10) + ' moedas/hora' },
+  { k: 'kra', u: 16, n: 'Totem do Kraken', em: '🐙', x: -14.3, z: 11.2, c: 1800, d: 'A FÚRIA dura mais tempo.', bt: (t) => '+' + (t * .5).toFixed(1).replace('.', ',') + 's de fúria' },
 ];
 const VACT = () => VDEF.filter((d) => VSPR[d.k + '1']);
 const vMax = () => VACT().length * 3;
@@ -1465,7 +1465,7 @@ function vFrame(ts) {
         const ty = dy + sh * .1; ctx.translate(q[0], ty); ctx.scale(1, .45); const rg = ctx.createRadialGradient(0, 0, sw * .1, 0, 0, sw * .62); rg.addColorStop(0, 'rgba(60,34,8,.5)'); rg.addColorStop(1, 'rgba(60,34,8,0)'); ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(0, 0, sw * .62, 0, 6.29); ctx.fill(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalAlpha = .22; ctx.drawImage(m.sil, dx + VS.S * .28, dy + VS.S * .34, sw, sh); }
       ctx.restore(); }
     const im = o.wat && m.wet ? m.wet : (VISL.ok && m.gnd ? m.gnd : m.img);
-    if (VISL.ok && !o.wat && m.gnd && m.sil && o.spr !== 'plot' && !o.flip) { const y0 = Math.max(0, m.by - .08), off = Math.max(1.5, VS.S * .09); ctx.save(); ctx.globalAlpha = .5; ctx.drawImage(m.sil, 0, y0 * m.h, m.w, (1 - y0) * m.h, dx + off * .5, dy + y0 * sh + off, sw, (1 - y0) * sh); ctx.restore(); }
+    if (VISL.ok && !o.wat && m.gnd && m.sil && o.spr !== 'plot' && !o.flip) { const y0 = Math.max(0, m.by - .1), off = Math.max(1.2, VS.S * .075); ctx.save(); for (let q2 = 1; q2 <= 5; q2++) { ctx.globalAlpha = .34 - q2 * .05; ctx.drawImage(m.sil, 0, y0 * m.h, m.w, (1 - y0) * m.h, dx + off * q2 * .95, dy + y0 * sh + off * q2 * .5, sw, (1 - y0) * sh); } ctx.restore(); }
     if (o.ghost) ctx.globalAlpha = .4;
     if (o.flip) { ctx.save(); ctx.translate(dx + sw, dy); ctx.scale(-1, 1); ctx.drawImage(m.img, 0, 0, sw, sh); ctx.restore(); } else ctx.drawImage(im, dx, dy, sw, sh); if (o.ghost) ctx.globalAlpha = 1;
     if (false) { const bh = sw * .05, GC = ['#5f8f0a', '#86a80e', '#4f7d08', '#9bbb1c']; let sd = (o.x * 131 + o.z * 71 + 977) | 0;
@@ -1506,7 +1506,7 @@ function vWater() {
 function vResize() {
   const box = $('v3'); if (!box || !VS.cv) return; const r = box.getBoundingClientRect(); if (VS.q == null) { VS.q = 2; VS.slow = 0; } const dpr = Math.min([1, 1.25, 1.6][VS.q], window.devicePixelRatio || 1);
   VS.W = r.width; VS.H = r.height; VS.dpr = dpr; VS.cv.width = Math.round(r.width * dpr); VS.cv.height = Math.round(r.height * dpr);
-  if (!VS.S0) { VS.S = Math.max(13, Math.min(40, VS.W / 25)); VS.py = VS.S * 1.2; VS.px = VS.S * .8; VS.S0 = 1; } VS.cam = null; if (!VS.cache) VS.dirty = true;
+  if (!VS.S0) { VS.S = Math.max(9, Math.min(40, VS.W / 36)); VS.py = VS.S * 2.2; VS.px = VS.S * .5; VS.S0 = 1; } VS.cam = null; if (!VS.cache) VS.dirty = true;
 }
 function vClamp() { const m = 58 * VS.S; VS.px = Math.max(-m, Math.min(m, VS.px)); VS.py = Math.max(-34 * VS.S, Math.min(30 * VS.S, VS.py)); }
 function vInit() {
