@@ -10,6 +10,7 @@ Ninguém no momento (livre).
 
 ## Recados
 
+- 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: Torre do Vigia ganhou imagem (`vig1`–`vig3` em `VSPR`, `sprites/vig*.png`) e passou a aparecer na vila. Novo `ferramentas/nova_construcao.py` recorta uma imagem com 3 níveis em fundo magenta e inclui no `VSPR`.
 - 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: cada construção passa a ter 9 níveis (`VLMAX`), em 3 estágios visuais de 3 passos (`vStg`); a imagem muda nos níveis 1, 4 e 7 e cresce um pouco nos passos do meio. Saves antigos são convertidos (1/2/3 → 3/6/9, marca `P.vila.v9`). Bônus no nível cheio igual ao de antes (`vTot` usa nível/3); custo total por construção dobrou (`vCost`). Construções em terra 20% menores.
 - 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: construções agrupadas numa vila no centro da ilha e cais/navio na praia logo abaixo (`VDEF`); câmera abre mais afastada, mostrando a vila (`vResize`); sombra justa acompanhando o contorno da base de cada construção (laço de sprites do `vFrame`).
 - 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: calçada de pedra desligada (`if (false && built && VISL.ok)` no `vRenderCache`); construções direto na grama, só com o traço de contato. O estilo final da base ainda está em escolha com o dono.
