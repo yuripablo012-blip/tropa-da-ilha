@@ -10,6 +10,7 @@ Ninguém no momento (livre).
 
 ## Recados
 
+- 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: calçada de pedra desligada (`if (false && built && VISL.ok)` no `vRenderCache`); construções direto na grama, só com o traço de contato. O estilo final da base ainda está em escolha com o dono.
 - 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: cada construção ganhou uma calçada de pedra em volta, com uma entradinha na frente e grama subindo nas beiradas (desenhada no `vRenderCache`). Os tufos de grama na base da construção foram desligados.
 - 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: construções sem nenhuma mancha embaixo — saíram o canteiro, a sombra macia e a sombra projetada. No lugar, tufos de grama desenhados na frente do contorno da base (`m.tf` em `vAoMake`, laço de sprites do `vFrame`).
 - 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: assentamento das construções — canteiro quadrado de grama escura, vinco escuro sob o contorno da base e base do sprite escurecida até o chão (`vAoMake`, `m.gnd`). Tamanho das construções de volta ao original.
