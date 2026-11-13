@@ -661,6 +661,11 @@ button { transition: scale .12s cubic-bezier(.3,1.8,.5,1); }
 @keyframes vwm { from { transform: translate3d(0,0,0); } to { transform: translate3d(var(--tx), var(--ty), 0); } }
 .v3 canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 #vLab { position: absolute; inset: 0; pointer-events: none; }
+.v3.carrega canvas, .v3.carrega #vLab { visibility: hidden; }
+.vload { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: #fff; font-family: 'Luckiest Guy', system-ui, sans-serif; text-transform: uppercase; font-size: 20px; letter-spacing: .5px; text-shadow: 0 2px 0 #0a3b6e, 0 0 12px rgba(0,30,70,.6); pointer-events: none; }
+.v3.carrega .vload { display: flex; }
+.vload .vlb { display: flex; gap: 8px; } .vload .vlb i { width: 12px; height: 12px; border-radius: 50%; background: #ffd84a; box-shadow: 0 2px 0 #9a6a10; animation: vlb .9s ease-in-out infinite; } .vload .vlb i:nth-child(2) { animation-delay: .15s; } .vload .vlb i:nth-child(3) { animation-delay: .3s; }
+@keyframes vlb { 0%, 100% { transform: translateY(0); opacity: .6; } 50% { transform: translateY(-9px); opacity: 1; } }
 .vlab { position: absolute; left: 0; top: 0; will-change: transform; pointer-events: none; }
 .vlab .vin { position: absolute; left: 0; bottom: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px; pointer-events: auto; cursor: pointer; }
 .vlab .vst { font-size: 13px; letter-spacing: -1px; text-shadow: 0 1px 0 #000; filter: drop-shadow(0 1px 1px rgba(0,0,0,.6)); }
@@ -762,7 +767,7 @@ button { transition: scale .12s cubic-bezier(.3,1.8,.5,1); }
     </section>
 
     <section class="lpage hidden" id="pg-vila">
-      <div class="v3" id="v3"><div class="vwrap" id="vw1"><div class="vw"></div></div><div class="vwrap" id="vw2"><div class="vw"></div></div><div class="vdeep"></div><canvas id="vcv"></canvas><div id="vLab"></div></div>
+      <div class="v3" id="v3"><div class="vwrap" id="vw1"><div class="vw"></div></div><div class="vwrap" id="vw2"><div class="vw"></div></div><div class="vdeep"></div><canvas id="vcv"></canvas><div id="vLab"></div><div class="vload"><div class="vlb"><i></i><i></i><i></i></div><span>Chegando na ilha…</span></div></div>
       <div class="vhead"><div class="vname"><span id="vName">Vila da Tartaruga</span><small id="vSub">Ilha 1</small></div><div class="vbar"><i id="vFill"></i><span id="vBarT"></span></div></div>
       <div class="vbonus" id="vBon"></div>
       <div class="vsheet" id="vSheet"></div>
@@ -1472,9 +1477,21 @@ function vAoMake(m) {
     x.putImageData(id, 0, 0); m.gnd = c; m.by = thr / h; m.tf = []; const st = Math.max(3, Math.round(w * .028)); for (let i = st >> 1; i < w; i += st) if (yb[i] >= thr) m.tf.push([i / w, yb[i] / h]);
   } catch (e) {}
 }
-function vSprLoad() { if (!VBASE.img) { VBASE.img = new Image(); VBASE.img.onload = () => { VBASE.ok = 1; VS.dirty = true; }; VBASE.img.src = VBASE.src; }
+function vSprLoad() { if (VS.sprQ) return; VS.sprQ = 1; // roda uma vez só: logo que o jogo abre (ver vPreload) ou, no máximo, ao entrar na ilha
+  if (VBASEIMG && !VBASE.img) { VBASE.img = new Image(); VBASE.img.onload = () => { VBASE.ok = 1; VS.dirty = true; }; VBASE.img.src = VBASE.src; }
   if (!VISL.img) { VISL.img = new Image(); VISL.img.onload = () => { const c = document.createElement('canvas'); c.width = VISL.w; c.height = VISL.h; const x = c.getContext('2d'); x.drawImage(VISL.img, 0, 0, VISL.w, VISL.h); x.globalCompositeOperation = 'source-in'; x.fillStyle = '#fff'; x.fillRect(0, 0, VISL.w, VISL.h); VISL.sil = c; VISL.ok = 1; VS.dirty = true; }; VISL.img.src = VISL.src; }
-  for (const n in VSPR) { const m = VSPR[n]; if (m.img) continue; m.img = new Image(); m.img.onload = () => { const c = document.createElement('canvas'); c.width = m.w; c.height = m.h; const x = c.getContext('2d'); x.drawImage(m.img, 0, 0, m.w, m.h); x.globalCompositeOperation = 'source-in'; x.fillStyle = '#000'; x.fillRect(0, 0, m.w, m.h); m.sil = c; if (/^(cais|nav)/.test(n)) vWetMake(m, n[0] === 'n', n); else if (!/^palm/.test(n)) vAoMake(m); m.ok = 1; VS.dirty = true; }; if (n[0] === 'c') { m.st = 1.3; m.ay = .231; } if (!/^(palm|plot|cais|nav)/.test(n)) m.ay = +(1 - .17 * m.w / m.h).toFixed(3); m.img.src = m.src; } }
+  for (const n in VSPR) { const m = VSPR[n]; if (/^cais/.test(n)) { m.st = 1.3; m.ay = .231; } if (!/^(palm|plot|cais|nav)/.test(n)) m.ay = +(1 - .17 * m.w / m.h).toFixed(3); }
+  const need = {}; try { for (const d of VDEF) { const sn = vSprOf(d.k, vStg(vLv(d.k))); if (sn) need[sn] = 1; } } catch (e) {}
+  const pri = (n) => need[n] || /^(palm|plot)/.test(n) ? 0 : 1, fila = Object.keys(VSPR).sort((a, b) => pri(a) - pri(b)); let qi = 0;
+  const prox = () => { if (qi >= fila.length) return; const n = fila[qi++], m = VSPR[n], segue = () => setTimeout(prox, 0); m.img = new Image(); m.img.onerror = segue;
+    m.img.onload = () => { const c = document.createElement('canvas'); c.width = m.w; c.height = m.h; const x = c.getContext('2d'); x.drawImage(m.img, 0, 0, m.w, m.h); x.globalCompositeOperation = 'source-in'; x.fillStyle = '#000'; x.fillRect(0, 0, m.w, m.h); m.sil = c; if (/^(cais|nav)/.test(n)) vWetMake(m, n[0] === 'n', n); else if (!/^palm/.test(n)) vAoMake(m); m.ok = 1;
+      if (!VS.rdy || (VS.objs || []).concat(VS.deco || [], VS.huts || []).some((o) => o.spr === n)) VS.dirty = true; segue(); }; // só redesenha o terreno se a imagem está em uso
+    m.img.src = m.src; };
+  prox(); prox(); prox(); }
+// A ilha só aparece quando a imagem do terreno e as imagens em uso estão prontas: nada de ilha "de reserva" piscando na entrada.
+function vIslReady(now) { if (!VS.ld0) VS.ld0 = now; if (now - VS.ld0 > 12) return true; if (!VISL.ok) return false; vSceneObjs(); return VS.objs.concat(VS.deco || [], VS.huts || []).every((o) => !o.spr || !VSPR[o.spr] || VSPR[o.spr].ok); }
+function vPreload() { try { vSprLoad(); } catch (e) {} }
+setTimeout(vPreload, 500);
 const vSprOf = (k, l) => { if (l === 0) return k === 'nav' ? 'nav1' : k === 'cais' ? 'cais1' : 'plot'; for (let s = l; s > 0; s--) { if (VSPR[k + s]) return k + s; if (VALIAS[k] && VSPR[VALIAS[k] + s]) return VALIAS[k] + s; } return null; }; // quem não tem o visual pedido usa o mais avançado que tiver
 function vBuildObj(d, scale) {
   const l = vLv(d.k); OUT = []; const k = (scale == null ? 1 : scale) * 1.35;
@@ -1612,6 +1629,7 @@ function vFrame(ts) {
   VS.raf = requestAnimationFrame(vFrame);
   const now = ts / 1000, dt = Math.min(.05, now - (VS.lt || now)); VS.lt = now; VS.t = now;
   if (VS.tp) { VS.px += (VS.tp[0] - VS.px) * Math.min(1, dt * 7); VS.py += (VS.tp[1] - VS.py) * Math.min(1, dt * 7); if (Math.abs(VS.tp[0] - VS.px) + Math.abs(VS.tp[1] - VS.py) < 1) VS.tp = null; }
+  if (!VS.rdy) { const bx = $('v3'); if (!vIslReady(now)) { if (bx) bx.classList.add('carrega'); return; } VS.rdy = 1; VS.dirty = true; if (bx) bx.classList.remove('carrega'); }
   if (VS.dirty) { vSceneObjs(); vRenderCache(); VS.cam = null; }
   // qualidade automática: se o celular engasgar, alivia
   VS.fa = (VS.fa || 0) + dt; VS.fn = (VS.fn || 0) + 1; if (VS.fn >= 50) { const avg = VS.fa / VS.fn; VS.fa = 0; VS.fn = 0; if (avg > .021 && VS.q > 0) { if (++VS.slow >= 2) { VS.q--; VS.slow = 0; vResize(); if (VS.q === 0) VS.dirty = true; } } else VS.slow = 0; }
