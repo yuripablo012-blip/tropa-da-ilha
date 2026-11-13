@@ -10,6 +10,7 @@ Ninguém no momento (livre).
 
 ## Recados
 
+- 2026-11-13 — `claude/hopeful-galileo-t00naw` — `index.html`: na primeira vez, escolher o pirata leva direto à fase 1; tutorial de 3 passos na primeira batalha (`tutStart`/`tutEnd`, marca `P.tut`): atirar, mover, bomba. Faixa de onda com fonte que cabe na tela (`.wave`).
 - 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: aba BATALHA reorganizada por CSS (`#pg-play`): o botão JOGAR fica sempre visível acima do menu e pulsa; logo e pirata encolhem conforme a altura da tela (`--st`), sem rolagem.
 - 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: terreno trocado por uma ilha nova, de imagem única (`VISL`, 1672×941, `ppu` 16; `sprites/ilha.png`), com praia só na frente e costa de pedra. Saiu a praia desenhada por código; ficaram só espuma e raso. As 15 construções em terra foram postas nas 15 clareiras, e o cais e o navio na praia (`VDEF`).
 - 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: a faixa de praia pintada da imagem da ilha virou grama (`VISL`, `sprites/ilha.png`), aumentando a área verde; a areia fica só por conta da praia por código. Cais e navio avançados para o cais ficar sobre a água; câmera abre um pouco mais afastada e mais para baixo.
