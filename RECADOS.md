@@ -10,6 +10,7 @@ Ninguém no momento (livre).
 
 ## Recados
 
+- 2026-11-13 — `claude/hopeful-galileo-t00naw` — `index.html`: a LOJA saiu do canto de cima e virou a sexta aba do menu de baixo (`#shopBtn.navshop`, dourada, com o saldo de gemas). O menu passou a 6 colunas e o clique de página vale só para botões com `data-pg`.
 - 2026-11-13 — `claude/hopeful-galileo-t00naw` — `index.html`: modo de teste desligado (`VTEST1 = false`; atalho de teste: 7 toques nas moedas do lobby dão moedas e gemas — REMOVER antes de publicar). Economia e dificuldade em ajuste (`vCost`, `DIFF`, fator `.7` na recompensa em `finish`) — valores ainda sendo validados por simulação. Fase 1 com onda de abertura mais densa e uma onda a mais (`buildWaves`); botão `PRÓXIMA FASE` na vitória. Ilha com vida no `vFrame`: moradores andando (`VS.walk`, `sprWalk` com `WCTX`), barco ao largo, borboletas, moedas subindo e sombras de nuvem.
 - 2026-11-13 — `claude/hopeful-galileo-t00naw` — `index.html`: LOJA em modo demonstração (`SHOP_DEMO = true`, sem cobrança). Moeda nova `P.gems`; três pacotes em escada (`PACKS`: R$ 4,99, 9,90, 14,90), um por vez, registrados em `P.buys`; itens pagos com gemas (`GEMSHOP`); oferta abre sozinha uma vez em marcos de conquista (`shopOffer`). O ponto para ligar o pagamento real está marcado com `TODO pagamento`.
 - 2026-11-13 — `claude/hopeful-galileo-t00naw` — `index.html`: na primeira vez, escolher o pirata leva direto à fase 1; tutorial de 3 passos na primeira batalha (`tutStart`/`tutEnd`, marca `P.tut`): atirar, mover, bomba. Faixa de onda com fonte que cabe na tela (`.wave`).
