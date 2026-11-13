@@ -440,6 +440,7 @@ button { transition: scale .12s cubic-bezier(.3,1.8,.5,1); }
 #mapOv, #giftOv, #missOv, #pick, #pauseOv, #end, #shopOv, #chestOv, #genOv { background: radial-gradient(ellipse at 50% 30%, #17406e, #071a33 75%) !important; }
 .lnav { gap: 5px !important; padding-left: 8px !important; padding-right: 8px !important; }
 .lnav button { font-size: clamp(8px, 2.5vw, 11px) !important; padding-left: 0 !important; padding-right: 0 !important; min-width: 0; }
+.lnav.noshop { grid-template-columns: repeat(5, 1fr) !important; gap: 8px !important; padding-left: 12px !important; padding-right: 12px !important; } .lnav.noshop button { font-size: 11px !important; }
 .lnav button.navshop { background: linear-gradient(180deg, #ffd84a, #e08a10) !important; color: #2b1a0e !important; border-color: #6b3d05 !important; }
 .lnav button.navshop small { position: absolute; top: -10px; left: -5px; background: #10233f; color: #fff; border: 2px solid #7fd6ff; border-radius: 9px; font-size: 9px; font-weight: 900; padding: 1px 5px; white-space: nowrap; text-transform: none; letter-spacing: 0; }
 .lnav button.navshop small b { color: #7fd6ff; }
@@ -2425,6 +2426,7 @@ function renderGifts() {
   $('giftDot').classList.toggle('show', s2.can || ready);
 }
 /* ---------- LOJA ---------- */
+const SHOP_ON = false; // loja escondida: sem botão no menu e sem oferta automática. Trocar para true traz tudo de volta.
 const SHOP_DEMO = true; // true = compra simulada, sem cobrança. O pagamento real ainda não está ligado.
 const PACKS = [
   { id: 'p1', n: 'Pacote Iniciante', price: 'R$ 4,99', tag: 'OFERTA ÚNICA', d: 'O melhor custo-benefício do jogo. Só pode ser comprado uma vez.', gems: 500, coins: 3000, chest: 'e', when: () => (P.wins || 0) >= 3 },
@@ -2440,7 +2442,7 @@ const GEMSHOP = [
 ];
 const shopBought = (id) => (P.buys || []).includes(id);
 const shopNext = () => PACKS.find((p) => !shopBought(p.id)); // um pacote por vez: o seguinte só aparece depois de comprar o anterior
-function shopHud() { $('shopGems').textContent = fmtN(P.gems || 0); const p = shopNext(); $('shopDot').classList.toggle('show', !!p && p.when() && !(P.offSeen || {})[p.id + 'v']); }
+function shopHud() { $('shopBtn').hidden = !SHOP_ON; document.querySelector('.lnav').classList.toggle('noshop', !SHOP_ON); $('shopGems').textContent = fmtN(P.gems || 0); const p = shopNext(); $('shopDot').classList.toggle('show', !!p && p.when() && !(P.offSeen || {})[p.id + 'v']); }
 function renderShop() {
   $('shGems').textContent = fmtN(P.gems || 0); $('shDemo').style.display = SHOP_DEMO ? '' : 'none';
   const p = shopNext(), g = P.gems || 0; let h = '';
@@ -2466,7 +2468,7 @@ $('shBody').addEventListener('click', (e) => {
     shopAsk(it.n, 'Gastar <b>💎 ' + it.cost + '</b> gemas?', () => { P.gems -= it.cost; save(); sfx('power'); it.run(); renderShop(); shopHud(); renderLobby(); $('menuCoins').textContent = fmtN(P.coins); }); }
 });
 // oferta aparece sozinha uma vez, num momento de conquista (nunca depois de derrota)
-function shopOffer() { const p = shopNext(); if (!p || !p.when()) return; P.offSeen = P.offSeen || {}; if (P.offSeen[p.id]) return; if ([...document.querySelectorAll('.screen')].some((x) => !x.classList.contains('hidden') && x.id !== 'menu')) return; P.offSeen[p.id] = 1; save(); openShop(); }
+function shopOffer() { if (!SHOP_ON) return; const p = shopNext(); if (!p || !p.when()) return; P.offSeen = P.offSeen || {}; if (P.offSeen[p.id]) return; if ([...document.querySelectorAll('.screen')].some((x) => !x.classList.contains('hidden') && x.id !== 'menu')) return; P.offSeen[p.id] = 1; save(); openShop(); }
 $('giftBtn').addEventListener('click', () => { renderGifts(); $('giftOv').classList.remove('hidden'); beep(700, .06, 'triangle', .05); });
 $('giftClose').addEventListener('click', () => { $('giftOv').classList.add('hidden'); renderLobby(); });
 $('dailyBtn').addEventListener('click', () => { const s2 = dailyState(); if (!s2.can) return; P.coins += DAILY[s2.next]; P.daily = { last: today(), streak: s2.next + 1 }; save(); sfx('power'); renderGifts(); renderLobby(); });
