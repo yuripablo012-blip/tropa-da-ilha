@@ -10,6 +10,7 @@ Ninguém no momento (livre).
 
 ## Recados
 
+- 2026-11-13 — `claude/hopeful-galileo-t00naw` — `index.html`: cada construção de terra ganhou 3 visuais novos (`<chave>4..6` em `VSPR`, 45 imagens); o visual agora muda a cada 3 níveis até o nível 16 (`VSTG = 6`), depois seguem estrelas e efeitos sem limite. A janela de melhoria mostra o próximo visual. `ferramentas/nova_construcao.py --mais` recorta os visuais 4–6. Cais e navio continuam com 3 visuais. Arquivo foi de 4,7 para 7,1 MB. Liberado.
 - 2026-11-13 — `claude/hopeful-galileo-t00naw` — `index.html`: mira automática desligada (`AUTO_AIM = false`): o canhão atira reto para cima e o jogador mira arrastando o canhão; tocar num inimigo não trava mais o alvo. Tutorial e dica reescritos. Botão do especial subiu para não ficar sobre o canhão (`.special`). Tela de pausa com os três botões do mesmo tamanho (`#pauseOv`).
 - 2026-11-13 — `claude/hopeful-galileo-t00naw` — `index.html`: loja escondida (`SHOP_ON = false`): some a aba LOJA do menu, que volta a 5 abas, e a oferta automática não abre. O código da loja, as gemas e as compras já feitas continuam no lugar.
 - 2026-11-13 — `claude/hopeful-galileo-t00naw` — `index.html`: mira da batalha desligada (`SHOW_AIM = false`): somem o círculo, a linha tracejada, o cadeado e o bipe de troca de alvo. A mira automática do canhão continua igual.
