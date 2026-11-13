@@ -1027,7 +1027,7 @@ function tutStart() {
     if (T.ok) { if (Date.now() - T.ok > 1100) { T.ok = 0; T.step++; T.x0 = G.px; if (T.step > 3) { tutEnd(); return; } } else return; }
     if (T.step === 1) { tutShow('<b>1/3</b> 👆 <em>Toque na tela</em> para atirar nos piratas'); if (P.shots >= T.shots + 2) { tutShow('✅ Isso! Boa pontaria'); T.ok = Date.now(); } }
     else if (T.step === 2) { tutShow('<b>2/3</b> 👈👉 <em>Segure e arraste</em> para mover o canhão'); if (Math.abs(G.px - T.x0) > 55) { tutShow('✅ Perfeito!'); T.ok = Date.now(); } }
-    else if (T.step === 3) { if (G.charge >= 1) { tutShow('<b>3/3</b> 💣 Bomba carregada! <em>Toque na bomba</em> ↘'); $('spBtn').classList.add('tutglow'); } else if (G.rain > 0) { $('spBtn').classList.remove('tutglow'); tutShow('✅ Chuva de balas! Agora é com você'); T.ok = Date.now(); } else tutShow('<b>3/3</b> 💣 Derrote piratas para <em>carregar a bomba</em> ↘'); }
+    else if (T.step === 3) { if (G.charge >= 1) { tutShow('<b>3/3</b> 💣 Poder pronto! <em>Toque no botão</em> e escolha uma carta ↘'); $('spBtn').classList.add('tutglow'); } else if (G.rain > 0) { $('spBtn').classList.remove('tutglow'); tutShow('✅ Chuva de balas! Agora é com você'); T.ok = Date.now(); } else tutShow('<b>3/3</b> 💣 Derrote piratas para <em>carregar o poder</em> ↘'); }
   }, 150) };
 }
 function startLevel() {
@@ -1827,7 +1827,7 @@ function openPick() {
   G.state = 'pick'; G.holding = false;
   const avail = POWERS.filter((p) => (G.pw[p.id] || 0) < p.max);
   const pick = []; while (pick.length < 3 && avail.length) pick.push(avail.splice(Math.floor(Math.random() * avail.length), 1)[0]);
-  $('pickSub').textContent = 'Onda ' + (G.wi + 1) + ' vencida! Escolha uma carta:';
+  $('pickSub').textContent = 'Poder carregado! Escolha uma carta:';
   $('cards').innerHTML = pick.map((p) => `<button class="card" data-pw="${p.id}" style="--c1:${p.c[0]};--c2:${p.c[1]}"><span class="ci">${{ blast: ii('dmg', 'ii i-cd'), rate: ii('rate', 'ii i-cd'), heart: ii('heart', 'ii i-cd'), coin: ii('coin', 'ii i-cd') }[p.id] || p.ic}</span><span class="cn">${p.n}</span><span class="cd">${p.d}</span>${synHint(p.id)}${G.pw[p.id] ? `<span class="cl">Nível ${G.pw[p.id] + 1}</span>` : '<span class="cl">NOVO</span>'}</button>`).join('');
   $('pick').classList.remove('hidden'); sfx('power');
 }
@@ -1836,16 +1836,16 @@ $('cards').addEventListener('click', (e) => {
   const p = POWERS.find((x) => x.id === b.dataset.pw); p.ap(); G.pw[p.id] = (G.pw[p.id] || 0) + 1; mprog('card'); synCheck();
   $('pick').classList.add('hidden'); G.state = 'run'; last = performance.now(); sfx('coin');
   addFloat(CANNON().x, CANNON().y - 90, p.ic + ' ' + p.n, '#ffe36b', 20);
-  $('hint').classList.remove('hidden'); clearTimeout(G.hintT); G.hintT = setTimeout(() => $('hint').classList.add('hidden'), 2200);
-  nextWave();
+  spRain();
 });
 /* ---------- Especial: chuva de balas ---------- */
 $('spBtn').addEventListener('pointerdown', (e) => {
   e.stopPropagation();
   if (!G || G.state !== 'run' || G.charge < 1) return;
-  G.charge = 0; G.rain = 18; G.shake = 8; mprog('sp'); sfx('power'); sfx('big');
-  const el = document.createElement('div'); el.className = 'wave'; el.textContent = '💣 CHUVA DE BALAS!'; $('waveBox').innerHTML = ''; $('waveBox').appendChild(el);
+  G.charge = 0; mprog('sp');
+  if (POWERS.some((p) => (G.pw[p.id] || 0) < p.max)) openPick(); else spRain(); // escolhe uma carta e solta a chuva de balas
 });
+function spRain() { G.rain = 18; G.shake = 8; sfx('power'); sfx('big'); const el = document.createElement('div'); el.className = 'wave'; el.textContent = '💣 CHUVA DE BALAS!'; $('waveBox').innerHTML = ''; $('waveBox').appendChild(el); }
 /* ---------- Pausa ---------- */
 document.addEventListener('visibilitychange', () => { if (document.hidden && G && G.state === 'run') { G.state = 'pause'; G.holding = false; $('pauseOv').classList.remove('hidden'); } });
 function sndSync() { $('sndBtn').textContent = P.mute ? '🔇' : '🔊'; $('sndBtn2').textContent = P.mute ? '🔇 SOM DESLIGADO' : '🔊 SOM LIGADO'; }
@@ -1981,7 +1981,7 @@ function update(dt) {
   const dng = ( G.enemies.some((e) => e.t !== 'barrel' && e.y > DEF() - 110) || G.bombs.length > 0); if (dng !== HUDC.dng) { HUDC.dng = dng; $('danger').classList.toggle('on', dng); }
   const chp = Math.floor(G.charge * 100); if (chp !== HUDC.ch) { HUDC.ch = chp; $('spBtn').style.setProperty('--p', chp + '%'); $('spBtn').classList.toggle('full', chp >= 100); $('spTxt').textContent = chp >= 100 ? 'PRONTO!' : chp + '%'; }
   if (G.lives <= 0) return finish(false);
-  if (!G.spawnQ.length && !G.enemies.some((e) => e.t !== 'barrel') && !G.bombs.length) { if (G.wi < G.waves.length - 1) openPick(); else nextWave(); }
+  if (!G.spawnQ.length && !G.enemies.some((e) => e.t !== 'barrel') && !G.bombs.length) { nextWave(); }
 }
 function explode(x, y, mult = 1, rmult = 1) {
   const R = 34 * (1 + G.blast * .4) * rmult, dmg = G.dmg * mult * ((G.syn || {}).vapor ? 1.25 : 1);
