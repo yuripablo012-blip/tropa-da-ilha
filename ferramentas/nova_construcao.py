@@ -1,6 +1,7 @@
 """Recorta uma imagem com os 3 níveis de uma construção (lado a lado, fundo magenta) e inclui no jogo.
 
 Uso: python3 nova_construcao.py <index.html> <pasta_sprites> <chave>=<imagem> [<chave>=<imagem> ...]
+Se a chave já existir no jogo, os três níveis antigos são substituídos.
 A chave é a de VDEF no index.html (ex.: vig, mer, forte, mina, kra, casa1).
 
 O fundo é detectado como magenta forte em qualquer lugar, mais o magenta mais fraco ligado à borda
@@ -15,7 +16,7 @@ def recorta(src):
     d = np.minimum(r, b) - g
     forte = (r > 200) & (b > 190) & (g < 85)
     fraco = (d > 95) & (r > 150) & (b > 150)
-    m = Image.fromarray((fraco * 255).astype(np.uint8)); H, W = fraco.shape
+    m = Image.fromarray((fraco * 255).astype(np.uint8)).copy(); H, W = fraco.shape  # .copy(): a imagem vinda do numpy é só leitura e o floodfill não a altera
     for p in [(0, 0), (W - 1, 0), (0, H - 1), (W - 1, H - 1), (W // 2, 0), (W // 2, H - 1), (0, H // 2), (W - 1, H // 2), (W // 3, 0), (2 * W // 3, 0), (W // 3, H - 1), (2 * W // 3, H - 1)]:
         if m.getpixel(p) == 255: ImageDraw.floodfill(m, p, 128)
     fundo = forte | (np.asarray(m) == 128)
@@ -40,10 +41,12 @@ if __name__ == '__main__':
     s = open(html, encoding='utf-8').read()
     i = s.index('const VSPR = {'); j = s.index('\n', i); line = s[i:j]
     meta = json.loads(re.sub(r'"src":"[^"]+"', '"src":""', line[len('const VSPR = '):].rstrip(';')))
-    ratio = float(np.mean([meta[k + '3']['u'] / meta[k + '3']['w'] for k in ('tes', 'tav', 'fer', 'far', 'est')]))
+    ratio = 0.02589  # unidades do mundo por pixel do sprite (mesma escala de todas as construções)
     novo = {}
     for arg in sys.argv[3:]:
-        key, src = arg.split('=', 1); assert ('"%s1"' % key) not in line, key + ' já existe'
+        key, src = arg.split('=', 1)
+        for n in (1, 2, 3):  # se a construção já existe, a imagem antiga é substituída
+            line = re.sub(r'"%s%d":\{[^{}]*\},?' % (key, n), '', line)
         parts = niveis(recorta(src)); w3, h3 = parts[2].size; sc = 420 / max(w3, h3)
         for n, p in enumerate(parts):
             im = p.resize((max(1, round(p.size[0] * sc)), max(1, round(p.size[1] * sc))), Image.LANCZOS); im.save('%s/%s%d.png' % (sprdir, key, n + 1))
