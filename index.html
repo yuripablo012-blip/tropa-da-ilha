@@ -1121,7 +1121,7 @@ function spawn(s) {
 function toLocal(e) { const r = $('app').getBoundingClientRect(); return [(e.clientX - r.left) * W / r.width, (e.clientY - r.top) * W / r.width]; }
 cv.addEventListener('pointerdown', (e) => { if (!G || G.state !== 'run') return; const [x, y] = toLocal(e);
   const hit = G.enemies.filter((en) => !en.dead && en.t !== 'barrel' && Math.hypot(en.x - x, en.y - y) < (en.t === 'boss' ? 70 : en.big ? 40 : 30) * persp(en.y) + 8).sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y))[0];
-  if (hit) { G.lockT = hit; beep(1200, .05, 'square', .03); addFloat(hit.x, hit.y - 40 * persp(hit.y), '🔒', '#fff', 18); G.holding = true; tryFire(); return; } G.holding = true; G.tpx = Math.max(50, Math.min(W - 50, x)); tryFire(); });
+  if (hit) { G.lockT = hit; if (SHOW_AIM) { beep(1200, .05, 'square', .03); addFloat(hit.x, hit.y - 40 * persp(hit.y), '🔒', '#fff', 18); } G.holding = true; tryFire(); return; } G.holding = true; G.tpx = Math.max(50, Math.min(W - 50, x)); tryFire(); });
 cv.addEventListener('pointermove', (e) => { if (!G || !G.holding) return; const [x] = toLocal(e); G.tpx = Math.max(50, Math.min(W - 50, x)); });
 addEventListener('pointerup', () => { if (G) G.holding = false; });
 function tryFire() {
@@ -1930,6 +1930,7 @@ const SYN = [
 const synOf = (id) => SYN.find((y) => !(G.syn || {})[y.k] && ((y.a === id && G.pw[y.b]) || (y.b === id && G.pw[y.a])));
 const synHint = (id) => { const y = synOf(id); return y ? '<span class="cl" style="color:#1d2230;background:#ffe36b;border-radius:8px;padding:1px 7px">🔗 ' + y.n + '</span>' : ''; };
 function synCheck() { G.syn = G.syn || {}; for (const y of SYN) if (!G.syn[y.k] && G.pw[y.a] && G.pw[y.b]) { G.syn[y.k] = 1; G.slo = .6; G.shake = 10; buzz([30, 40, 60]); sfx('big'); setTimeout(() => { if (!G) return; const el = document.createElement('div'); el.className = 'wave fury'; el.textContent = y.ic + ' ' + y.n + '!'; $('waveBox').innerHTML = ''; $('waveBox').appendChild(el); addFloat(W / 2, H * .5, y.d, '#ffe36b', 18); }, 900); } }
+const SHOW_AIM = false; // mira (círculo, linha tracejada e cadeado) desligada: o canhão continua mirando sozinho
 function update(dt) {
   G.shake = Math.max(0, G.shake - dt * 30);
   if (G.comboT > 0) { G.comboT -= dt; if (G.comboT <= 0 && G.combo >= 5) addFloat(W / 2, 150, 'Combo x' + G.combo + '!', '#9fe8ff', 18); if (G.comboT <= 0) G.combo = 0; }
@@ -1957,7 +1958,7 @@ function update(dt) {
   // mira: desliza até o ponto onde a bala vai cair e trava
   if (G.target) {
     const tx = G.target.x, ty = G.target.ly !== undefined && G.target.t !== 'bomb' ? G.target.ly : G.target.y;
-    if (G.rtgt !== G.target) { G.rtgt = G.target; G.rlock = 0; beep(1500, .025, 'square', .015); }
+    if (G.rtgt !== G.target) { G.rtgt = G.target; G.rlock = 0; if (SHOW_AIM) beep(1500, .025, 'square', .015); }
     G.rx += (tx - G.rx) * Math.min(1, dt * 16); G.ry += (ty - G.ry) * Math.min(1, dt * 16); G.rlock = Math.min(1, G.rlock + dt * 5);
   }
   want = Math.max(-1.2, Math.min(1.2, want));
@@ -2250,7 +2251,7 @@ function drawScene() {
     else { const r = f.r * (.45 + p * .75), g = ctx.createRadialGradient(f.x, f.y, r * .05, f.x, f.y, r); g.addColorStop(0, '#fffbe0'); g.addColorStop(.3, f.c); g.addColorStop(.72, f.c); g.addColorStop(1, 'rgba(60,30,10,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(f.x, f.y, r, 0, 7); ctx.fill();
       if (p < .5) { ctx.globalAlpha = (.5 - p) * 1.1; ctx.strokeStyle = '#ffe9a8'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(f.x, f.y, r * 1.05, 0, 7); ctx.stroke(); } }
     ctx.globalAlpha = 1; }
-  if (G.target) {
+  if (SHOW_AIM && G.target) {
     const e = G.target, k = e.t === 'bomb' ? 1 : persp(e.y), base = e.t === 'boss' ? 58 : e.big ? 30 : e.t === 'bomb' ? 24 : 20;
     const r = base * k * (1 + (1 - G.rlock) * .9), x = G.rx, y = G.ry;
     const near = e.t !== 'bomb' && e.y > DEF() - 110, col = e.t === 'bomb' ? '#ff4040' : e.t === 'barrel' ? '#ffd23f' : e.kind === 'gold' ? '#ffe36b' : e.sh > 0 ? '#5ab8ff' : near ? (Math.sin(G.t * 20) > 0 ? '#ff9a2e' : '#ff3b3b') : '#ff3b3b';
