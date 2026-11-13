@@ -826,14 +826,16 @@ function tinted(k, f) {
   if (!c) { c = document.createElement('canvas'); c.width = s.im.naturalWidth; c.height = s.im.naturalHeight; const x = c.getContext('2d'); x.filter = f; x.drawImage(s.im, 0, 0); c.naturalWidth = c.width; c.naturalHeight = c.height; TCACHE.set(key, c); }
   return c;
 }
+let WCTX = null;
 function sprWalk(k, x, y, h, phase, flash) {
+  const X = WCTX || ctx;
   const s = SPR[k]; if (!s || !s.im.complete) return;
   const im = TINT ? tinted(k, TINT) : s.im, iw = im.naturalWidth || im.width, ih = im.naturalHeight || im.height, w = h * s.ar;
   const legH = .3, ov = .07;                       // altura das pernas e sobreposição com o corpo
   const srcY = ih * (1 - legH - ov), srcH = ih * (legH + ov);
   const bob = Math.abs(Math.sin(phase)) * h * .012;  // corpo quase parado
-  ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(x, y + h * .44, w * .36, h * .075, 0, 0, 7); ctx.fill();
-  ctx.save(); ctx.translate(x, y + h * .45);
+  X.fillStyle = 'rgba(0,0,0,.22)'; X.beginPath(); X.ellipse(x, y + h * .44, w * .36, h * .075, 0, 0, 7); X.fill();
+  X.save(); X.translate(x, y + h * .45);
   const top = -h * .97, legTop = top + h * (1 - legH - ov);
   // cada perna dá um passo: vai para a frente (desce e cresce), levanta e volta
   for (const side of [0, 1]) {
@@ -843,14 +845,14 @@ function sprWalk(k, x, y, h, phase, flash) {
     const sc = 1 + fwd * .07;
     const lw = w / 2, lh = h * (legH + ov) * sc;
     const lx = -w / 2 + (side ? w / 2 : 0) + (side ? -1 : 1) * fwd * w * .01;
-    ctx.drawImage(im, side ? iw / 2 : 0, srcY, iw / 2, srcH, lx, legTop + fwd * h * .035 - lift - bob * .3, lw, lh);
+    X.drawImage(im, side ? iw / 2 : 0, srcY, iw / 2, srcH, lx, legTop + fwd * h * .035 - lift - bob * .3, lw, lh);
   }
   // corpo (cobre o começo das pernas)
-  ctx.save(); ctx.translate(0, -bob); ctx.rotate(Math.sin(phase) * .025);
-  ctx.drawImage(im, 0, 0, iw, ih * (1 - legH), -w / 2, top, w, h * (1 - legH));
-  ctx.restore();
-  if (flash > 0) { ctx.globalCompositeOperation = 'source-atop'; ctx.globalAlpha = .6; ctx.fillStyle = '#fff'; ctx.fillRect(-w / 2, top - 4, w, h + 8); }
-  ctx.restore();
+  X.save(); X.translate(0, -bob); X.rotate(Math.sin(phase) * .025);
+  X.drawImage(im, 0, 0, iw, ih * (1 - legH), -w / 2, top, w, h * (1 - legH));
+  X.restore();
+  if (flash > 0) { X.globalCompositeOperation = 'source-atop'; X.globalAlpha = .6; X.fillStyle = '#fff'; X.fillRect(-w / 2, top - 4, w, h + 8); }
+  X.restore();
 }
 const persp = (y) => Math.max(.5, Math.min(1.05, .5 + .55 * (y / Math.max(1, DEF()))));
 function spr(k, x, y, h, flip) {
@@ -968,14 +970,15 @@ const curLv = () => (G ? G.lv : (P.sel || P.level));
 const CANNON = () => ({ x: G ? G.px : W / 2, y: H - 100 });
 const DEF = () => H - 205;
 const SHOW_FENCE = false;                  // linha que os piratas não podem passar
-const DIFF = (n) => 1 + (n - 1) * .45 + Math.max(0, n - 8) * .2 + Math.max(0, n - 15) * .25;   // força dos inimigos por fase
+const DIFF = (n) => 1 + (n - 1) * .65 + Math.max(0, n - 4) * .1 + Math.max(0, n - 8) * .2 + Math.max(0, n - 15) * .25;   // força dos inimigos por fase
 function buildWaves(n) {
   const waves = [];
-  const count = 2 + Math.min(2, Math.floor(n / 4));              // fases curtas: 2 a 4 ondas + chefão
+  const count = (n === 1 ? 3 : 2) + Math.min(2, Math.floor(n / 4));              // fases curtas: 2 a 4 ondas + chefão
   for (let w = 0; w < count; w++) {
     const list = [];
-    const k = 6 + Math.min(8, Math.floor(n * .7)) + w * 2;
-    const gap = Math.max(.45, .8 - n * .02);
+    const open1 = n === 1 && w === 0;
+    const k = open1 ? 7 : 6 + Math.min(8, Math.floor(n * .7)) + w * 2;
+    const gap = open1 ? .42 : Math.max(.45, .8 - n * .02);
     for (let i = 0; i < k; i++) list.push({ t: 'enemy', delay: i * rnd(gap * .7, gap * 1.3), big: false });
     const T = k * gap;
     for (let i = 0; i < 1 + Math.floor((n + w) / 3); i++) list.push({ t: 'enemy', delay: rnd(1, T), big: true });
@@ -1148,9 +1151,9 @@ const VLMAX = 9, vStg = (l) => l ? Math.ceil(l / 3) : 0, vR = (x) => String(Math
 function V() { if (!P.vila) P.vila = { i: 0, b: {}, t: Date.now(), v9: 1, z0: 1 }; if (!P.vila.v9) { for (const k in P.vila.b) P.vila.b[k] *= 3; P.vila.v9 = 1; } if (!P.vila.z0) { P.vila.b = {}; P.vila.z0 = 1; } return P.vila; } // v9: saves antigos (3 níveis) viram 3/6/9
 const vLv = (k) => V().b[k] || 0;
 const vTot = (k) => V().i * 3 + vLv(k) / 3; // bônus igual ao de antes no nível cheio; cada passo vale um terço
-const VTEST1 = true; // modo teste: tudo custa 1 moeda
+const VTEST1 = false; // modo teste (tudo custa 1 moeda e 100 mil de brinde): desligado. Para testar, toque 7 vezes seguidas nas moedas do lobby.
 if (VTEST1 && !P.t100k) { P.coins = Math.max(P.coins || 0, 100000); P.t100k = 1; save(); } // modo teste: 100 mil moedas, uma vez por save
-const vCost = (k) => { if (VTEST1) return 1; const d = VDEF.find((x) => x.k === k), l = vLv(k); return Math.round(d.c * [.6, .8, 1, 1.3, 1.6, 2, 2.6, 3.2, 4][l] * Math.pow(2.4, V().i) / 5) * 5; };
+const vCost = (k) => { if (VTEST1) return 1; const d = VDEF.find((x) => x.k === k), l = vLv(k); return Math.round(d.c * [.6, 1, 1.6, 2.4, 3.5, 5, 7, 10, 14][l] * Math.pow(2.4, V().i) / 5) * 5; };
 const vRate = (t) => Math.round(12 * t);
 const vDone = () => VACT().reduce((a, d) => a + vLv(d.k), 0);
 const VB = () => ({ cr: vTot('forte') * .02, cb: vTot('vig') * .15, fu: vTot('kra') * .5, ch: vTot('mer') * .03, c: vTot('cais') * .05 + vTot('nav') * .06, x: vTot('tav') * .08 + vTot('nav') * .06, d: vTot('fer') * .04, r: vTot('far') * .03, h: Math.floor(vTot('est') / 2) });
@@ -1547,10 +1550,31 @@ function vFrame(ts) {
   ctx.fillStyle = 'rgba(150,190,150,.22)'; for (let q = 0; q < 4; q++) { rp(1.27 - q * .035); ctx.fill(); }
   ctx.lineJoin = 'round';
   for (let q = 0; q < 2; q++) { const ph = (now * .07 + q / 2) % 1, ff = 1.34 - ph * .2, al = Math.sin(ph * Math.PI); ctx.strokeStyle = 'rgba(235,252,255,' + (al * .3).toFixed(3) + ')'; ctx.lineWidth = Math.max(2, VS.S * (.14 + ph * .22)); rp(ff); ctx.stroke(); }
+  // barco passando ao largo (atrás da ilha quando está no fundo)
+  const boat = (front) => { const m = VSPR.nav1; if (!m || !m.ok) return; const a = now * .045, bx = Math.cos(a) * 62, bz = Math.sin(a) * 50; if ((bx + bz > 0) !== front) return; const q = vScr(bx, 0, bz), sw = m.u * VS.S * .8, sh = sw * m.h / m.w, by = q[1] - sh * .62 + Math.sin(now * 1.3) * VS.S * .12; if (q[0] < -sw || q[0] > W + sw || by > H || by + sh < 0) return;
+    ctx.save(); ctx.globalAlpha = .28; ctx.strokeStyle = '#fff'; ctx.lineWidth = VS.S * .09; for (let r = 0; r < 3; r++) { ctx.beginPath(); ctx.ellipse(q[0], q[1] + sh * .08, sw * (.45 + r * .22 + (now * .25 % .22)), sw * (.16 + r * .08), 0, 0, 6.29); ctx.stroke(); } ctx.restore();
+    ctx.save(); ctx.translate(q[0], by); if (-Math.sin(a) + Math.cos(a) < 0) ctx.scale(-1, 1); ctx.drawImage(m.wet || m.img, -sw / 2, 0, sw, sh); ctx.restore(); };
+  boat(false);
   // ilha (cache)
   const k = VS.ck, sc = VS.S / k; ctx.drawImage(VS.cache, W / 2 + VS.px - VS.cox * VS.S, H / 2 + VS.py - VS.coy * VS.S, VS.cache.width * sc, VS.cache.height * sc);
   // construções e coqueiros em imagem, na resolução da tela
-  if (VS.sprs) for (const o of VS.sprs) { const m = VSPR[o.spr]; if (!m.ok) continue; let sc = 1; const an = VS.anim[o.k]; if (an != null && o.l) { const t = Math.min(1, (now - an) / .45), c1 = 1.70158, c3 = c1 + 1; sc = .35 + .65 * (1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2)); }
+  // moradores: andam de clareira em clareira, param, comemoram. Quanto mais construções, mais gente.
+  const built = VS.objs.filter((o) => o.l > 0 && !o.wat), wantW = Math.min(12, built.length ? 2 + built.length : 0);
+  VS.walk = VS.walk || []; if (VS.walkI !== V().i) { VS.walk = []; VS.walkI = V().i; }
+  const spots = VDEF.filter((d) => d.k !== 'cais' && d.k !== 'nav');
+  while (VS.walk.length < wantW) { const h0 = built[(Math.random() * built.length) | 0]; VS.walk.push({ k: ['marujo', 'pirata', 'marujo', 'grandao'][VS.walk.length % 4], x: h0.x + 1.6, z: h0.z + 1.6, tx: h0.x + 1.6, tz: h0.z + 1.6, wait: Math.random() * 2, ph: Math.random() * 6, emo: '', et: 0, sp: 1.5 + Math.random() * .9 }); }
+  if (VS.walk.length > wantW) VS.walk.length = wantW;
+  for (const wk of VS.walk) {
+    const dx = wk.tx - wk.x, dz = wk.tz - wk.z, dd = Math.hypot(dx, dz);
+    if (dd < .15) { if ((wk.wait -= dt) <= 0) { const t = Math.random() < .7 && built.length ? built[(Math.random() * built.length) | 0] : spots[(Math.random() * spots.length) | 0]; wk.tx = t.x + 1.2 + Math.random() * 1.2; wk.tz = t.z + 1.2 + Math.random() * 1.2; wk.wait = 1.5 + Math.random() * 3.5; if (Math.random() < .5) { wk.emo = ['💰', '🍺', '⚓', '🎵', '❤️', '🔨', '😄'][(Math.random() * 7) | 0]; wk.et = 1.8; } } }
+    else { const st = Math.min(dd, wk.sp * dt); wk.x += dx / dd * st; wk.z += dz / dd * st; wk.ph += dt * 9; wk.dir = dx - dz; }
+    if (wk.et > 0) wk.et -= dt;
+  }
+  const WK = VS.walk.slice().sort((a, b) => (a.x + a.z) - (b.x + b.z)); let wi = 0;
+  const drawW = (wk) => { const q = vScr(wk.x, wk.y || .3, wk.z), h = VS.S * 1.9; if (q[0] < -h || q[0] > W + h || q[1] < -h || q[1] > H + h) return; const moving = Math.hypot(wk.tx - wk.x, wk.tz - wk.z) >= .15;
+    WCTX = ctx; const keep = TINT; TINT = ''; sprWalk(wk.k, q[0], q[1] - h * .45, h, moving ? wk.ph : 0, 0); TINT = keep; WCTX = null;
+    if (wk.et > 0) { ctx.save(); ctx.globalAlpha = Math.min(1, wk.et * 2); ctx.font = Math.round(VS.S * 1.05) + 'px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(wk.emo, q[0], q[1] - h * 1.05 - (1.8 - wk.et) * VS.S * .5); ctx.restore(); } };
+  if (VS.sprs) for (const o of VS.sprs) { while (wi < WK.length && WK[wi].x + WK[wi].z < o.x + o.z) drawW(WK[wi++]); const m = VSPR[o.spr]; if (!m.ok) continue; let sc = 1; const an = VS.anim[o.k]; if (an != null && o.l) { const t = Math.min(1, (now - an) / .45), c1 = 1.70158, c3 = c1 + 1; sc = .35 + .65 * (1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2)); }
     const q = vScr(o.x, o.y, o.z), sw = o.u * VS.S * sc, sh = sw * m.h / m.w * (m.st || 1), dx = q[0] - (o.flip ? 1 - m.ax : m.ax) * sw, dy = q[1] - m.ay * sh + (o.k === 'nav' ? Math.sin(now * 1.4) * VS.S * .09 : 0); if (dx > W || dy > H || dx + sw < 0 || dy + sh < 0) continue;
     if (o.wat && !o.ghost && m.sil) { ctx.save();
       if (o.k === 'nav') { const s = sw / m.w, ar = m.ay * m.h; ctx.globalAlpha = .2; ctx.translate(q[0], q[1]); ctx.transform(s, 0, -.218 * s, -.43 * s, 0, 0); ctx.drawImage(m.sil, 0, 0, m.w, ar, -m.ax * m.w, -ar, m.w, ar); }
@@ -1570,6 +1594,13 @@ function vFrame(ts) {
       if (o.ll[j]) { ctx.drawImage(m.img, L[0] * m.w, (L[2] - L[3]) * m.h - 1, (L[1] - L[0]) * m.w, L[3] * m.h + 3, dx + L[0] * sw, dy + (L[2] - L[3]) * sh - py, (L[1] - L[0]) * sw, L[3] * sh + 3 * py); ctx.fillStyle = VSAND[V().i % VSAND.length]; ctx.beginPath(); ctx.ellipse(X, Y + lw * .06, lw * .72, lw * .2, 0, 0, 6.29); ctx.fill(); ctx.fillStyle = 'rgba(120,72,24,.25)'; ctx.fill(); }
       else { ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = VS.S * .06; ctx.beginPath(); ctx.ellipse(X, Y - L[3] * sh * .55 + Math.sin(now * 2.6 + j) * VS.S * .03, lw * .55, lw * .17, 0, .15, 3); ctx.stroke(); } });
     if (o.wat && !o.ghost && m.wl) { ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round'; for (let pass = 0; pass < 2; pass++) { ctx.strokeStyle = pass ? 'rgba(255,255,255,' + (.42 + .15 * Math.sin(now * 2.2 + o.x)).toFixed(2) + ')' : 'rgba(225,248,255,.16)'; ctx.lineWidth = VS.S * (pass ? .05 : .24); if (pass) { ctx.setLineDash([VS.S * .42, VS.S * .3]); ctx.lineDashOffset = -now * VS.S * .25; } for (const sg of m.wl) { ctx.beginPath(); for (let j = 0; j < sg.length; j++) { const X = dx + sg[j][0] * sw, Y = dy + sg[j][1] * sh + Math.sin(now * 2.6 + sg[j][0] * 14 + o.z) * VS.S * .035; j ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); } ctx.stroke(); } } ctx.restore(); } }
+  while (wi < WK.length) drawW(WK[wi++]);
+  boat(true);
+  // borboletas sobre o gramado e moedinhas subindo das construções que rendem
+  for (let bf = 0; bf < 7; bf++) { const a = now * (.5 + bf * .07) + bf * 1.7, cxw = Math.sin(bf * 2.4) * 22, czw = Math.cos(bf * 3.1) * 16, q = vScr(cxw + Math.cos(a) * 2.2, 1.2 + Math.sin(now * 2 + bf) * .5, czw + Math.sin(a * 1.3) * 2.2), fl = Math.abs(Math.sin(now * 14 + bf)) * VS.S * .16 + 1; ctx.fillStyle = ['#ffe45c', '#ff8fc7', '#8fd3ff', '#ffffff'][bf % 4]; ctx.beginPath(); ctx.ellipse(q[0] - fl * .6, q[1], fl, VS.S * .13, .5, 0, 6.29); ctx.ellipse(q[0] + fl * .6, q[1], fl, VS.S * .13, -.5, 0, 6.29); ctx.fill(); }
+  if (built.length && Math.random() < dt * .9) { const o = built[(Math.random() * built.length) | 0]; for (let j = 0; j < 3; j++) VS.dust.push({ x: o.x + (Math.random() - .5), y: GY + 2.5, z: o.z + (Math.random() - .5), vx: (Math.random() - .5) * .6, vy: 1.6 + Math.random(), vz: (Math.random() - .5) * .6, t: 0, life: 1.1, gold: 1 }); }
+  // sombras de nuvens passando devagar
+  ctx.save(); ctx.fillStyle = 'rgba(10,30,60,.07)'; for (let c2 = 0; c2 < 2; c2++) { const q = vScr(((now * (1.1 + c2 * .5) + c2 * 60) % 140) - 70, 0, c2 ? 12 : -14); ctx.beginPath(); ctx.ellipse(q[0], q[1], VS.S * 13, VS.S * 5, 0, 0, 6.29); ctx.fill(); } ctx.restore();
   // brilhos (fogo, lampiões)
   for (const o of VS.objs) {
     for (const p of o.gl) { const q = vScr(p[0], p[1], p[2]), r = VS.S * (1.1 + Math.sin(now * 9 + p[0]) * .15); const rg = ctx.createRadialGradient(q[0], q[1], 0, q[0], q[1], r); rg.addColorStop(0, 'rgba(255,200,90,.55)'); rg.addColorStop(1, 'rgba(255,160,40,0)'); ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(q[0], q[1], r, 0, 6.29); ctx.fill(); }
@@ -1981,13 +2012,13 @@ function finish(win) {
   const stars = win ? (G.lives >= G.maxLives ? 3 : G.lives >= G.maxLives / 2 ? 2 : 1) : 0;
   P.stars = P.stars || {}; if (win) P.stars[G.lv] = Math.max(P.stars[G.lv] || 0, stars);
   const newDay = streakTouch(), fb = fireBonus();
-  const reward = Math.round((win ? (firstClear ? 20 + G.lv * 10 : 10 + G.lv * 4) + G.earned + G.lives * 3 : G.earned + 5 + G.lv * 2) * (1 + fb) * (1 + (P.vila ? VB().c : 0)) * (1 + canCoin()));
+  const reward = Math.round((win ? (firstClear ? 20 + G.lv * 10 : 10 + G.lv * 4) + G.earned + G.lives * 3 : G.earned + 5 + G.lv * 2) * (1 + fb) * (1 + (P.vila ? VB().c : 0)) * (1 + canCoin()) * .7); // .7: ritmo de 2 a 4 compras por fase
   if (win) { mprog('win'); if (stars === 3) mprog('star3'); }
   mprog('coins', reward);
   P.coins += reward; if (firstClear) { P.level++; P.sel = P.level; } if (win) P.wins++;
   const xpGain = Math.round(((G.xp || 0) + (win ? 25 : 5)) * (1 + (P.vila ? VB().x : 0))), lvBefore = P.hlv || 1, ups = addXp(xpGain); save();
   $('bossBar').classList.add('hidden');
-  $('endTitle').textContent = win ? 'VITÓRIA!' : 'DERROTA';
+  $('endTitle').textContent = win ? 'VITÓRIA!' : 'DERROTA'; $('again').textContent = win ? (firstClear ? 'PRÓXIMA FASE ▶' : 'JOGAR DE NOVO') : 'TENTAR DE NOVO';
   $('endTitle').style.color = win ? '#ffd84a' : '#ff6b6b';
   $('endStars').innerHTML = win ? [1, 2, 3].map((i) => `<span class="${i <= stars ? '' : 'off'}">⭐</span>`).join('') : '';
   if (win) [0, 350, 700].forEach((d, i) => setTimeout(() => i < stars && beep(880 + i * 220, .15, 'triangle', .07), d + 200));
@@ -2167,6 +2198,8 @@ function showPage(pg) {
   renderLobby();
   if (pg === 'vila') openVila();
 }
+let devTaps = 0, devT = 0;
+$('menuCoins').parentElement.addEventListener('click', () => { const n = Date.now(); devTaps = n - devT < 600 ? devTaps + 1 : 1; devT = n; if (devTaps >= 7) { devTaps = 0; P.coins += 50000; P.gems = (P.gems || 0) + 500; save(); sfx('big'); renderLobby(); } }); // REMOVER antes de publicar
 function renderLobby() {
   if (typeof shopHud === 'function') shopHud();
   if (typeof vilaHud === 'function') vilaHud();
