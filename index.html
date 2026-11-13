@@ -414,6 +414,14 @@ button { transition: scale .12s cubic-bezier(.3,1.8,.5,1); }
 /* JOGAR: não cortar o texto */
 .playbtn { flex: none !important; min-height: 78px; justify-content: center; }
 .lpage { padding-bottom: 20px; }
+/* o botão do especial sobe para o canto, acima da linha do canhão, que agora anda de um lado ao outro */
+.special { bottom: calc(196px + env(safe-area-inset-bottom, 0px)) !important; width: 62px !important; height: 62px !important; }
+/* pausa: os três botões com a mesma largura e altura, dentro de um painel */
+#pauseOv { gap: 14px; }
+#pauseOv .logo { font-size: clamp(34px, 11vw, 48px); margin-bottom: 4px; }
+#pauseOv .btn { width: min(78%, 290px); min-height: 58px; margin: 0; font-size: 22px; padding: 12px 10px 8px; display: flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; }
+#pauseOv .btn .emo-i { height: 1.15em; vertical-align: 0; }
+#pauseOv .btn.sndb { background: linear-gradient(#5db6ff, #2774c9); }
 /* ícones pintados que substituem emoji */
 .emo-i { height: 1.2em; width: auto; vertical-align: -.24em; display: inline-block; filter: drop-shadow(0 1px 0 rgba(0,0,0,.35)); }
 .emo-i.off { filter: grayscale(1) brightness(.55); opacity: .75; }
@@ -677,7 +685,7 @@ button { transition: scale .12s cubic-bezier(.3,1.8,.5,1); }
   <button class="special hidden" id="spBtn" aria-label="Ataque especial"><i id="spRing"></i><span>💣</span><b id="spTxt">0%</b></button>
   <div class="bar hidden" id="bossBar"><i id="bossFill"></i></div>
   <div class="hearts" id="hearts"></div>
-  <div class="hint hidden" id="hint">👆 Toque para atirar · segure e arraste para mover</div>
+  <div class="hint hidden" id="hint">👆 Segure para atirar · arraste para mirar</div>
   <div id="waveBox"></div>
 
   <div class="screen splash" id="splash">
@@ -801,7 +809,7 @@ button { transition: scale .12s cubic-bezier(.3,1.8,.5,1); }
   <div class="screen hidden" id="pauseOv">
     <div class="logo">PAUSADO</div>
     <button class="btn green" id="resume">CONTINUAR</button>
-    <button class="btn sndb" id="sndBtn2" style="margin-top:10px">🔊 SOM LIGADO</button>
+    <button class="btn sndb" id="sndBtn2">🔊 SOM LIGADO</button>
     <button class="btn" id="quit" style="background:linear-gradient(#ff8a8a,#d23c3c)">SAIR DA FASE</button>
   </div>
 
@@ -1068,8 +1076,8 @@ function tutStart() {
     if (G.state !== 'run') { $('hint').classList.add('hidden'); return; }
     if (T.x0 == null) T.x0 = G.px;
     if (T.ok) { if (Date.now() - T.ok > 1100) { T.ok = 0; T.step++; T.x0 = G.px; if (T.step > 3) { tutEnd(); return; } } else return; }
-    if (T.step === 1) { tutShow('<b>1/3</b> 👆 <em>Toque na tela</em> para atirar nos piratas'); if (P.shots >= T.shots + 2) { tutShow('✅ Isso! Boa pontaria'); T.ok = Date.now(); } }
-    else if (T.step === 2) { tutShow('<b>2/3</b> 👆 <em>Segure e arraste</em> para mover o canhão'); if (Math.abs(G.px - T.x0) > 55) { tutShow('✅ Perfeito!'); T.ok = Date.now(); } }
+    if (T.step === 1) { tutShow('<b>1/3</b> 👆 <em>Toque e segure</em> para atirar. A bala vai reta!'); if (P.shots >= T.shots + 2) { tutShow('✅ Isso! Boa pontaria'); T.ok = Date.now(); } }
+    else if (T.step === 2) { tutShow('<b>2/3</b> 👆 <em>Arraste para os lados</em> e alinhe o canhão com os piratas'); if (Math.abs(G.px - T.x0) > 55) { tutShow('✅ Perfeito!'); T.ok = Date.now(); } }
     else if (T.step === 3) { if (G.charge >= 1) { tutShow('<b>3/3</b> 💣 Poder pronto! <em>Toque no botão</em> e escolha uma carta ↘'); $('spBtn').classList.add('tutglow'); } else if (G.rain > 0) { $('spBtn').classList.remove('tutglow'); tutShow('✅ Chuva de balas! Agora é com você'); T.ok = Date.now(); } else tutShow('<b>3/3</b> 💣 Derrote piratas para <em>carregar o poder</em> ↘'); }
   }, 150) };
 }
@@ -1083,7 +1091,7 @@ function startLevel() {
   $('menu').classList.add('hidden'); $('end').classList.add('hidden');
   if (P.startCards > 0) { P.startCards--; save(); const opts = POWERS.filter((p) => p.id !== 'coin'); const p = opts[Math.floor(Math.random() * opts.length)]; p.ap(); G.pw[p.id] = 1; setTimeout(() => G && addFloat(W / 2, H * .55, '🃏 Poder inicial: ' + p.n, '#d7b0ff', 20), 400); }
   $('lvl').textContent = 'Fase ' + LV; $('spBtn').classList.remove('hidden'); $('leftPill').classList.remove('hidden');
-  if (!P.tut && !P.wins) tutStart(); else { $('hint').classList.remove('tut'); $('hint').textContent = '👆 Toque para atirar · segure e arraste para mover'; $('hint').classList.remove('hidden'); setTimeout(() => { if (!TUT) $('hint').classList.add('hidden'); }, 3500); }
+  if (!P.tut && !P.wins) tutStart(); else { $('hint').classList.remove('tut'); $('hint').textContent = '👆 Segure para atirar · arraste para mirar'; $('hint').classList.remove('hidden'); setTimeout(() => { if (!TUT) $('hint').classList.add('hidden'); }, 3500); }
   nextWave();
 }
 function nextWave() {
@@ -1122,7 +1130,7 @@ function spawn(s) {
 /* ---------- Toque: atirar ---------- */
 function toLocal(e) { const r = $('app').getBoundingClientRect(); return [(e.clientX - r.left) * W / r.width, (e.clientY - r.top) * W / r.width]; }
 cv.addEventListener('pointerdown', (e) => { if (!G || G.state !== 'run') return; const [x, y] = toLocal(e);
-  const hit = G.enemies.filter((en) => !en.dead && en.t !== 'barrel' && Math.hypot(en.x - x, en.y - y) < (en.t === 'boss' ? 70 : en.big ? 40 : 30) * persp(en.y) + 8).sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y))[0];
+  const hit = typeof AUTO_AIM !== 'undefined' && AUTO_AIM && G.enemies.filter((en) => !en.dead && en.t !== 'barrel' && Math.hypot(en.x - x, en.y - y) < (en.t === 'boss' ? 70 : en.big ? 40 : 30) * persp(en.y) + 8).sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y))[0];
   if (hit) { G.lockT = hit; if (SHOW_AIM) { beep(1200, .05, 'square', .03); addFloat(hit.x, hit.y - 40 * persp(hit.y), '🔒', '#fff', 18); } G.holding = true; tryFire(); return; } G.holding = true; G.tpx = Math.max(50, Math.min(W - 50, x)); tryFire(); });
 cv.addEventListener('pointermove', (e) => { if (!G || !G.holding) return; const [x] = toLocal(e); G.tpx = Math.max(50, Math.min(W - 50, x)); });
 addEventListener('pointerup', () => { if (G) G.holding = false; });
@@ -1932,6 +1940,7 @@ const SYN = [
 const synOf = (id) => SYN.find((y) => !(G.syn || {})[y.k] && ((y.a === id && G.pw[y.b]) || (y.b === id && G.pw[y.a])));
 const synHint = (id) => { const y = synOf(id); return y ? '<span class="cl" style="color:#1d2230;background:#ffe36b;border-radius:8px;padding:1px 7px">🔗 ' + y.n + '</span>' : ''; };
 function synCheck() { G.syn = G.syn || {}; for (const y of SYN) if (!G.syn[y.k] && G.pw[y.a] && G.pw[y.b]) { G.syn[y.k] = 1; G.slo = .6; G.shake = 10; buzz([30, 40, 60]); sfx('big'); setTimeout(() => { if (!G) return; const el = document.createElement('div'); el.className = 'wave fury'; el.textContent = y.ic + ' ' + y.n + '!'; $('waveBox').innerHTML = ''; $('waveBox').appendChild(el); addFloat(W / 2, H * .5, y.d, '#ffe36b', 18); }, 900); } }
+const AUTO_AIM = false; // false = o canhão atira reto para cima; quem mira é o jogador, movendo o canhão
 const SHOW_AIM = false; // mira (círculo, linha tracejada e cadeado) desligada: o canhão continua mirando sozinho
 function update(dt) {
   G.shake = Math.max(0, G.shake - dt * 30);
@@ -1950,8 +1959,9 @@ function update(dt) {
   const danger = (e) => e.y / DEF() + (e.t === 'boss' ? (e.wind > 0 ? 2 : .25) : 0) + (e.big ? .2 : 0) + (e.kind === 'bomb' && e.y >= e.stopY ? .45 : 0) + (e.kind === 'gold' ? .35 : 0) + (e.kind === 'fast' ? .1 : 0);
   if (G.lockT && (G.lockT.dead || !G.enemies.includes(G.lockT))) G.lockT = null;
   G.target = G.lockT || pool.sort((a, b) => danger(b) - danger(a))[0] || null;
+  if (!AUTO_AIM) { G.target = null; G.lockT = null; }
   let want = 0;
-  const flying = G.bombs.filter((b) => !b.dead && b.t / b.dur > .15).sort((a, b) => b.t / b.dur - a.t / a.dur)[0];
+  const flying = AUTO_AIM && G.bombs.filter((b) => !b.dead && b.t / b.dur > .15).sort((a, b) => b.t / b.dur - a.t / a.dur)[0];
   if (flying) {
     const pv = pivot(), tt = Math.min(1, (flying.t + Math.hypot(flying.x - pv.x, flying.y - pv.y) / 720) / flying.dur);
     const fx = flying.x0 + (flying.x1 - flying.x0) * tt, fy = flying.y0 + (flying.y1 - flying.y0) * tt - Math.sin(tt * Math.PI) * 120;

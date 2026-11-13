@@ -10,6 +10,7 @@ Ninguém no momento (livre).
 
 ## Recados
 
+- 2026-11-13 — `claude/hopeful-galileo-t00naw` — `index.html`: mira automática desligada (`AUTO_AIM = false`): o canhão atira reto para cima e o jogador mira arrastando o canhão; tocar num inimigo não trava mais o alvo. Tutorial e dica reescritos. Botão do especial subiu para não ficar sobre o canhão (`.special`). Tela de pausa com os três botões do mesmo tamanho (`#pauseOv`).
 - 2026-11-13 — `claude/hopeful-galileo-t00naw` — `index.html`: loja escondida (`SHOP_ON = false`): some a aba LOJA do menu, que volta a 5 abas, e a oferta automática não abre. O código da loja, as gemas e as compras já feitas continuam no lugar.
 - 2026-11-13 — `claude/hopeful-galileo-t00naw` — `index.html`: mira da batalha desligada (`SHOW_AIM = false`): somem o círculo, a linha tracejada, o cadeado e o bipe de troca de alvo. A mira automática do canhão continua igual.
 - 2026-11-13 — `claude/hopeful-galileo-t00naw` — `index.html`: níveis de construção sem limite. O nível é contínuo (`vLv`), o custo usa `l % 9` e `2.4^floor(l/9)` (`vCost`), o bônus é `nível/3` (`vTot`). A cada 9 níveis de todas as construções a vila sobe de categoria (`V().i`) e dá um Baú Lendário, sem zerar nada; saves antigos são convertidos (`P.vila.inf`). Categoria da construção por nível (`vTier`, `VRANK`, `VRC`) liga efeitos no `vFrame`: brilhos, aura, anéis, raios, faíscas, estrelas em órbita e brilho colorido. Construções 18% menores. Canhão Lendário sem teto de melhorias (`CAPINF`).
