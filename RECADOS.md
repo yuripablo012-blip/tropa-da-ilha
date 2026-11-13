@@ -10,6 +10,7 @@ Ninguém no momento (livre).
 
 ## Recados
 
+- 2026-11-13 — `claude/hopeful-galileo-t00naw` — `index.html`: LOJA em modo demonstração (`SHOP_DEMO = true`, sem cobrança). Moeda nova `P.gems`; três pacotes em escada (`PACKS`: R$ 4,99, 9,90, 14,90), um por vez, registrados em `P.buys`; itens pagos com gemas (`GEMSHOP`); oferta abre sozinha uma vez em marcos de conquista (`shopOffer`). O ponto para ligar o pagamento real está marcado com `TODO pagamento`.
 - 2026-11-13 — `claude/hopeful-galileo-t00naw` — `index.html`: na primeira vez, escolher o pirata leva direto à fase 1; tutorial de 3 passos na primeira batalha (`tutStart`/`tutEnd`, marca `P.tut`): atirar, mover, bomba. Faixa de onda com fonte que cabe na tela (`.wave`).
 - 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: aba BATALHA reorganizada por CSS (`#pg-play`): o botão JOGAR fica sempre visível acima do menu e pulsa; logo e pirata encolhem conforme a altura da tela (`--st`), sem rolagem.
 - 2026-11-12 — `claude/hopeful-galileo-t00naw` — `index.html`: terreno trocado por uma ilha nova, de imagem única (`VISL`, 1672×941, `ppu` 16; `sprites/ilha.png`), com praia só na frente e costa de pedra. Saiu a praia desenhada por código; ficaram só espuma e raso. As 15 construções em terra foram postas nas 15 clareiras, e o cais e o navio na praia (`VDEF`).
