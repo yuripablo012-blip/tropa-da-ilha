@@ -957,9 +957,15 @@ const SKINS = [
   { rar: 'e', n: 'Ametista', f: 'hue-rotate(235deg) saturate(1.6) brightness(1.05)', cap: 15, cost: 3000, d: 1.6, r: .58, h: 2, aura: '#c07bff', bonus: '+60% dano · tiro rápido · +2 vidas' },
   { rar: 'l', n: 'Dragão de Ouro', f: 'saturate(1.5) brightness(1.12) contrast(1.08)', cap: 25, cost: 10000, d: 2.2, r: .4, h: 4, aura: '#ffb02e', bonus: '+120% dano · metralhadora de canhão · +4 vidas' },
 ];
-const SK = () => SKINS[P.tier || 0] || SKINS[0];
+// Depois do Lendário a evolução continua para sempre: Mítico I, II, III... (cores se revezam, bônus e exigência sobem a cada passo)
+const MYTH = [['Dragão de Rubi', 'hue-rotate(-38deg) saturate(1.9) brightness(1.02)', '#ff4d5e', '#ffc0c6', '#a3122a'], ['Dragão de Safira', 'hue-rotate(185deg) saturate(1.6) brightness(1.05)', '#4d9bff', '#c4e0ff', '#1b4fae'], ['Dragão de Esmeralda', 'hue-rotate(95deg) saturate(1.5) brightness(1.05)', '#3fe08a', '#c6ffe0', '#0f8a4a'], ['Dragão de Diamante', 'saturate(.35) brightness(1.4) hue-rotate(165deg)', '#bff3ff', '#ffffff', '#5aa9c4'], ['Dragão das Sombras', 'saturate(.7) brightness(.66) contrast(1.35) hue-rotate(240deg)', '#9a6bff', '#d9c6ff', '#3a1f7a'], ['Dragão Celestial', 'hue-rotate(150deg) saturate(1.5) brightness(1.28)', '#7ff0ff', '#e0fcff', '#1f8fae']];
+const ROM = (n) => ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][n - 1] || String(n);
+function skinAt(t) { if (t < SKINS.length) return SKINS[Math.max(0, t)]; const n = t - SKINS.length + 1, m = MYTH[(n - 1) % MYTH.length], d = +(2.2 * (1 + .1 * n)).toFixed(2);
+  return { rar: 'l', R: ['MÍTICO ' + ROM(n), m[2], m[3], m[4]], n: m[0], f: m[1], cap: 25 + 15 * n, cost: Math.round(7700 * Math.pow(n + 1, 2.84) / 500) * 500, d, r: .4, h: 4 + 2 * n, aura: m[2], bonus: '+' + Math.round((d - 1) * 100) + '% dano · metralhadora de canhão · +' + (4 + 2 * n) + ' vidas' }; }
+const rarOf = (k) => k.R || RAR[k.rar]; // [nome da categoria, cor, cor clara, cor escura]
+const SK = () => skinAt(P.tier || 0);
 const CAPINF = 9999, capOf = () => CAPINF, evoAt = () => SK().cap; // melhorias sem limite em qualquer categoria; evoAt = nível em que dá para evoluir
-const canEvolve = () => (P.tier || 0) < SKINS.length - 1 && UPS.every((u) => P[u.k] >= evoAt());
+const canEvolve = () => UPS.every((u) => P[u.k] >= evoAt()); // sempre existe uma próxima evolução
 const canCoin = () => ((P.dmg || 0) + (P.rate || 0) + (P.hp || 0)) * .02 + (P.tier || 0) * .15;
 const HB = () => P.hb || { d: 0, r: 0, h: 0 };
 const RMAX = 9; // tiros por segundo que o canhão chega a dar; o que passar disso vira dano (nada é desperdiçado)
@@ -1049,7 +1055,7 @@ const curLv = () => (G ? G.lv : (P.sel || P.level));
 const CANNON = () => ({ x: G ? G.px : W / 2, y: H - 100 });
 const DEF = () => H - 205;
 const SHOW_FENCE = false;                  // linha que os piratas não podem passar
-const DIFF = (n) => (1 + (n - 1) * .65 + Math.max(0, n - 4) * .1 + Math.max(0, n - 8) * .2 + Math.max(0, n - 15) * .25) * Math.pow(1 + Math.max(0, n - 20) / 45, 1.2);   // força dos inimigos por fase (calibrada com ferramentas/modelo_economia.js)
+const DIFF = (n) => (1 + (n - 1) * .65 + Math.max(0, n - 4) * .1 + Math.max(0, n - 8) * .2 + Math.max(0, n - 15) * .25) * Math.pow(1 + Math.max(0, n - 20) / 45, 1.45);   // força dos inimigos por fase (calibrada com ferramentas/modelo_economia.js)
 const NE = (n) => n <= 10 ? n : 10 + 6 * Math.log(1 + (n - 10) / 6); // "pressão" da fase: quantos inimigos vêm. Cresce sempre, cada vez mais devagar
 function buildWaves(n) {
   const waves = [];
@@ -2094,13 +2100,13 @@ function renderLobby() {
   const md = missions(), mdone = md.list.filter((m) => m.done).length, mready = md.list.some((m) => m.prog >= m.goal && !m.done) || (mdone >= 3 && !md.bonus);
   $('missCount').textContent = mdone + '/3'; $('missDot').classList.toggle('show', mready);
   const gs = dailyState(); $('giftDot').classList.toggle('show', gs.can || chestReady());
-  $('mCan').style.filter = SK().f; $('lbSkin').textContent = RAR[SK().rar][0] + ' · ' + SK().n;
+  $('mCan').style.filter = SK().f; $('lbSkin').textContent = rarOf(SK())[0] + ' · ' + SK().n;
   $('stD').textContent = UPS[0].fmt(stat.dmg(P.dmg)); $('stR').textContent = UPS[1].fmt(stat.rate(P.rate)).replace('/s', ''); $('stH').textContent = stat.hp(P.hp);
   $('canBonus').innerHTML = '💰 Seu canhão traz <b style="color:#7be86f">+' + Math.round(canCoin() * 100) + '% de moedas</b> por batalha · cada melhoria +2%, cada evolução +15%';
   // upgrades
   $('ups').innerHTML = UPS.map((u) => {
     const lv = P[u.k], c = upCost(u.k), maxed = lv >= capOf();
-    const pips = Array.from({ length: (P.tier || 0) < SKINS.length - 1 ? evoAt() : 25 }, (_, i) => `<i class="${i < lv ? 'on' : ''}"></i>`).join('');
+    const pl = Math.min(evoAt(), 25), pips = Array.from({ length: pl }, (_, i) => `<i class="${i < Math.min(pl, lv * pl / evoAt()) ? 'on' : ''}"></i>`).join(''); // barrinhas = caminho até a próxima evolução
     return `<div class="upc" data-k="${u.k}"><div class="ic" style="background:${u.bg}">${u.ic}</div>
       <div><div class="nm">${u.n}<small>${capOf() >= CAPINF ? 'NV ' + lv : lv + '/' + capOf()}</small></div>
       <div class="val">${u.fmt(stat[u.k](lv))}${maxed ? ' · <b>MÁXIMO</b>' : u.k === 'rate' && stat.raw(lv + 1) > RMAX ? ` → <b>+${((stat.over(lv + 1) / stat.over(lv) - 1) * 100).toFixed(1).replace('.', ',')}% dano</b>` : ` → <b>${u.fmt(stat[u.k](lv + 1))}</b>`}</div>
@@ -2110,7 +2116,7 @@ function renderLobby() {
   // canhões (evolução)
   const tier = P.tier || 0;
   if (typeof pvSkin !== 'number') pvSkin = tier;
-  const pv = SKINS[pvSkin], R = RAR[pv.rar], show = $('show');
+  const pv = skinAt(pvSkin), R = rarOf(pv), show = $('show');
   show.style.setProperty('--rc', R[1]); show.style.setProperty('--rc1', R[3]); show.style.setProperty('--rc2', R[1]);
   show.dataset.rar = pv.rar;
   $('shRar').textContent = R[0]; $('shImg').src = backImg(); $('shImg').style.filter = pv.f;
@@ -2122,18 +2128,17 @@ function renderLobby() {
   $('shStats').innerHTML = sd.map(([n, f, fm]) => { const a2 = f(tier), b2 = f(pvSkin), c = b2 > a2 + 1e-6 ? 'up' : b2 < a2 - 1e-6 ? 'dn' : ''; return `<div>${n}<b class="${c}">${fm(b2)}</b></div>`; }).join('');
   const btn = $('shBtn'); btn.className = 'show-btn'; btn.disabled = false;
   const prog = $('evoProg');
-  if (tier === SKINS.length - 1) { prog.style.display = 'none'; btn.textContent = '👑 LENDÁRIO · MELHORE SEM LIMITE'; btn.classList.add('eq', 'leg'); btn.disabled = true; }
-  else {
-    const next = SKINS[tier + 1];
-    prog.style.display = ''; $('evoFill').style.width = (lvSum / lvMax * 100) + '%';
+  {
+    const next = skinAt(tier + 1);
+    prog.style.display = ''; $('evoFill').style.width = (UPS.reduce((a, u) => a + Math.min(P[u.k], evoAt()), 0) / (evoAt() * UPS.length) * 100) + '%';
     $('evoTxt').textContent = canEvolve() ? 'Pronto para evoluir!' : 'Melhore tudo até ' + evoAt() + ' para evoluir (' + UPS.reduce((a, u) => a + Math.min(P[u.k], evoAt()), 0) + '/' + evoAt() * UPS.length + ')';
-    btn.innerHTML = '🧬 EVOLUIR PARA ' + RAR[next.rar][0] + '<small>' + ii('coin') + ' ' + fmtN(next.cost) + '</small>';
+    btn.innerHTML = '🧬 EVOLUIR PARA ' + rarOf(next)[0] + '<small>' + ii('coin') + ' ' + fmtN(next.cost) + '</small>';
     btn.classList.add('buy'); btn.disabled = !canEvolve() || P.coins < next.cost;
     if (canEvolve()) btn.classList.add('ready');
   }
-  $('skins').innerHTML = SKINS.map((k, i) => {
-    const R2 = RAR[k.rar], st = i < tier ? 'past' : i === tier ? 'cur' : 'lock';
-    return (i ? '<div class="evo-arr">➜</div>' : '') + `<div class="evo-c ${st} ${pvSkin === i ? 'pv' : ''}" data-skin="${i}" style="--rc1:${R2[3]};--rc2:${R2[1]}">
+  $('skins').innerHTML = Array.from({ length: 4 }, (_, j) => Math.max(0, tier - 2) + j).map((i, j) => { // janela de 4: as duas anteriores, a atual e a próxima
+    const k = skinAt(i), R2 = rarOf(k), st = i < tier ? 'past' : i === tier ? 'cur' : 'lock';
+    return (j ? '<div class="evo-arr">➜</div>' : '') + `<div class="evo-c ${st} ${pvSkin === i ? 'pv' : ''}" data-skin="${i}" style="--rc1:${R2[3]};--rc2:${R2[1]}">
       <img src="${backImg()}" style="filter:${k.f}" alt="">${st === 'lock' ? '<span class="lockic">🔒</span>' : st === 'past' ? '<span class="lockic">✓</span>' : ''}<span class="rr">${R2[0]}</span></div>`;
   }).join('');
   // troféus
@@ -2274,11 +2279,11 @@ $('skins').addEventListener('click', (e) => {
 });
 $('shBtn').addEventListener('click', () => {
   const t = P.tier || 0; if (!canEvolve()) return;
-  const next = SKINS[t + 1]; if (P.coins < next.cost) { beep(160, .12, 'sawtooth', .04); return; }
+  const next = skinAt(t + 1); if (P.coins < next.cost) { beep(160, .12, 'sawtooth', .04); return; }
   P.coins -= next.cost; P.tier = t + 1; pvSkin = P.tier; save();
   [523, 659, 784, 1046, 1318].forEach((f, j) => setTimeout(() => beep(f, .14, 'triangle', .07), j * 90));
   renderLobby();
-  const ov = document.createElement('div'); ov.className = 'evo-flash'; ov.innerHTML = '<b>EVOLUIU!</b><span>' + RAR[next.rar][0] + '</span>'; ov.style.setProperty('--rc', RAR[next.rar][1]);
+  const ov = document.createElement('div'); ov.className = 'evo-flash'; ov.innerHTML = '<b>EVOLUIU!</b><span>' + rarOf(next)[0] + '</span>'; ov.style.setProperty('--rc', rarOf(next)[1]);
   $('menu').appendChild(ov); setTimeout(() => ov.remove(), 1900);
   $('shImg').animate([{ transform: 'scale(.4) rotate(-20deg)' }, { transform: 'scale(1.2)' }, { transform: 'scale(1)' }], { duration: 900, easing: 'cubic-bezier(.3,1.6,.5,1)' });
 });
@@ -2287,7 +2292,7 @@ $('shBtn').addEventListener('click', () => {
   function f() {
     requestAnimationFrame(f);
     if ($('pg-cannon').classList.contains('hidden')) return;
-    const k = SKINS[typeof pvSkin === 'number' ? pvSkin : (P.tier || 0)];
+    const k = skinAt(typeof pvSkin === 'number' ? pvSkin : (P.tier || 0));
     x.clearRect(0, 0, 220, 200);
     if (!k.aura) return;
     const t = performance.now() / 1000;
@@ -2318,7 +2323,7 @@ $('vchest').addEventListener('click', () => { const vc = $('vchest'); if (vc.cla
 function renderAlmost() {
   const c = UPS.filter((u) => P[u.k] < capOf()).map((u) => ({ u, c: upCost(u.k) })).sort((a, b) => a.c - b.c)[0];
   let h = '';
-  if (canEvolve()) { const nx = SKINS[(P.tier || 0) + 1]; h = P.coins >= nx.cost ? '🧬 Você já pode EVOLUIR para ' + RAR[nx.rar][0] + '!' : '🧬 Faltam ' + ii('coin') + ' ' + (nx.cost - P.coins) + ' para evoluir para ' + RAR[nx.rar][0] + '<div class="ab"><i style="width:' + Math.min(100, P.coins / nx.cost * 100) + '%"></i></div>'; }
+  if (canEvolve()) { const nx = skinAt((P.tier || 0) + 1); h = P.coins >= nx.cost ? '🧬 Você já pode EVOLUIR para ' + rarOf(nx)[0] + '!' : '🧬 Faltam ' + ii('coin') + ' ' + fmtN(nx.cost - P.coins) + ' para evoluir para ' + rarOf(nx)[0] + '<div class="ab"><i style="width:' + Math.min(100, P.coins / nx.cost * 100) + '%"></i></div>'; }
   else if (c) h = P.coins >= c.c ? '⬆️ Você já pode melhorar ' + c.u.n + '!' : 'Faltam ' + ii('coin') + ' ' + (c.c - P.coins) + ' para melhorar ' + c.u.n + '<div class="ab"><i style="width:' + Math.min(100, P.coins / c.c * 100) + '%"></i></div>';
   $('almost').innerHTML = h;
 }
