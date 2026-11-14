@@ -948,7 +948,7 @@ let P = { level: 1, coins: 0, dmg: 0, rate: 0, hp: 0, skin: 0, owned: [0], xp: 0
 try { Object.assign(P, JSON.parse(localStorage.getItem(SAVE) || '{}')); } catch (e) {}
 if (P.tier === undefined) P.tier = 0;
 const save = () => { try { localStorage.setItem(SAVE, JSON.stringify(P)); } catch (e) {} };
-const upCostL = (l) => Math.floor((l <= 25 ? 30 * Math.pow(1.24, l) : 30 * Math.pow(1.24, 25) * Math.pow(l / 25, 3)) + l * 8); // até o nível 25 como sempre foi; depois sobe como potência, não dispara
+const upCostL = (l) => Math.floor((l <= 25 ? 30 * Math.pow(1.24, l) : 30 * Math.pow(1.24, 25) * Math.pow(l / 25, 2.6)) + l * 8); // até o nível 25 como sempre foi; depois sobe como potência, não dispara
 const upCost = (k) => upCostL(P[k]);
 const RAR = { c: ['COMUM', '#8c97a6', '#d9dee4', '#7d8796'], r: ['RARO', '#2f8ff0', '#8fd3ff', '#1f5fae'], e: ['ÉPICO', '#9b4dff', '#d7b0ff', '#5b2aa8'], l: ['LENDÁRIO', '#f29a12', '#ffe08a', '#b35a07'] };
 const SKINS = [
@@ -1055,7 +1055,10 @@ const curLv = () => (G ? G.lv : (P.sel || P.level));
 const CANNON = () => ({ x: G ? G.px : W / 2, y: H - 100 });
 const DEF = () => H - 205;
 const SHOW_FENCE = false;                  // linha que os piratas não podem passar
-const DIFF = (n) => (1 + (n - 1) * .65 + Math.max(0, n - 4) * .1 + Math.max(0, n - 8) * .2 + Math.max(0, n - 15) * .25) * Math.pow(1 + Math.max(0, n - 20) / 45, 1.45);   // força dos inimigos por fase (calibrada com ferramentas/modelo_economia.js)
+const GANHO = 2; // multiplicador geral das moedas de batalha
+const coinMul = () => (1 + fireBonus()) * (1 + (P.vila ? VB().c : 0)) * (1 + canCoin()) * .7 * GANHO; // bônus de sequência, da vila e do canhão
+const earn = (v) => { const x = v * (G.cm || 1); G.earned += x; return Math.max(1, Math.round(x)); }; // soma moedas da batalha já com os bônus; devolve o valor que aparece na tela
+const DIFF = (n) => (1 + (n - 1) * .65 + Math.max(0, n - 4) * .1 + Math.max(0, n - 8) * .2 + Math.max(0, n - 15) * .25) * Math.pow(1 + Math.max(0, n - 10) / 40, 1.8);   // força dos inimigos por fase (calibrada com ferramentas/modelo_economia.js)
 const NE = (n) => n <= 10 ? n : 10 + 6 * Math.log(1 + (n - 10) / 6); // "pressão" da fase: quantos inimigos vêm. Cresce sempre, cada vez mais devagar
 function buildWaves(n) {
   const waves = [];
@@ -1107,7 +1110,7 @@ function startLevel() {
   const lives = stat.hp(P.hp);
   const LV = Math.min(P.sel || P.level, P.level);
   G = { lv: LV, combo: 0, comboT: 0, best: 0, fury: 0, coinsFly: [], rx: W / 2, ry: 300, rlock: 0, rtgt: null, lockT: null, lastMulti: 0, shake: 0, charge: 0, strikes: [], bombs: [], pw: {}, multi: 0, pierce: 0, fire: 0, ice: 0, blast: 0, coinMult: 0, rain: 0, dust: [], waves: buildWaves(LV), wi: -1, spawnQ: [], waveT: 0, enemies: [], balls: [], fx: [], floats: [],
-    lives, maxLives: lives, dmg: stat.dmg(P.dmg), reload: 1 / stat.rate(P.rate), cd: 0,
+    lives, maxLives: lives, dmg: stat.dmg(P.dmg), reload: 1 / stat.rate(P.rate), cd: 0, cm: coinMul(),
     triple: 0, aim: -Math.PI / 2, aimA: 0, px: W / 2, tpx: W / 2, target: null, earned: 0, t: 0, state: 'run', recoil: 0, holding: false, hx: 0, hy: 0 };
   $('menu').classList.add('hidden'); $('end').classList.add('hidden');
   if (P.startCards > 0) { P.startCards--; save(); const opts = POWERS.filter((p) => p.id !== 'coin'); const p = opts[Math.floor(Math.random() * opts.length)]; p.ap(); G.pw[p.id] = 1; setTimeout(() => G && addFloat(W / 2, H * .55, '🃏 Poder inicial: ' + p.n, '#d7b0ff', 20), 400); }
@@ -1788,7 +1791,7 @@ function update(dt) {
   G.bombs = G.bombs.filter((b) => !b.dead);
   // reação em cadeia: barril e pirata-bomba explodem ao morrer e podem detonar os vizinhos
   if (G.chainQ && G.chainQ.length) { for (const c of G.chainQ) c.t -= dt; const due = G.chainQ.filter((c) => c.t <= 0); G.chainQ = G.chainQ.filter((c) => c.t > 0);
-    for (const c of due) { G.chainD = c.d; explode(c.x, c.y, c.m, c.r); G.chainD = 0; sfx('boom'); if (c.d >= 2) { const bn = c.d * 6; G.earned += bn; addFloat(c.x, c.y - 84, '💥 CORRENTE x' + c.d + '! +' + bn, '#ff9a3d', 24 + c.d * 2); G.hs = Math.max(G.hs || 0, .05); buzz(20 + c.d * 6); } } }
+    for (const c of due) { G.chainD = c.d; explode(c.x, c.y, c.m, c.r); G.chainD = 0; sfx('boom'); if (c.d >= 2) { const bn = earn(c.d * 6); addFloat(c.x, c.y - 84, '💥 CORRENTE x' + c.d + '! +' + bn, '#ff9a3d', 24 + c.d * 2); G.hs = Math.max(G.hs || 0, .05); buzz(20 + c.d * 6); } } }
   // perigo: com pouca vida a tela pulsa e o coração bate
   { const low = G.lives > 0 && G.lives <= Math.max(1, Math.floor(G.maxLives * .2)); if (low !== HUDC.low) { HUDC.low = low; LOWHP.classList.toggle('on', low); } if (low) { G.hbT = (G.hbT || 0) - dt; if (G.hbT <= 0) { G.hbT = .85; beep(62, .14, 'sine', .14); setTimeout(() => beep(55, .16, 'sine', .11), 170); buzz(22); } } }
   // chuva de balas (especial)
@@ -1838,7 +1841,7 @@ function explode(x, y, mult = 1, rmult = 1) {
   }
   if (kills >= 2) {
     const tx = kills >= 5 ? 'MASSACRE!' : kills === 4 ? 'QUÁDRUPLO!' : kills === 3 ? 'TRIPLO!' : 'DUPLO!';
-    const bonus = kills * kills; G.earned += bonus;
+    const bonus = earn(kills * kills);
     addFloat(x, y - 60, tx + ' +' + bonus, kills >= 4 ? '#ff6bd6' : '#7dff6a', 26 + kills * 2); G.shake = Math.max(G.shake, 6 + kills);
     [0, 70, 140].slice(0, Math.min(3, kills)).forEach((d, i) => setTimeout(() => beep(900 + i * 250, .09, 'triangle', .06), d));
   }
@@ -1861,17 +1864,17 @@ function kill(e) {
   if (e.t === 'barrel') P.barrels++; else if (e.t === 'boss') { if (!e.mini) P.bosses++; else P.bigs += 2; } else { P.kills++; if (e.big) P.bigs++; }
   G.xp = (G.xp || 0) + (e.t === 'boss' ? (e.mini ? 15 : 40) : e.big ? 4 : e.t === 'barrel' ? 2 : 1);
   if (e.t === 'barrel') {
-    if (e.reward === 'chest') { const v = 40 + G.lv * 12; G.earned += v; G.bonusChest = 1; G.slo = Math.max(G.slo || 0, .4); G.shake = 10; buzz(30); sfx('power'); addFloat(e.x, e.y - 20, '🎁 BAÚ! +' + v, '#ffe36b', 26); for (let i = 0; i < 12; i++) G.coinsFly.push({ x: e.x, y: e.y, vx: rnd(-160, 160), vy: rnd(-240, -60), t: -i * .03 }); }
+    if (e.reward === 'chest') { const v = earn(40 + G.lv * 12); G.bonusChest = 1; G.slo = Math.max(G.slo || 0, .4); G.shake = 10; buzz(30); sfx('power'); addFloat(e.x, e.y - 20, '🎁 BAÚ! +' + v, '#ffe36b', 26); for (let i = 0; i < 12; i++) G.coinsFly.push({ x: e.x, y: e.y, vx: rnd(-160, 160), vy: rnd(-240, -60), t: -i * .03 }); }
     else if (e.reward === 'triple') { G.triple = 10; addFloat(e.x, e.y, 'BORDADA TRIPLA!', '#ffd84a'); }
     else if (e.reward === 'heal') { const hv = Math.max(1, Math.round(G.maxLives * .1)); G.lives = Math.min(G.maxLives, G.lives + hv); addFloat(e.x, e.y, '+' + hv + ' ❤️', '#ff8fa3'); }
-    else { G.earned += 15; addFloat(e.x, e.y, '+15 🪙', '#ffd84a'); }
+    else { const v = earn(15); addFloat(e.x, e.y, '+' + v + ' 🪙', '#ffd84a'); }
     [660, 880].forEach((f, i) => setTimeout(() => beep(f, .1, 'triangle', .06), i * 80));
   } else {
     G.combo++; G.comboT = 1.8 + (P.vila ? VB().cb : 0); G.best = Math.max(G.best, G.combo);
     const cm = 1 + Math.min(G.combo, 40) * .05;
     const base = e.kind === 'gold' ? 15 + G.lv * 3 : e.t === 'boss' ? (e.mini ? 20 : 50) : e.big ? 4 : e.kind === 'bomb' || e.kind === 'shield' ? 3 : e.kind === 'bird' ? 2 : 1;
-    const c = Math.round(base * (1 + G.coinMult * .5) * cm * (1 + .02 * Math.max(0, G.lv - 10))); // da fase 10 em diante cada inimigo vale mais
-    G.earned += c; sfx('coin'); beep(420 + Math.min(G.combo, 32) * 36, .045, 'triangle', .03); // o tom sobe a cada abate do combo
+    const c = earn(base * (1 + G.coinMult * .5) * cm * (1 + .02 * Math.max(0, G.lv - 10))); // da fase 10 em diante cada inimigo vale mais
+    sfx('coin'); beep(420 + Math.min(G.combo, 32) * 36, .045, 'triangle', .03); // o tom sobe a cada abate do combo
     if (e.kind === 'gold') { addFloat(e.x, e.y - 30, '💰 TESOURO! +' + c, '#ffe36b', 26); G.shake = 10; sfx('power'); }
     else addFloat(e.x, e.y - 10, '+' + c, '#ffd84a', 17);
     const nCoins = Math.min(8, 1 + Math.floor(c / 4)) + (e.kind === 'gold' ? 8 : 0);
@@ -1888,7 +1891,7 @@ function finish(win) {
   const stars = win ? (G.lives >= G.maxLives ? 3 : G.lives >= G.maxLives / 2 ? 2 : 1) : 0;
   P.stars = P.stars || {}; if (win) P.stars[G.lv] = Math.max(P.stars[G.lv] || 0, stars);
   const newDay = streakTouch(), fb = fireBonus();
-  const reward = Math.round((win ? (firstClear ? 20 + G.lv * 10 + .1 * G.lv * G.lv : 10 + G.lv * 4 + .03 * G.lv * G.lv) + G.earned + G.lives * 3 : G.earned + 5 + G.lv * 2) * (1 + fb) * (1 + (P.vila ? VB().c : 0)) * (1 + canCoin()) * .7); // .7: ritmo de 2 a 4 compras por fase
+  const reward = Math.round(G.earned + (win ? (firstClear ? 20 + G.lv * 10 + .1 * G.lv * G.lv : 10 + G.lv * 4 + .03 * G.lv * G.lv) + G.lives * 3 : 5 + G.lv * 2) * coinMul()); // G.earned já vem com os bônus (earn) // .7: ritmo de 2 a 4 compras por fase
   if (win) { mprog('win'); if (stars === 3) mprog('star3'); }
   mprog('coins', reward);
   P.coins += reward; if (firstClear) { P.level++; P.sel = P.level; } if (win) P.wins++;

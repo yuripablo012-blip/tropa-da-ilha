@@ -1,14 +1,15 @@
 // Modelo simples da economia do jogo: fase a fase, o jogador vence, ganha moedas e compra o mais barato.
 // Serve para conferir se a progressão continua andando nas fases altas (compras por fase e "folga" do canhão).
-// Uso: node modelo_economia.js [expoente do custo=3] [moedas n²=.1] [moeda por inimigo=.02] [1 = regras antigas] [expoente da força=1.45] [divisor=45]
+// Uso: node modelo_economia.js [expoente do custo=2.6] [moedas n²=.1] [moeda por inimigo=.02] [1 = regras antigas] [expoente da força=1.8] [divisor=40] [ganho=2] [fase em que a força acelera=10]
 // As fórmulas aqui são cópia das do index.html (upCostL, DIFF, NE, buildWaves, finish): se mudar lá, mude aqui.
 const A = process.argv.slice(2).map(Number);
-const p = A[0] || 3, a2 = A[1] == null ? .1 : A[1], kc = A[2] == null ? .02 : A[2], OLD = A[3] === 1;
+const p = A[0] || 2.6, a2 = A[1] == null ? .1 : A[1], kc = A[2] == null ? .02 : A[2], OLD = A[3] === 1;
 const SK = [{cap:5,cost:0,d:1,r:1,h:0},{cap:10,cost:600,d:1.25,r:.78,h:1},{cap:15,cost:3000,d:1.6,r:.58,h:2},{cap:25,cost:10000,d:2.2,r:.4,h:4}];
 const skinAt = (t) => { if (t < 4) return SK[t]; const n = t - 3; return { cap: 25 + 15 * n, cost: Math.round(7700 * Math.pow(n + 1, 2.84) / 500) * 500, d: 2.2 * (1 + .1 * n), r: .4, h: 4 + 2 * n }; };
+const GANHO = A[6] == null ? 2 : A[6]; // multiplicador de moedas da batalha
 const RMAX = 9;
 const DIFFo = (n) => 1 + (n - 1) * .65 + Math.max(0, n - 4) * .1 + Math.max(0, n - 8) * .2 + Math.max(0, n - 15) * .25;
-const DIFF = OLD ? DIFFo : (n) => DIFFo(n) * Math.pow(1 + Math.max(0, n - 20) / (A[5] || 45), A[4] == null ? 1.45 : A[4]);
+const DIFF = OLD ? DIFFo : (n) => DIFFo(n) * Math.pow(1 + Math.max(0, n - (A[7] == null ? 10 : A[7])) / (A[5] || 40), A[4] == null ? 1.8 : A[4]);
 const NE = (n) => OLD || n <= 10 ? n : 10 + 6 * Math.log(1 + (n - 10) / 6);
 function counts(n) { const m = NE(n); const wc = (n === 1 ? 3 : 2) + Math.min(2, Math.floor(n / 4)); let tot = 0, hp = 0, coins = 0, T = 0;
   for (let w = 0; w < wc; w++) { const k = 6 + Math.min(8, Math.floor(n * .7)) + w * 2 + (OLD ? 0 : Math.floor(Math.max(0, m - 10) / 2)); const big = 1 + Math.floor((m + w) / 3), fast = 1 + Math.floor((m + w) / 2), gold = .55, sh = n >= 2 ? 1 + Math.floor((m + w) / 3) : 0, bird = n >= 2 ? Math.floor((m + w) / 3) : 0, bomb = n >= 3 && w >= 1 ? 1 + Math.floor(m / 5) : 0;
@@ -29,7 +30,7 @@ let E0 = null; const out = [];
 for (let n = 1; n <= 400; n++) { const c = counts(n);
   const need = c.hp / c.T, E = dps() / need; if (n === 3) E0 = E;
   const kill = c.coins * 1.8 * (OLD ? 1 : 1 + kc * Math.max(0, n - 10));
-  const reward = Math.round((20 + n * 10 + (OLD ? 0 : a2 * n * n) + kill + lives() * 3) * 1.25 * (1 + vt('cais') * .05 + vt('nav') * .06 + vt('casa5') * .04) * (1 + (S.dmg + S.rate + S.hp) * .02 + S.tier * .15) * .7);
+  const reward = Math.round((20 + n * 10 + (OLD ? 0 : a2 * n * n) + kill + lives() * 3) * 1.25 * (1 + vt('cais') * .05 + vt('nav') * .06 + vt('casa5') * .04) * (1 + (S.dmg + S.rate + S.hp) * .02 + S.tier * .15) * .7 * (OLD ? 1 : GANHO));
   S.coins += reward; let bought = 0, vb = 0; let budV = reward * .35, guard = 0;
   while (guard++ < 5000) { // vila: o mais barato, até 35% do ganho
     let bk = null, bc = 1e99; for (const k in VD) { const cc = vC(VD[k], S.v[k]); if (cc < bc) { bc = cc; bk = k; } } if (bc > budV || bc > S.coins) break; S.coins -= bc; budV -= bc; S.v[bk]++; vb++; }
