@@ -1076,7 +1076,7 @@ const CANNON = () => ({ x: G ? G.px : W / 2, y: H - 100 });
 const DEF = () => H - 205;
 const HITY = () => DEF() + 36; // onde o inimigo alcança o pirata e ataca (antes era na linha de defesa, um corpo de distância)
 const SHOW_FENCE = false;                  // linha que os piratas não podem passar
-const BUILD = 'Versão 56 · 15/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
+const BUILD = 'Versão 57 · 15/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
 const GANHO = 2; // multiplicador geral das moedas de batalha
 const coinMul = () => (1 + fireBonus()) * (1 + (P.vila ? VB().c : 0)) * (1 + canCoin()) * .7 * GANHO; // bônus de sequência, da vila e do canhão
 const ecoVal = () => { const n = P.level || 1; return (60 + 40 * n + .5 * n * n) * coinMul(); }; // quanto vale hoje, em moedas, um bom pedaço de fase (cerca de 1/4 do que uma fase paga)
@@ -1806,7 +1806,7 @@ function update(dt) {
     e.y += sp * dt;
     if (e.kb) { e.y -= e.kb * dt * 10; e.kb = Math.max(0, e.kb - dt * 60); }
     if (e.lane !== undefined) { const lx = laneXat(e.lane, e.f, e.y), yB = 760 * bgRect().s; // yB = fim da ponte
-      if (e.t !== 'barrel' && e.kind !== 'gold' && e.y > yB) { const pr = Math.min(1, (e.y - yB) / Math.max(1, DEF() - yB)), want = (G.px + (e.f - .5) * 30 - lx) * pr, mv = (e.t === 'boss' ? 40 : e.big ? 55 : 85) * (e.slow > 0 ? .45 : 1) * dt; e.hx = (e.hx || 0) + Math.max(-mv, Math.min(mv, want - (e.hx || 0))); } // saiu da ponte: vem andando para cima do pirata
+      if (e.t !== 'barrel' && e.kind !== 'gold' && e.y > yB) { const pr = Math.min(1, (e.y - yB) / Math.max(1, DEF() - yB)), off = e.t === 'boss' ? 0 : Math.sin(e.wob * 7.3) * 78, want = (Math.max(34, Math.min(W - 34, G.px + off)) - lx) * pr, /* cada um mira um ponto diferente em volta do pirata, para não virem todos pelo mesmo caminho */ mv = (e.t === 'boss' ? 40 : e.big ? 55 : 85) * (e.slow > 0 ? .45 : 1) * dt; e.hx = (e.hx || 0) + Math.max(-mv, Math.min(mv, want - (e.hx || 0))); } // saiu da ponte: vem andando para cima do pirata
       e.x = lx + (e.hx || 0); }
     if (e.kind === 'bird') e.x = Math.max(30, Math.min(W - 30, e.bx + Math.sin(G.t * 1.8 + e.wob) * 110));
     if (e.burn > 0) { e.burn -= dt; e.hp -= e.bdps * dt; if (Math.random() < .3) G.fx.push({ x: e.x + rnd(-8, 8), y: e.y, t: 0, c: '#ff7a1a', r: 3, ember: true }); if (e.hp <= 0 && !e.dead) kill(e); }
@@ -1821,6 +1821,10 @@ function update(dt) {
     }
     if (e.t === 'barrel' && e.y > H) e.dead = true;
   }
+  { const gr = G.enemies.filter((e) => !e.dead && e.lane !== undefined && e.t !== 'barrel' && e.kind !== 'gold'), yB = 760 * bgRect().s; // mantém distância entre os inimigos: no chão quem está colado abre para o lado; na ponte e no chão, quem vem atrás espera
+    for (let i = 0; i < gr.length; i++) for (let j = i + 1; j < gr.length; j++) { const a = gr[i], b = gr[j], dy = b.y - a.y; if (Math.abs(dy) > 42) continue; const need = ((a.big || a.t === 'boss' ? 38 : 25) + (b.big || b.t === 'boss' ? 38 : 25)) * persp((a.y + b.y) / 2), dx = b.x - a.x; if (Math.abs(dx) >= need) continue;
+      if (a.y > yB && b.y > yB) { const push = Math.min(need - Math.abs(dx), 110 * dt) * .5, sg = dx > 0 || (dx === 0 && i % 2) ? 1 : -1; a.hx = (a.hx || 0) - sg * push; b.hx = (b.hx || 0) + sg * push; a.x -= sg * push; b.x += sg * push; }
+      if (Math.abs(dy) < 30 * persp((a.y + b.y) / 2) + 6) { const back = dy > 0 ? a : b; if (back.t !== 'boss' && back.y > 20) back.y -= Math.min(back.sp, 70) * dt * (back.slow > 0 ? .3 : .7); } } }
   TINT = ''; ctx.filter = 'none';
   for (const b of G.balls) {
     b.x += b.vx * dt; b.y += b.vy * dt;
