@@ -37,6 +37,8 @@ canvas { display: block; width: 100%; height: 100%; }
 .up span { font-family: "Luckiest Guy", Impact, sans-serif; text-transform: uppercase; font-size: 15px; color: #2e9b2d; }
 .up:disabled { opacity: .5; }
 .coins { font-family: "Luckiest Guy", Impact, sans-serif; text-transform: uppercase; color: #ffd84a; font-size: 26px; -webkit-text-stroke: 1.5px var(--ink); }
+.hearts.heal { animation: healPop .7s ease-out; }
+@keyframes healPop { 0% { transform: scale(1); filter: brightness(1); } 30% { transform: scale(1.35); filter: brightness(1.8) drop-shadow(0 0 10px #ff7fa8); } 100% { transform: scale(1); filter: brightness(1); } }
 .hearts { position: absolute; left: 0; right: 0; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); text-align: center; font-size: 22px; pointer-events: none; text-shadow: 0 2px 4px rgba(0,0,0,.4); }
 .wave { max-width: 94%; font-size: clamp(18px, 6.4vw, 34px) !important; position: absolute; left: 50%; top: 40%; transform: translate(-50%,-50%); font-family: "Luckiest Guy", Impact, sans-serif; text-transform: uppercase; font-size: 40px; color: #fff; -webkit-text-stroke: 2px #1d2230; text-shadow: 0 4px 0 #1d2230; pointer-events: none; white-space: nowrap; animation: waveIn 1.8s ease-out forwards; }
 @keyframes waveIn { 0% { opacity: 0; transform: translate(-50%,-50%) scale(.6); } 20% { opacity: 1; transform: translate(-50%,-50%) scale(1.1); } 80% { opacity: 1; } 100% { opacity: 0; } }
@@ -1076,7 +1078,7 @@ const CANNON = () => ({ x: G ? G.px : W / 2, y: H - 100 });
 const DEF = () => H - 205;
 const HITY = () => DEF() + 36; // onde o inimigo alcança o pirata e ataca (antes era na linha de defesa, um corpo de distância)
 const SHOW_FENCE = false;                  // linha que os piratas não podem passar
-const BUILD = 'Versão 58 · 15/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
+const BUILD = 'Versão 59 · 15/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
 const GANHO = 2; // multiplicador geral das moedas de batalha
 const coinMul = () => (1 + fireBonus()) * (1 + (P.vila ? VB().c : 0)) * (1 + canCoin()) * .7 * GANHO; // bônus de sequência, da vila e do canhão
 const ecoVal = () => { const n = P.level || 1; return (60 + 40 * n + .5 * n * n) * coinMul(); }; // quanto vale hoje, em moedas, um bom pedaço de fase (cerca de 1/4 do que uma fase paga)
@@ -1127,7 +1129,7 @@ function tutStart() {
     if (T.ok) { if (Date.now() - T.ok > 1100) { T.ok = 0; T.step++; T.x0 = G.px; if (T.step > 3) { tutEnd(); return; } } else return; }
     if (T.step === 1) { tutShow('<b>1/3</b> 👆 <em>Toque e segure</em> para atirar. A bala vai reta!'); if (P.shots >= T.shots + 2) { tutShow('✅ Isso! Boa pontaria'); T.ok = Date.now(); } }
     else if (T.step === 2) { tutShow('<b>2/3</b> 👆 <em>Arraste para os lados</em> e alinhe o canhão com os piratas'); if (Math.abs(G.px - T.x0) > 55) { tutShow('✅ Perfeito!'); T.ok = Date.now(); } }
-    else if (T.step === 3) { if (G.charge >= 1) { tutShow('<b>3/3</b> 💣 Poder pronto! <em>Toque no botão</em> e escolha uma carta ↘'); $('spBtn').classList.add('tutglow'); } else if (G.rain > 0) { $('spBtn').classList.remove('tutglow'); tutShow('✅ Chuva de balas! Agora é com você'); T.ok = Date.now(); } else tutShow('<b>3/3</b> 💣 Derrote piratas para <em>carregar o poder</em> ↘'); }
+    else if (T.step === 3) { if (G.charge >= 1) { tutShow('<b>3/3</b> 💣 Poder pronto! <em>Toque no botão</em> e escolha uma carta ↘'); $('spBtn').classList.add('tutglow'); } else if (G.rain > 0 || G.picked) { $('spBtn').classList.remove('tutglow'); tutShow('✅ Poder ativado! Agora é com você'); T.ok = Date.now(); } else tutShow('<b>3/3</b> 💣 Derrote piratas para <em>carregar o poder</em> ↘'); }
   }, 150) };
 }
 function startLevel() {
@@ -1189,10 +1191,10 @@ function tryFire() {
   if (G.cd > 0) return;
   P.shots++;
   const c = CANNON();
-  G.cd += G.reload * (G.fury > 0 ? .45 : 1); G.recoil = 1; // soma (não zera): o que sobrou do quadro conta para o próximo tiro
-  const nb = 1 + G.multi + (G.triple > 0 ? 2 : 0), spread = Array.from({ length: nb }, (_, i) => (i - (nb - 1) / 2) * .13);
+  G.cd += G.reload * (G.fury > 0 ? .45 : 1) * (G.burst > 0 ? .3 : 1); G.recoil = 1; // soma (não zera): o que sobrou do quadro conta para o próximo tiro
+  const nb = 1 + G.multi + (G.triple > 0 ? 2 : 0), spread = Array.from({ length: nb }, (_, i) => (i - (nb - 1) / 2) * .13 + (G.burst > 0 ? rnd(-.085, .085) : 0)); // na rajada os tiros saem em leque
   const pv = pivot(); const mx = pv.x + Math.sin(G.aimA) * 44, my = pv.y - Math.cos(G.aimA) * 44;
-  for (const a of spread) { const A = G.aimA + a; G.balls.push({ x: mx, y: my, vx: Math.sin(A) * 720, vy: -Math.cos(A) * 720, left: 1 + G.pierce + (G.fury > 0 ? 1 : 0) + ((G.syn || {}).metr ? 1 : 0), hit: [], gold: G.fury > 0 }); }
+  for (const a of spread) { const A = G.aimA + a; G.balls.push({ x: mx, y: my, vx: Math.sin(A) * 720, vy: -Math.cos(A) * 720, left: 1 + G.pierce + (G.fury > 0 ? 1 : 0) + ((G.syn || {}).metr ? 1 : 0), hit: [], gold: G.fury > 0 || G.burst > 0 }); }
   G.shake = Math.max(G.shake, 2.5);
   G.fx.push({ x: mx, y: my, t: 0, c: '#fff1b8', r: 16 });
   if (AMB_ON) { (G.smk = G.smk || []).push({ x: mx, y: my - 4, r: 9, t: G.t, l: .55, vx: rnd(-10, 10) }); if (G.smk.length > 26) G.smk.shift(); } // fumaça do tiro
@@ -1701,9 +1703,9 @@ const POWERS = [
   { id: 'fire', ic: '🎇', n: 'Pólvora Flamejante', d: 'Os inimigos pegam fogo e queimam', c: ['#e2372b', '#ff9a6a'], max: 3, ap: () => G.fire++ },
   { id: 'ice', ic: '🐙', n: 'Maldição do Kraken', d: 'Tentáculos deixam os inimigos lentos', c: ['#1fb5c9', '#b6f3ff'], max: 2, ap: () => G.ice++ },
   { id: 'blast', ic: '💥', n: 'Barril de Pólvora', d: 'Raio da explosão +40%', c: ['#9b4dff', '#d7b0ff'], max: 3, ap: () => G.blast++ },
-  { id: 'rate', ic: '⚡', n: 'Artilheiro Veloz', d: 'Atira 25% mais rápido', c: ['#e8b10e', '#fff2a0'], max: 4, ap: () => { G.reload *= .8; } },
-  { id: 'dmg', ic: '⛓', n: 'Bala de Corrente', d: '+30% de dano', c: ['#7d4a2a', '#d9a45c'], max: 4, ap: () => { G.dmg *= 1.3; } },
-  { id: 'heart', ic: '❤️', n: 'Rum de Cura', d: 'Mais corações agora', c: ['#e23b6a', '#ff9ccf'], max: 9, ap: () => { const hv = Math.max(2, Math.round(G.maxLives * .15)); G.maxLives += hv; G.lives += hv; } },
+  { id: 'rate', ic: '⚡', n: 'Artilheiro Veloz', d: 'Rajada de tiros agora · atira 25% mais rápido', c: ['#e8b10e', '#fff2a0'], max: 4, ap: () => { G.reload *= .8; }, cast: () => { G.burst = 4.5; G.shake = 8; sfx('power'); pwBanner('⚡ RAJADA!'); } },
+  { id: 'dmg', ic: '⛓', n: 'Bala de Corrente', d: 'Corrente varre a ponte · +30% de dano', c: ['#7d4a2a', '#d9a45c'], max: 4, ap: () => { G.dmg *= 1.3; }, cast: () => { (G.chains = G.chains || []).push({ y: CANNON().y - 70, t: 0, hit: [] }); setTimeout(() => { if (G && G.state === 'run') G.chains.push({ y: CANNON().y - 70, t: 0, hit: [] }); }, 520); G.shake = 10; sfx('power'); sfx('big'); pwBanner('⛓ CORRENTE!'); } },
+  { id: 'heart', ic: '❤️', n: 'Rum de Cura', d: 'Mais corações agora', c: ['#e23b6a', '#ff9ccf'], max: 9, ap: () => { const hv = Math.max(2, Math.round(G.maxLives * .15)); G.maxLives += hv; G.lives += hv; G.healN = hv; }, cast: () => { G.healFx = 1.8; sfx('power'); [523, 659, 784, 1046].forEach((f, j) => setTimeout(() => beep(f, .12, 'triangle', .06), j * 90)); addFloat(CANNON().x, CANNON().y - 110, '+' + (G.healN || 2) + ' ❤️', '#ff8fb3', 26); pwBanner('❤️ RUM DE CURA!'); const h = $('hearts'); h.classList.remove('heal'); void h.offsetWidth; h.classList.add('heal'); } },
   { id: 'coin', ic: '🪙', n: 'Mapa do Tesouro', d: '+50% de moedas na fase', c: ['#2e9b2d', '#9be38c'], max: 2, ap: () => G.coinMult++ },
 ];
 const pwIcon = (p, cls) => ({ blast: ii('dmg', cls), rate: ii('rate', cls), heart: ii('heart', cls), coin: ii('coin', cls) }[p.id] || p.ic);
@@ -1721,7 +1723,7 @@ $('cards').addEventListener('click', (e) => {
   const p = POWERS.find((x) => x.id === b.dataset.pw); p.ap(); G.pw[p.id] = (G.pw[p.id] || 0) + 1; mprog('card'); synCheck();
   $('pick').classList.add('hidden'); G.state = 'run'; last = performance.now(); sfx('coin');
   addFloat(CANNON().x, CANNON().y - 90, p.ic + ' ' + p.n, '#ffe36b', 20);
-  renderPw(); spRain();
+  renderPw(); G.picked = 1; if (p.cast) p.cast(); else spRain(); // três poderes têm ataque próprio; os outros soltam a chuva de balas
 });
 /* ---------- Especial: chuva de balas ---------- */
 $('spBtn').addEventListener('pointerdown', (e) => {
@@ -1730,6 +1732,8 @@ $('spBtn').addEventListener('pointerdown', (e) => {
   G.charge = 0; mprog('sp');
   if (POWERS.some((p) => (G.pw[p.id] || 0) < p.max)) openPick(); else spRain(); // escolhe uma carta e solta a chuva de balas
 });
+function pwBanner(tx) { const el = document.createElement('div'); el.className = 'wave fury'; el.textContent = tx; $('waveBox').innerHTML = ''; $('waveBox').appendChild(el); } // aviso grande do poder
+function chainHit(e, d) { if (e.sh > 0) { e.sh -= d; if (e.sh <= 0) { d = -e.sh; e.sh = 0; addFloat(e.x, e.y - 20, 'ESCUDO QUEBROU!', '#ffd84a', 15); sfx('wood'); } else d = 0; } if (d > 0) { e.hp -= d; addFloat(e.x + rnd(-10, 10), e.y - 26, '-' + Math.round(d), '#ffffff', 16); } e.flash = .14; if (e.t !== 'barrel') e.kb = e.t === 'boss' ? 2 : 11; G.fx.push({ x: e.x, y: e.y, t: 0, c: '#ffe9a8', r: 18 }); if (e.hp <= 0 && !e.dead) kill(e); } // golpe da corrente: quebra escudo, tira vida e empurra para trás
 function spRain() { G.rain = 18; G.shake = 8; sfx('power'); sfx('big'); const el = document.createElement('div'); el.className = 'wave'; el.textContent = '🏴‍☠️ FOGO À VONTADE!'; $('waveBox').innerHTML = ''; $('waveBox').appendChild(el); }
 /* ---------- Pausa ---------- */
 document.addEventListener('visibilitychange', () => { if (document.hidden && G && G.state === 'run') { G.state = 'pause'; G.holding = false; $('pauseOv').classList.remove('hidden'); } });
@@ -1769,7 +1773,7 @@ function update(dt) {
   for (const c of G.coinsFly) { c.t += dt; if (c.t < 0) continue; if (c.t < .35) { c.x += c.vx * dt; c.y += c.vy * dt; c.vy += 600 * dt; } else { const k = Math.min(1, (c.t - .35) * 3.2); c.x += (W - 40 - c.x) * k * .35; c.y += (22 - c.y) * k * .35; if (Math.hypot(W - 40 - c.x, 22 - c.y) < 14) c.done = true; } }
   if (G.coinsFly.some((c) => c.done)) { G.coinsFly = G.coinsFly.filter((c) => !c.done); const pill = $('coin'); pill.classList.remove('bump'); void pill.offsetWidth; pill.classList.add('bump'); }
   if (G.coinsFly.length > 60) G.coinsFly.splice(0, G.coinsFly.length - 60);
-  G.t += dt; G.waveT += dt; G.cd = Math.max(G.cd - dt, G.holding ? -dt : 0); G.recoil = Math.max(0, G.recoil - dt * 6); G.triple = Math.max(0, G.triple - dt);
+  G.t += dt; G.waveT += dt; if (G.burst > 0) G.burst -= dt; if (G.healFx > 0) G.healFx -= dt; G.cd = Math.max(G.cd - dt, G.holding || G.burst > 0 ? -dt : 0); G.recoil = Math.max(0, G.recoil - dt * 6); G.triple = Math.max(0, G.triple - dt);
   G.px += (G.tpx - G.px) * Math.min(1, dt * 14);
   // mira automática: o pirata mais perto da cerca
   const c0 = CANNON();
@@ -1795,7 +1799,7 @@ function update(dt) {
   }
   want = Math.max(-1.2, Math.min(1.2, want));
   G.aimA += (want - G.aimA) * Math.min(1, dt * 12);
-  for (let nf = 0; G.holding && G.cd <= 0 && nf < 3; nf++) tryFire();
+  for (let nf = 0; (G.holding || G.burst > 0) && G.cd <= 0 && nf < 3; nf++) tryFire(); // na rajada o canhão atira sozinho
   G.spawnQ = G.spawnQ.filter((s) => { if (G.waveT >= s.delay) { spawn(s); return false; } return true; });
 
   for (const e of G.enemies) {
@@ -1847,6 +1851,7 @@ function update(dt) {
   { const low = G.lives > 0 && G.lives <= Math.max(1, Math.floor(G.maxLives * .2)); if (low !== HUDC.low) { HUDC.low = low; LOWHP.classList.toggle('on', low); } if (low) { G.hbT = (G.hbT || 0) - dt; if (G.hbT <= 0) { G.hbT = .85; beep(62, .14, 'sine', .14); setTimeout(() => beep(55, .16, 'sine', .11), 170); buzz(22); } } }
   // chuva de balas (especial)
   if (G.rain > 0) { G.rainT = (G.rainT || 0) - dt; if (G.rainT <= 0) { G.rainT = .07; G.rain--; const lane = Math.random() < .5 ? 0 : 1, yy = rnd(70, DEF() - 30); G.strikes.push({ x: laneXat(lane, rnd(.15, .85), yy), y: yy, t: 0 }); } }
+  if (G.chains && G.chains.length) { for (const c of G.chains) { c.y -= 430 * dt; c.t += dt; for (const e of G.enemies) if (!e.dead && !c.hit.includes(e) && Math.abs(e.y - c.y) < 24) { c.hit.push(e); chainHit(e, G.dmg * 4); } for (const bo of G.bombs) if (!bo.dead && Math.abs(bo.y - c.y) < 24) { bo.dead = true; G.fx.push({ x: bo.x, y: bo.y, t: 0, c: '#ffb04a', r: 30 }); addFloat(bo.x, bo.y, 'DEFENDEU!', '#9fe8ff'); } } G.chains = G.chains.filter((c) => c.y > -50); }
   for (const st of G.strikes) { st.t += dt; if (st.t >= .35 && !st.done) { st.done = true; explode(st.x, st.y, 2.5, 1.5); } }
   G.strikes = G.strikes.filter((st) => st.t < .6);
   G.balls = G.balls.filter((b) => !b.dead);
@@ -2161,6 +2166,11 @@ function drawScene() {
     if (e.t !== 'boss' && e.hp < e.max) { const w = (e.big ? 40 : 26) * k, yy = e.y - (e.big ? 44 : 28) * k; ctx.fillStyle = '#1d2230'; ctx.fillRect(e.x - w / 2, yy, w, 5); ctx.fillStyle = '#ff4d4d'; ctx.fillRect(e.x - w / 2 + 1, yy + 1, (w - 2) * Math.max(0, e.hp / e.max), 3); }
   }
   // ameaças e efeitos que acompanham a simulação: desenhados aqui (antes ficavam em update() e eram apagados antes de aparecer)
+  if (G.chains) for (const c of G.chains) { const kc = persp(c.y), yB = 760 * bgRect().s, tg = Math.max(0, Math.min(1, (c.y - yB) / 70)), x0 = (laneXat(0, 0, c.y) - 16 * kc) * (1 - tg) + 22 * tg, x1 = (laneXat(1, 1, c.y) + 16 * kc) * (1 - tg) + (W - 22) * tg, n = Math.max(8, Math.round((x1 - x0) / (10.5 * kc))); // corrente de ferro com uma bala em cada ponta
+    ctx.save(); ctx.lineCap = 'round'; for (let q = 3; q >= 1; q--) { ctx.globalAlpha = .1 * (4 - q) / 3; ctx.strokeStyle = '#fff3c4'; ctx.lineWidth = 5 * kc; ctx.beginPath(); ctx.moveTo(x0, c.y + q * 13 * kc); ctx.lineTo(x1, c.y + q * 13 * kc); ctx.stroke(); } // rastro
+    ctx.globalAlpha = 1; for (let i = 0; i <= n; i++) { const xx = x0 + (x1 - x0) * i / n, yy = c.y + Math.sin(i * .9 + c.t * 16) * 3.2 * kc; ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(xx + 5 * kc, yy + 11 * kc, 4.5 * kc, 2 * kc, 0, 0, 7); ctx.fill(); ctx.strokeStyle = '#11141b'; ctx.lineWidth = 5.4 * kc; ctx.beginPath(); ctx.ellipse(xx, yy, (i % 2 ? 6.4 : 3.6) * kc, (i % 2 ? 3.6 : 6.4) * kc, 0, 0, 7); ctx.stroke(); ctx.strokeStyle = i % 2 ? '#c3cad6' : '#7c8596'; ctx.lineWidth = 3 * kc; ctx.stroke(); }
+    for (const xx of [x0, x1]) { ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(xx + 6 * kc, c.y + 14 * kc, 12 * kc, 5 * kc, 0, 0, 7); ctx.fill(); ctx.fillStyle = '#2b303b'; ctx.strokeStyle = '#11141b'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(xx, c.y, 15 * kc, 0, 7); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#c9ced6'; for (let i = 0; i < 6; i++) { const a = i * 1.047 + c.t * 9; ctx.beginPath(); ctx.arc(xx + Math.cos(a) * 15 * kc, c.y + Math.sin(a) * 15 * kc, 3.2 * kc, 0, 7); ctx.fill(); } ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.beginPath(); ctx.arc(xx - 4 * kc, c.y - 4 * kc, 3.5 * kc, 0, 7); ctx.fill(); }
+    ctx.restore(); }
   for (const st of G.strikes) { const p = Math.min(1, st.t / .35); if (p < 1) { ctx.fillStyle = 'rgba(255,40,40,' + (.15 + p * .3) + ')'; ctx.beginPath(); ctx.ellipse(st.x, st.y, 30 * p + 6, 10 * p + 3, 0, 0, 7); ctx.fill(); ctx.fillStyle = '#1d2230'; ctx.beginPath(); ctx.arc(st.x, st.y - (1 - p) * 320, 9, 0, 7); ctx.fill(); } }
   for (const bo of G.bombs) {
     const p = Math.min(1, bo.t / bo.dur);
@@ -2211,6 +2221,12 @@ function drawScene() {
   if (G.fury > 0) { ctx.save(); ctx.globalAlpha = .25 + Math.sin(G.t * 12) * .1; const gr = ctx.createRadialGradient(W / 2, H / 2, H * .3, W / 2, H / 2, H * .75); gr.addColorStop(0, 'rgba(255,120,0,0)'); gr.addColorStop(1, 'rgba(255,100,0,.9)'); ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H); ctx.restore(); }
   drawCannon();
   ambFront();
+  { const c = CANNON();
+    if (G.burst > 0) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .45 + .25 * Math.sin(G.t * 40); const g = ctx.createRadialGradient(c.x, c.y - 30, 4, c.x, c.y - 30, 78); g.addColorStop(0, 'rgba(255,220,90,.95)'); g.addColorStop(1, 'rgba(255,200,40,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(c.x, c.y - 30, 78, 0, 7); ctx.fill(); ctx.restore();
+      ctx.font = '18px "Luckiest Guy", Impact, sans-serif'; ctx.fillStyle = '#ffe36b'; ctx.textAlign = 'center'; ctx.strokeStyle = '#1d2230'; ctx.lineWidth = 3; const tx = '⚡ ' + Math.ceil(G.burst) + 's'; ctx.textAlign = 'left'; ctx.strokeText(tx.slice(2), c.x - 74, c.y); ctx.fillText(tx.slice(2), c.x - 74, c.y); cemo(ctx, '⚡', c.x - 86, c.y - 6, 20); ctx.textAlign = 'center'; } // contador ao lado do canhão
+    if (G.healFx > 0) { const p = 1 - G.healFx / 1.8; ctx.save(); ctx.globalCompositeOperation = 'lighter'; for (let q = 0; q < 3; q++) { const pp = (p * 1.6 + q * .22) % 1; ctx.globalAlpha = .7 * (1 - pp) * Math.min(1, G.healFx * 3); ctx.strokeStyle = '#ff8fb3'; ctx.lineWidth = 5; ctx.beginPath(); ctx.ellipse(c.x, c.y + 30, 24 + pp * 62, (24 + pp * 62) * .36, 0, 0, 7); ctx.stroke(); }
+      ctx.globalAlpha = .5 * Math.min(1, G.healFx * 2); const g = ctx.createRadialGradient(c.x, c.y - 10, 6, c.x, c.y - 10, 86); g.addColorStop(0, 'rgba(255,150,190,.9)'); g.addColorStop(1, 'rgba(255,120,170,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(c.x, c.y - 10, 86, 0, 7); ctx.fill(); ctx.restore();
+      ctx.save(); for (let q = 0; q < 9; q++) { const pp = (p * 1.25 + q * .11) % 1; ctx.globalAlpha = Math.min(1, pp * 6) * (1 - pp) * Math.min(1, G.healFx * 3); cemo(ctx, '❤️', c.x + Math.sin(q * 2.4) * 46 + Math.sin(pp * 6 + q) * 6, c.y + 30 - pp * 130, 15 + (q % 3) * 5); } ctx.restore(); } }
   if (G.triple > 0) { ctx.font = '18px "Luckiest Guy", Impact, sans-serif'; ctx.fillStyle = '#ffd84a'; ctx.textAlign = 'center'; ctx.strokeStyle = '#1d2230'; ctx.lineWidth = 3; const tx = '🔱 ' + Math.ceil(G.triple) + 's'; ctx.strokeText(tx, CANNON().x + 60, CANNON().y); ctx.fillText(tx, CANNON().x + 60, CANNON().y); }
   for (const f of G.floats) { ctx.globalAlpha = 1 - f.t; ctx.fillStyle = f.color; ctx.font = (f.size || 20) * (1 + Math.max(0, .25 - f.t) * 1.5) + 'px "Luckiest Guy", Impact, sans-serif'; ctx.textAlign = 'center'; ctx.strokeStyle = '#1d2230'; ctx.lineWidth = 4; richText(ctx, String(f.text).toUpperCase(), f.x, f.y, (f.size || 20)); ctx.globalAlpha = 1; }
 }
