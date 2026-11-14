@@ -903,6 +903,8 @@ function tinted(k, f) {
   if (!c) { c = document.createElement('canvas'); c.width = s.im.naturalWidth; c.height = s.im.naturalHeight; const x = c.getContext('2d'); x.filter = f; x.drawImage(s.im, 0, 0); c.naturalWidth = c.width; c.naturalHeight = c.height; TCACHE.set(key, c); }
   return c;
 }
+const SILC = new Map(); // silhueta preta de cada boneco, para a sombra projetada no chão
+function silOf(k) { let c = SILC.get(k); if (c) return c; const s = SPR[k]; if (!s || !s.im.complete) return null; const iw = s.im.naturalWidth || s.im.width, ih = s.im.naturalHeight || s.im.height; if (!iw) return null; const f = Math.min(1, 110 / ih); c = document.createElement('canvas'); c.width = Math.max(1, Math.round(iw * f)); c.height = Math.max(1, Math.round(ih * f)); const x = c.getContext('2d'); x.drawImage(s.im, 0, 0, c.width, c.height); x.globalCompositeOperation = 'source-in'; x.fillStyle = '#140c04'; x.fillRect(0, 0, c.width, c.height); SILC.set(k, c); return c; }
 let WCTX = null;
 function sprWalk(k, x, y, h, phase, flash) {
   const X = WCTX || ctx;
@@ -911,7 +913,8 @@ function sprWalk(k, x, y, h, phase, flash) {
   const legH = .3, ov = .07;                       // altura das pernas e sobreposição com o corpo
   const srcY = ih * (1 - legH - ov), srcH = ih * (legH + ov);
   const bob = Math.abs(Math.sin(phase)) * h * .012;  // corpo quase parado
-  X.fillStyle = 'rgba(0,0,0,.22)'; X.beginPath(); X.ellipse(x, y + h * .44, w * .36, h * .075, 0, 0, 7); X.fill();
+  if (!WCTX) { const sl = silOf(k); if (sl) { X.save(); X.globalAlpha = .24; X.translate(x, y + h * .45); X.transform(1, 0, -.7, -.3, 0, 0); X.drawImage(sl, -w / 2, -h * .97, w, h * .97); X.restore(); } } // sombra do corpo caída no chão, para o lado do sol (igual à do coqueiro)
+  X.fillStyle = WCTX ? 'rgba(0,0,0,.22)' : 'rgba(0,0,0,.16)'; X.beginPath(); X.ellipse(x, y + h * .44, w * .36, h * .075, 0, 0, 7); X.fill();
   X.save(); X.translate(x, y + h * .45);
   const top = -h * .97, legTop = top + h * (1 - legH - ov);
   // cada perna dá um passo: vai para a frente (desce e cresce), levanta e volta
@@ -1063,16 +1066,17 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 let G = null;
 const WORLDS = [
   { n: 'Ilha da Ponte', f: 'none' },
-  { n: 'Pôr do Sol', f: 'sepia(.35) saturate(1.5) hue-rotate(-18deg) brightness(.95)' },
-  { n: 'Noite Pirata', f: 'brightness(.6) saturate(1.2) hue-rotate(195deg)' },
-  { n: 'Ilha de Gelo', f: 'hue-rotate(165deg) saturate(.55) brightness(1.15)' },
+  { n: 'Praia Dourada', f: 'sepia(.16) saturate(1.2) brightness(1.03)' }, // todos os mundos são de dia: muda só um pouco o tom
+  { n: 'Baía Esmeralda', f: 'hue-rotate(-10deg) saturate(1.15)' },
+  { n: 'Costa do Sol', f: 'saturate(1.25) contrast(1.06) brightness(1.04)' },
 ];
 const worldOf = (lv) => WORLDS[Math.floor((lv - 1) / 10) % WORLDS.length];
 const curLv = () => (G ? G.lv : (P.sel || P.level));
 const CANNON = () => ({ x: G ? G.px : W / 2, y: H - 100 });
 const DEF = () => H - 205;
+const HITY = () => DEF() + 36; // onde o inimigo alcança o pirata e ataca (antes era na linha de defesa, um corpo de distância)
 const SHOW_FENCE = false;                  // linha que os piratas não podem passar
-const BUILD = 'Versão 55 · 15/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
+const BUILD = 'Versão 56 · 15/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
 const GANHO = 2; // multiplicador geral das moedas de batalha
 const coinMul = () => (1 + fireBonus()) * (1 + (P.vila ? VB().c : 0)) * (1 + canCoin()) * .7 * GANHO; // bônus de sequência, da vila e do canhão
 const ecoVal = () => { const n = P.level || 1; return (60 + 40 * n + .5 * n * n) * coinMul(); }; // quanto vale hoje, em moedas, um bom pedaço de fase (cerca de 1/4 do que uma fase paga)
@@ -1173,7 +1177,7 @@ function spawn(s) {
 }
 
 /* ---------- Toque: atirar ---------- */
-function toLocal(e) { const r = $('app').getBoundingClientRect(); return [(e.clientX - r.left) * W / r.width, (e.clientY - r.top) * W / r.width]; }
+function toLocal(e) { const r = $('app').getBoundingClientRect(), z = typeof CAMZ !== 'undefined' && AMB_ON ? CAMZ : 1; return [W / 2 + ((e.clientX - r.left) * W / r.width - W / 2) / z, (e.clientY - r.top) * W / r.width]; } // desconta a aproximação da câmera: o canhão vai para baixo do dedo
 cv.addEventListener('pointerdown', (e) => { if (!G || G.state !== 'run') return; G.pid = e.pointerId; const [x, y] = toLocal(e);
   const hit = typeof AUTO_AIM !== 'undefined' && AUTO_AIM && G.enemies.filter((en) => !en.dead && en.t !== 'barrel' && Math.hypot(en.x - x, en.y - y) < (en.t === 'boss' ? 70 : en.big ? 40 : 30) * persp(en.y) + 8).sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y))[0];
   if (hit) { G.lockT = hit; if (SHOW_AIM) { beep(1200, .05, 'square', .03); addFloat(hit.x, hit.y - 40 * persp(hit.y), '🔒', '#fff', 18); } G.holding = true; tryFire(); return; } G.holding = true; G.tpx = Math.max(50, Math.min(W - 50, x)); tryFire(); });
@@ -1759,7 +1763,7 @@ function synCheck() { G.syn = G.syn || {}; for (const y of SYN) if (!G.syn[y.k] 
 const AUTO_AIM = false; // false = o canhão atira reto para cima; quem mira é o jogador, movendo o canhão
 const SHOW_AIM = false; // mira (círculo, linha tracejada e cadeado) desligada: o canhão continua mirando sozinho
 function update(dt) {
-  G.shake = Math.max(0, G.shake - dt * 30);
+  G.shake = Math.max(0, G.shake - dt * 30); if (G.hurt > 0) G.hurt -= dt;
   if (G.comboT > 0) { G.comboT -= dt; if (G.comboT <= 0 && G.combo >= 5) addFloat(W / 2, 150, 'Combo x' + G.combo + '!', '#9fe8ff', 18); if (G.comboT <= 0) G.combo = 0; }
   if (G.fury > 0) G.fury -= dt;
   for (const c of G.coinsFly) { c.t += dt; if (c.t < 0) continue; if (c.t < .35) { c.x += c.vx * dt; c.y += c.vy * dt; c.vy += 600 * dt; } else { const k = Math.min(1, (c.t - .35) * 3.2); c.x += (W - 40 - c.x) * k * .35; c.y += (22 - c.y) * k * .35; if (Math.hypot(W - 40 - c.x, 22 - c.y) < 14) c.done = true; } }
@@ -1801,17 +1805,19 @@ function update(dt) {
     if (e.t === 'boss' && e.y > 60 && e.y < DEF() - 170) { e.atk -= dt; if (e.wind > 0) { sp = 0; e.wind -= dt; if (e.wind <= 0) { throwBomb(e, true); e.atk = e.mini ? 6 : 4.5; } } else if (e.atk <= 0) { e.wind = .8; } }
     e.y += sp * dt;
     if (e.kb) { e.y -= e.kb * dt * 10; e.kb = Math.max(0, e.kb - dt * 60); }
-    if (e.lane !== undefined) e.x = laneXat(e.lane, e.f, e.y);
+    if (e.lane !== undefined) { const lx = laneXat(e.lane, e.f, e.y), yB = 760 * bgRect().s; // yB = fim da ponte
+      if (e.t !== 'barrel' && e.kind !== 'gold' && e.y > yB) { const pr = Math.min(1, (e.y - yB) / Math.max(1, DEF() - yB)), want = (G.px + (e.f - .5) * 30 - lx) * pr, mv = (e.t === 'boss' ? 40 : e.big ? 55 : 85) * (e.slow > 0 ? .45 : 1) * dt; e.hx = (e.hx || 0) + Math.max(-mv, Math.min(mv, want - (e.hx || 0))); } // saiu da ponte: vem andando para cima do pirata
+      e.x = lx + (e.hx || 0); }
     if (e.kind === 'bird') e.x = Math.max(30, Math.min(W - 30, e.bx + Math.sin(G.t * 1.8 + e.wob) * 110));
     if (e.burn > 0) { e.burn -= dt; e.hp -= e.bdps * dt; if (Math.random() < .3) G.fx.push({ x: e.x + rnd(-8, 8), y: e.y, t: 0, c: '#ff7a1a', r: 3, ember: true }); if (e.hp <= 0 && !e.dead) kill(e); }
     if (e.flash) e.flash -= dt;
     if (e.t !== 'barrel') { e.dust = (e.dust || 0) + dt; if (e.dust > (e.big ? .35 : .25)) { e.dust = 0; G.dust.push({ x: e.x + (Math.random() - .5) * 10, y: e.y + (e.t === 'boss' ? 70 : e.big ? 28 : 16) * persp(e.y), t: 0, r: (e.t === 'boss' ? 14 : 6) * persp(e.y) }); } }
-    if (!e.dead && e.kind === 'gold' && e.y >= DEF()) { e.dead = true; addFloat(e.x, e.y - 30, 'O tesouro fugiu!', '#ffe36b', 17); continue; }
-    if (!e.dead && e.t !== 'barrel' && e.y >= DEF()) {
+    if (!e.dead && e.kind === 'gold' && e.y >= HITY()) { e.dead = true; addFloat(e.x, e.y - 30, 'O tesouro fugiu!', '#ffe36b', 17); continue; }
+    if (!e.dead && e.t !== 'barrel' && e.y >= HITY()) {
       e.dead = true; G.combo = 0;
       const hit = e.t === 'boss' ? (e.mini ? 3 : G.lives) : e.big ? 2 : 1;
       G.lives = Math.max(0, G.lives - hit); G.shake = 12;
-      G.fx.push({ x: e.x, y: e.y, t: 0, c: '#ff5a5a', r: 30 }); addFloat(e.x, e.y - 20, '-' + hit + ' ❤️', '#ff6b6b'); sfx('hurt');
+      G.fx.push({ x: e.x, y: e.y, t: 0, c: '#ff5a5a', r: 30 }); addFloat(G.px, CANNON().y - 96, '-' + hit + ' ❤️', '#ff6b6b', 22); sfx('hurt'); G.hurt = .45; G.hurtX = e.x; buzz(40); // o inimigo chegou e atacou o pirata
     }
     if (e.t === 'barrel' && e.y > H) e.dead = true;
   }
@@ -1987,7 +1993,8 @@ function laneXat(lane, f, sy) { const r = bgRect(), iy = sy / r.s; const [a, b] 
 const laneX = () => W / 2;
 /* ---------- Cenário vivo: animação por código em cima da imagem de fundo (sem imagens novas) ---------- */
 const AMB_ON = true; // false = cenário parado, como era
-const AMB = { t: 0, off: 0, ok: false };
+const AMB = { t: 0, off: 0, ok: false, cam: 0 };
+const CAMZ = 1.07, CAMS = .0125; // câmera da batalha: aproximação e quanto o fundo "gira" quando o canhão anda para os lados (0 = câmera parada)
 const AMBF = { torch: [[.133, .365, 1], [.872, .365, 1], [.337, .017, .55], [.677, .017, .55]], lamp: [[.122, .232], [.878, .232]], fall: [.105, 0, .262, .135], foam: [.185, .128] }; // posições na imagem de fundo (0 a 1)
 const ambSpr = (rgb, a0) => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(' + rgb + ',' + a0 + ')'); g.addColorStop(.45, 'rgba(' + rgb + ',' + a0 * .42 + ')'); g.addColorStop(1, 'rgba(' + rgb + ',0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return c; };
 function ambInit() {
@@ -2010,12 +2017,14 @@ function ambInit() {
     const sh = document.createElement('canvas'); sh.width = 50; sh.height = 84; { const g = sh.getContext('2d'); for (const [a, b2, c2, e] of [[2, 9, 30, 46], [14, 19, 50, 62], [-12, -4, 6, 20]]) { const gr = g.createLinearGradient(a, 0, c2, 66); gr.addColorStop(0, 'rgba(255,240,196,.55)'); gr.addColorStop(.5, 'rgba(255,240,196,.22)'); gr.addColorStop(1, 'rgba(255,240,196,0)'); g.fillStyle = gr; g.beginPath(); g.moveTo(a, 0); g.lineTo(b2, 0); g.lineTo(e, 66); g.lineTo(c2, 66); g.closePath(); g.fill(); } } AMB.sh = sh; // raios de sol
   } catch (e) { AMB.wk = null; }
 }
+// chama em três camadas (laranja, amarelo, miolo claro) que balança; usada nas tochas e nos inimigos pegando fogo
+function ambFlame(x, y, w, h, t, sd) { const wob = Math.sin(t * 9 + sd * 2) * w * .28, wob2 = Math.sin(t * 15 + sd * 5) * w * .18;
+  for (const [c, a, fw, fh, wx] of [['#ff7a1a', .5, 1, 1, wob], ['#ffc23a', .62, .66, .74, wob * .7 + wob2], ['#fff3b8', .7, .34, .46, wob2]]) { const ww = w * fw, hh = h * fh * (.9 + .1 * Math.sin(t * 21 + sd * 3 + fw * 9)); ctx.globalAlpha = a; ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(x - ww, y); ctx.bezierCurveTo(x - ww * 1.1, y - hh * .45, x - ww * .25 + wx, y - hh * .7, x + wx * 1.5, y - hh); ctx.bezierCurveTo(x + ww * .25 + wx, y - hh * .7, x + ww * 1.1, y - hh * .45, x + ww, y); ctx.quadraticCurveTo(x, y + ww * .55, x - ww, y); ctx.fill(); } }
 function ambTile(x, im, ox, oy, sc, x0, y0, x1, y1) { const sw = im.width * sc, sh = im.height * sc; ox = ((ox % sw) + sw) % sw; oy = ((oy % sh) + sh) % sh; for (let yy = y0 - sh + oy; yy < y1; yy += sh) for (let xx = x0 - sw + ox; xx < x1; xx += sw) x.drawImage(im, xx, yy, sw, sh); }
 // atrás dos inimigos: água, cachoeira, névoa, fogo das tochas, lanternas e marcas de explosão no chão
 function ambBack() {
   if (!AMB_ON) return; ambInit(); if (!AMB.fire) return;
-  const wn = worldOf(curLv()).n, FC = wn === 'Noite Pirata' ? ['186,150,255', '#b592ff', '#d9c6ff'] : wn === 'Ilha de Gelo' ? ['150,232,255', '#8fe4ff', '#d6f6ff'] : ['255,170,70', '#ff9a2e', '#ffb347']; // cor do fogo em cada mundo
-  AMB.fs = AMB.fs || {}; const FS = AMB.fs[wn] || (AMB.fs[wn] = ambSpr(FC[0], 1));
+  const FC = ['255,170,70', '#ff9a2e', '#ffb347'], FS = AMB.fire;
   const r = bgRect(), t = AMB.t, k = r.w / 383, X = (u) => r.x + u * r.w, Y = (v) => r.y + v * r.h;
   if (AMB.wk && DPR_CAP >= 1.25) { const x = AMB.wx, w = 180, h = 320, F = AMBF.fall; // (em celular fraco esta parte é pulada)
     x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, w, h); ambTile(x, AMB.gl, t * 5, t * 2.2, 1, 0, 0, w, 150);
@@ -2032,14 +2041,14 @@ function ambBack() {
   ctx.globalCompositeOperation = 'lighter';
   AMBF.torch.forEach(([u, v, sc], i) => { const fl = .72 + .28 * (Math.sin(t * 13 + i * 7) * .5 + Math.sin(t * 23 + i * 3) * .3 + Math.sin(t * 37 + i) * .2), x0 = X(u), y0 = Y(v), R = (44 + 12 * fl) * k * sc;
     ctx.globalAlpha = .3 * fl; ctx.drawImage(FS, x0 - R, y0 - R * .9, R * 2, R * 2);
-    ctx.globalAlpha = .55; const fw = (7 + 2 * fl) * k * sc, fh = (15 + 8 * fl) * k * sc, wx = Math.sin(t * 9 + i * 2) * 2.2 * k * sc; ctx.fillStyle = FC[1]; ctx.beginPath(); ctx.moveTo(x0 - fw, y0 - 4 * k * sc); ctx.quadraticCurveTo(x0 - fw * .7 + wx, y0 - fh * .6, x0 + wx * 1.6, y0 - fh - 4 * k * sc); ctx.quadraticCurveTo(x0 + fw * .7 + wx, y0 - fh * .6, x0 + fw, y0 - 4 * k * sc); ctx.quadraticCurveTo(x0, y0 + 3 * k * sc, x0 - fw, y0 - 4 * k * sc); ctx.fill(); // língua de fogo
+    ambFlame(x0, y0 - 2 * k * sc, (6 + 1.5 * fl) * k * sc, (19 + 7 * fl) * k * sc, t, i); // chama da tocha
     ctx.fillStyle = FC[2]; for (let j = 0; j < 3; j++) { const ph = (t * .85 + j * .37 + i * .21) % 1; ctx.globalAlpha = (1 - ph) * .8; ctx.beginPath(); ctx.arc(x0 + Math.sin(ph * 9 + j + i) * 6 * k * sc, y0 - (12 + ph * 40) * k * sc, 1.3 * k * sc, 0, 7); ctx.fill(); } }); // fagulhas subindo
-  AMBF.lamp.forEach(([u, v], i) => { const R = 34 * k; ctx.globalAlpha = .2 + .05 * Math.sin(t * 2.1 + i * 3); ctx.drawImage(wn === 'Noite Pirata' || wn === 'Ilha de Gelo' ? FS : AMB.lamp, X(u) - R, Y(v) - R, R * 2, R * 2); });
+  AMBF.lamp.forEach(([u, v], i) => { const R = 34 * k; ctx.globalAlpha = .2 + .05 * Math.sin(t * 2.1 + i * 3); ctx.drawImage(AMB.lamp, X(u) - R, Y(v) - R, R * 2, R * 2); });
   ctx.restore();
 }
 // na frente de tudo: fumaça das explosões, neblina de distância, raios de sol, poeira no ar, folhas e cantos escuros
 function ambFront() {
-  if (!AMB_ON || !AMB.fire) return; const t = AMB.t, night = worldOf(curLv()).n === 'Noite Pirata';
+  if (!AMB_ON || !AMB.fire) return; const t = AMB.t, night = false;
   ctx.save();
   if (G && G.smk) { G.smk = G.smk.filter((q) => G.t - q.t < q.l); for (const q of G.smk) { const a = (G.t - q.t) / q.l, rr = q.r * (1 + a * 1.7); ctx.globalAlpha = .34 * (1 - a); ctx.drawImage(AMB.smk, q.x + q.vx * a - rr, q.y - a * 22 - rr, rr * 2, rr * 2); } }
   if (!AMB.hz || AMB.hzH !== H) { AMB.hz = ctx.createLinearGradient(0, 0, 0, H * .36); AMB.hz.addColorStop(0, 'rgba(206,230,255,.24)'); AMB.hz.addColorStop(1, 'rgba(206,230,255,0)'); AMB.hzH = H; }
@@ -2073,6 +2082,7 @@ function drawCannon() {
   const c = CANNON(), p = pivot();
   const rc = (G ? G.recoil : 0) * 7;
   const A = G ? G.aimA : 0;
+  { const sl = silOf(CNV().body); if (sl) { ctx.save(); ctx.globalAlpha = .24; ctx.translate(c.x, c.y + 48); ctx.transform(1, 0, -.6, -.26, 0, 0); ctx.drawImage(sl, -CW / 2, -CH, CW, CH); ctx.restore(); } } // sombra do canhão e do pirata caída no chão
   // sombra no chão (rodas e pés)
   ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(c.x, c.y + 20, CW * .55, 9, 0, 0, 7); ctx.fill();
   ctx.beginPath(); ctx.ellipse(c.x, c.y + 48, CW * .32, 6, 0, 0, 7); ctx.fill();
@@ -2086,13 +2096,17 @@ function drawCannon() {
   if (B.im.complete) ctx.drawImage(bIm, -PVX, -PVY, CW, CH);
   ctx.restore();
   // pirata e rodas parados
-  if (Bd.im.complete) ctx.drawImage(dIm, c.x - CW / 2, c.y - 70, CW, CH);
+  const hu = G && G.hurt > 0 ? G.hurt / .45 : 0, hx = hu ? Math.sin(G.t * 70) * 4 * hu : 0;
+  if (Bd.im.complete) ctx.drawImage(dIm, c.x - CW / 2 + hx, c.y - 70, CW, CH);
+  if (hu) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .55 * hu; const g = ctx.createRadialGradient(c.x, c.y - 10, 4, c.x, c.y - 10, 70); g.addColorStop(0, 'rgba(255,60,40,.9)'); g.addColorStop(1, 'rgba(255,60,40,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(c.x, c.y - 10, 70, 0, 7); ctx.fill();
+    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = hu; ctx.strokeStyle = '#fff'; ctx.lineCap = 'round'; const sw = 1 - hu, dir = (G.hurtX || c.x) < c.x ? 1 : -1; for (let q = 0; q < 2; q++) { ctx.lineWidth = 5 - q * 2; ctx.beginPath(); ctx.arc(c.x - dir * 14, c.y - 18 + q * 12, 46 - q * 8, (dir > 0 ? -1.1 : Math.PI - .5) + sw * 1.3 * dir - .2, (dir > 0 ? -1.1 : Math.PI - .5) + sw * 1.3 * dir + .9); ctx.stroke(); } ctx.restore(); } // golpe do inimigo: clarão vermelho e risco branco
 }
 function draw() {
   { const now = performance.now() / 1000; if (!G || G.state === 'run') AMB.t = now - AMB.off; else AMB.off = now - AMB.t; } // o cenário só anima com a batalha rodando; na pausa, na escolha de carta e no fim da fase fica parado
   ctx.clearRect(0, 0, W, H);
   const sh = G && (G.state === 'run' || G.state === 'end') ? G.shake : 0; // pausado ou escolhendo carta: tela parada, sem tremer
   ctx.save(); if (sh > 0) { const z = 1 + Math.min(.06, sh * .004), mx = (z - 1) * W / 2, my = (z - 1) * H / 2; ctx.translate(W / 2 + Math.max(-mx, Math.min(mx, rnd(-sh, sh))), H / 2 + Math.max(-my, Math.min(my, rnd(-sh, sh)))); ctx.scale(z, z); ctx.translate(-W / 2, -H / 2); } // amplia um pouco ao tremer, para a borda do cenário não aparecer
+  if (AMB_ON && G) { if (G.state === 'run') AMB.cam += ((G.px - W / 2) / (W / 2) - AMB.cam) * .07; const y0 = CANNON().y, sh = -AMB.cam * CAMS; ctx.transform(CAMZ, 0, CAMZ * sh, CAMZ, W / 2 - CAMZ * W / 2 - CAMZ * sh * y0, y0 - CAMZ * y0); } // o que está longe desliza um pouco mais que o que está perto: dá profundidade
   drawScene();
   ctx.restore();
 }
@@ -2128,7 +2142,7 @@ function drawScene() {
       if (e.sh > 0) cemo(ctx, '🛡️', e.x - 7 * k, e.y + 8 * k, 30 * k);
       if (e.kind === 'gold') { ctx.font = 20 * k + 'px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('💰', e.x - 12 * k, e.y - 18 * k); if (Math.random() < .4) G.fx.push({ x: e.x + rnd(-12, 12), y: e.y - rnd(0, 30) * k, t: 0, c: '#fff6a0', r: 2.5, ember: true }); }
       if (e.kind === 'bomb') { ctx.font = 18 * k + 'px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('💣', e.x + 14 * k, e.y - 14 * k + (e.thr < .4 ? -6 : 0)); }
-      if (e.burn > 0) { ctx.font = 14 * k + 'px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('🔥', e.x, e.y - 22 * k); }
+      if (e.burn > 0) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; const bs = (e.big ? 1.5 : 1) * k; ambFlame(e.x - 7 * bs, e.y - 2 * bs, 5 * bs, 20 * bs, G.t, e.wob); ambFlame(e.x + 6 * bs, e.y - 8 * bs, 6 * bs, 26 * bs, G.t, e.wob + 2); ambFlame(e.x, e.y - 22 * bs, 4.5 * bs, 18 * bs, G.t, e.wob + 4); ctx.restore(); } // pegando fogo: chamas de verdade em vez de um desenho parado
     }
     if (e.t !== 'boss' && e.hp < e.max) { const w = (e.big ? 40 : 26) * k, yy = e.y - (e.big ? 44 : 28) * k; ctx.fillStyle = '#1d2230'; ctx.fillRect(e.x - w / 2, yy, w, 5); ctx.fillStyle = '#ff4d4d'; ctx.fillRect(e.x - w / 2 + 1, yy + 1, (w - 2) * Math.max(0, e.hp / e.max), 3); }
   }
@@ -2143,8 +2157,8 @@ function drawScene() {
     ctx.restore();
   }
   for (const b of G.balls) { if (b.gold) { ctx.fillStyle = 'rgba(255,200,40,.7)'; ctx.beginPath(); ctx.arc(b.x, b.y + 8, 13, 0, 7); ctx.fill(); } if (G.fire) { ctx.fillStyle = 'rgba(255,110,30,.5)'; ctx.beginPath(); ctx.arc(b.x, b.y + 6, 10, 0, 7); ctx.fill(); } if (G.ice) { ctx.fillStyle = 'rgba(140,220,255,.5)'; ctx.beginPath(); ctx.arc(b.x, b.y, 11, 0, 7); ctx.fill(); } }
-  for (const b of G.balls) { ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.beginPath(); ctx.ellipse(b.x + 2, b.y + 10, 7, 3, 0, 0, 7); ctx.fill(); ctx.fillStyle = 'rgba(29,34,48,.22)'; ctx.beginPath(); ctx.arc(b.x - b.vx * .012, b.y - b.vy * .012, 5.5, 0, 7); ctx.fill(); ctx.fillStyle = 'rgba(29,34,48,.1)'; ctx.beginPath(); ctx.arc(b.x - b.vx * .024, b.y - b.vy * .024, 4, 0, 7); ctx.fill(); } // sombra no chão e rastro
-  for (const b of G.balls) { if (SK().aura) { ctx.fillStyle = SK().aura + '66'; ctx.beginPath(); ctx.arc(b.x, b.y, 12, 0, 7); ctx.fill(); } ctx.fillStyle = '#1d2230'; ctx.beginPath(); ctx.arc(b.x, b.y, 7, 0, 7); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.beginPath(); ctx.arc(b.x - 2, b.y - 2, 2.5, 0, 7); ctx.fill(); }
+  for (const b of G.balls) { ctx.fillStyle = 'rgba(0,0,0,.2)'; const kb = persp(b.y); ctx.beginPath(); ctx.ellipse(b.x + 8 * kb, b.y + 13 * kb, 7 * kb, 3 * kb, 0, 0, 7); ctx.fill(); ctx.fillStyle = 'rgba(29,34,48,.22)'; ctx.beginPath(); ctx.arc(b.x - b.vx * .012, b.y - b.vy * .012, 5.5 * kb, 0, 7); ctx.fill(); ctx.fillStyle = 'rgba(29,34,48,.1)'; ctx.beginPath(); ctx.arc(b.x - b.vx * .024, b.y - b.vy * .024, 4 * kb, 0, 7); ctx.fill(); } // sombra no chão e rastro
+  for (const b of G.balls) { const kb = persp(b.y); if (SK().aura) { ctx.fillStyle = SK().aura + '66'; ctx.beginPath(); ctx.arc(b.x, b.y, 12 * kb, 0, 7); ctx.fill(); } ctx.fillStyle = '#1d2230'; ctx.beginPath(); ctx.arc(b.x, b.y, 7.5 * kb, 0, 7); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.beginPath(); ctx.arc(b.x - 2 * kb, b.y - 2 * kb, 2.6 * kb, 0, 7); ctx.fill(); } // a bala diminui conforme se afasta (perspectiva)
   for (const f of G.fx) { const p = f.t / .45; if (p < 0) continue; ctx.globalAlpha = 1 - p;
     if (f.ember || f.r < 14) { ctx.fillStyle = f.c; ctx.beginPath(); ctx.arc(f.x, f.ember ? f.y - f.t * 90 : f.y, f.ember ? f.r : f.r * (.4 + p), 0, 7); ctx.fill(); }
     else { const r = f.r * (.45 + p * .75), g = ctx.createRadialGradient(f.x, f.y, r * .05, f.x, f.y, r); g.addColorStop(0, '#fffbe0'); g.addColorStop(.3, f.c); g.addColorStop(.72, f.c); g.addColorStop(1, 'rgba(60,30,10,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(f.x, f.y, r, 0, 7); ctx.fill();
