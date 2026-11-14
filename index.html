@@ -1076,7 +1076,7 @@ const CANNON = () => ({ x: G ? G.px : W / 2, y: H - 100 });
 const DEF = () => H - 205;
 const HITY = () => DEF() + 36; // onde o inimigo alcança o pirata e ataca (antes era na linha de defesa, um corpo de distância)
 const SHOW_FENCE = false;                  // linha que os piratas não podem passar
-const BUILD = 'Versão 57 · 15/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
+const BUILD = 'Versão 58 · 15/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
 const GANHO = 2; // multiplicador geral das moedas de batalha
 const coinMul = () => (1 + fireBonus()) * (1 + (P.vila ? VB().c : 0)) * (1 + canCoin()) * .7 * GANHO; // bônus de sequência, da vila e do canhão
 const ecoVal = () => { const n = P.level || 1; return (60 + 40 * n + .5 * n * n) * coinMul(); }; // quanto vale hoje, em moedas, um bom pedaço de fase (cerca de 1/4 do que uma fase paga)
@@ -1177,7 +1177,7 @@ function spawn(s) {
 }
 
 /* ---------- Toque: atirar ---------- */
-function toLocal(e) { const r = $('app').getBoundingClientRect(), z = typeof CAMZ !== 'undefined' && AMB_ON ? CAMZ : 1; return [W / 2 + ((e.clientX - r.left) * W / r.width - W / 2) / z, (e.clientY - r.top) * W / r.width]; } // desconta a aproximação da câmera: o canhão vai para baixo do dedo
+function toLocal(e) { const r = $('app').getBoundingClientRect(), z = typeof camZ === 'function' ? camZ() : 1; return [W / 2 + ((e.clientX - r.left) * W / r.width - W / 2) / z, (e.clientY - r.top) * W / r.width]; } // desconta a aproximação da câmera: o canhão vai para baixo do dedo
 cv.addEventListener('pointerdown', (e) => { if (!G || G.state !== 'run') return; G.pid = e.pointerId; const [x, y] = toLocal(e);
   const hit = typeof AUTO_AIM !== 'undefined' && AUTO_AIM && G.enemies.filter((en) => !en.dead && en.t !== 'barrel' && Math.hypot(en.x - x, en.y - y) < (en.t === 'boss' ? 70 : en.big ? 40 : 30) * persp(en.y) + 8).sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y))[0];
   if (hit) { G.lockT = hit; if (SHOW_AIM) { beep(1200, .05, 'square', .03); addFloat(hit.x, hit.y - 40 * persp(hit.y), '🔒', '#fff', 18); } G.holding = true; tryFire(); return; } G.holding = true; G.tpx = Math.max(50, Math.min(W - 50, x)); tryFire(); });
@@ -1998,7 +1998,8 @@ const laneX = () => W / 2;
 /* ---------- Cenário vivo: animação por código em cima da imagem de fundo (sem imagens novas) ---------- */
 const AMB_ON = true; // false = cenário parado, como era
 const AMB = { t: 0, off: 0, ok: false, cam: 0 };
-const CAMZ = 1.07, CAMS = .0125; // câmera da batalha: aproximação e quanto o fundo "gira" quando o canhão anda para os lados (0 = câmera parada)
+const CAMS = .0125; // câmera da batalha: quanto o fundo "gira" quando o canhão anda para os lados (0 = câmera parada)
+const camZ = () => (AMB_ON ? Math.max(1, (W / 2 + 6) / (bgRect().w / 2)) : 1); // aproximação: só o necessário para a imagem cobrir a tela de lado a lado. Em celular comprido é 1 (nada cortado, a cachoeira aparece inteira)
 const AMBF = { torch: [[.133, .365, 1], [.872, .365, 1], [.337, .017, .55], [.677, .017, .55]], lamp: [[.122, .232], [.878, .232]], fall: [.105, 0, .262, .135], foam: [.185, .128] }; // posições na imagem de fundo (0 a 1)
 const ambSpr = (rgb, a0) => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(' + rgb + ',' + a0 + ')'); g.addColorStop(.45, 'rgba(' + rgb + ',' + a0 * .42 + ')'); g.addColorStop(1, 'rgba(' + rgb + ',0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return c; };
 function ambInit() {
@@ -2016,6 +2017,11 @@ function ambInit() {
     let sd = 7; const rd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
     const gl = document.createElement('canvas'); gl.width = gl.height = 96; { const g = gl.getContext('2d'); g.fillStyle = '#fff'; for (let i = 0; i < 120; i++) { const gx = rd() * 96, gy = rd() * 96, rw = 1.6 + rd() * 3.6, rh = .5 + rd() * .6; g.globalAlpha = .6 + rd() * .4; for (const ox of [-96, 0, 96]) for (const oy of [-96, 0, 96]) { g.beginPath(); g.ellipse(gx + ox, gy + oy, rw, rh, 0, 0, 7); g.fill(); } } } AMB.gl = gl; // brilhos da água
     const st = document.createElement('canvas'); st.width = 48; st.height = 96; { const g = st.getContext('2d'); g.fillStyle = '#fff'; for (let i = 0; i < 26; i++) { const gx = rd() * 48, gy = rd() * 96, rw = .7 + rd() * 1.1, rh = 6 + rd() * 14; g.globalAlpha = .35 + rd() * .6; for (const oy of [-96, 0, 96]) { g.beginPath(); g.ellipse(gx, gy + oy, rw, rh, 0, 0, 7); g.fill(); } } } AMB.st = st; // fios da cachoeira
+    { const F2 = AMBF.fall, bw = BG.naturalWidth, bh = BG.naturalHeight, sx0 = Math.floor(F2[0] * bw), sw0 = Math.ceil((F2[2] - F2[0]) * bw), sh0 = Math.ceil(F2[3] * bh), mc = document.createElement('canvas'); mc.width = sw0; mc.height = sh0; const mx2 = mc.getContext('2d'); mx2.drawImage(BG, sx0, 0, sw0, sh0, 0, 0, sw0, sh0); // cachoeira: máscara da queda d'água, na resolução da imagem
+      const md = mx2.getImageData(0, 0, sw0, sh0), q = md.data; for (let i = 0; i < q.length; i += 4) { const r = q[i] / 255, g = q[i + 1] / 255, b = q[i + 2] / 255, mxv = Math.max(r, g, b), a = Math.max(0, Math.min(1, (b - r - .03) / .1)) * Math.max(0, Math.min(1, (mxv - .5) / .14)); q[i] = q[i + 1] = q[i + 2] = 255; q[i + 3] = a * 255; } mx2.putImageData(md, 0, 0); AMB.fmk = mc;
+      AMB.fk = document.createElement('canvas'); AMB.fk.width = sw0; AMB.fk.height = sh0; AMB.fkx = AMB.fk.getContext('2d');
+      const tile = (col, n, w0, w1, h0, h1, a0, a1) => { const c2 = document.createElement('canvas'); c2.width = sw0; c2.height = 128; const g = c2.getContext('2d'); g.fillStyle = col; for (let i = 0; i < n; i++) { const gx = rd() * sw0, gy = rd() * 128, rw = w0 + rd() * (w1 - w0), rh = h0 + rd() * (h1 - h0); g.globalAlpha = a0 + rd() * (a1 - a0); for (const oy of [-128, 0, 128]) { g.beginPath(); g.ellipse(gx, gy + oy, rw, rh, 0, 0, 7); g.fill(); } } return c2; };
+      AMB.fw1 = tile('#ffffff', 46, 1.1, 2.6, 10, 30, .4, .95); AMB.fw2 = tile('#e8f8ff', 30, 1.6, 3.4, 16, 40, .3, .7); AMB.fd = tile('#1c6fb8', 26, 2, 4.5, 14, 36, .22, .45); } // fios claros (duas camadas) e sombras azuis
     AMB.fire = ambSpr('255,170,70', 1); AMB.lamp = ambSpr('255,214,130', 1); AMB.mist = ambSpr('255,255,255', 1); AMB.dark = ambSpr('20,12,6', 1); AMB.smk = ambSpr('120,112,104', 1);
     const vg = document.createElement('canvas'); vg.width = 48; vg.height = 80; { const g = vg.getContext('2d'), gr = g.createRadialGradient(24, 38, 20, 24, 40, 54); gr.addColorStop(0, 'rgba(14,8,3,0)'); gr.addColorStop(.7, 'rgba(14,8,3,.16)'); gr.addColorStop(1, 'rgba(14,8,3,.5)'); g.fillStyle = gr; g.fillRect(0, 0, 48, 80); } AMB.vg = vg; // cantos mais escuros
     const sh = document.createElement('canvas'); sh.width = 50; sh.height = 84; { const g = sh.getContext('2d'); for (const [a, b2, c2, e] of [[2, 9, 30, 46], [14, 19, 50, 62], [-12, -4, 6, 20]]) { const gr = g.createLinearGradient(a, 0, c2, 66); gr.addColorStop(0, 'rgba(255,240,196,.55)'); gr.addColorStop(.5, 'rgba(255,240,196,.22)'); gr.addColorStop(1, 'rgba(255,240,196,0)'); g.fillStyle = gr; g.beginPath(); g.moveTo(a, 0); g.lineTo(b2, 0); g.lineTo(e, 66); g.lineTo(c2, 66); g.closePath(); g.fill(); } } AMB.sh = sh; // raios de sol
@@ -2034,11 +2040,15 @@ function ambBack() {
     x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, w, h); ambTile(x, AMB.gl, t * 5, t * 2.2, 1, 0, 0, w, 150);
     AMB.wx2.clearRect(0, 0, w, 150); ambTile(AMB.wx2, AMB.gl, 40 - t * 3.4, 70 + t * 3.1, 1.37, 0, 0, w, 150); // segunda camada, andando ao contrário: onde as duas se cruzam, a água cintila
     x.globalCompositeOperation = 'destination-in'; x.drawImage(AMB.wk2, 0, 0); x.drawImage(AMB.wm, 0, 0);
-    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .8; ctx.drawImage(AMB.wk, 0, 0, w, 150, r.x, r.y, r.w, r.h * 150 / h); ctx.restore();
-    const fx0 = Math.floor(F[0] * w), fy0 = 0, fw = Math.ceil((F[2] - F[0]) * w), fh = Math.ceil(F[3] * h);
-    x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, w, 150); ambTile(x, AMB.st, 0, t * 62, .55, fx0, fy0, fx0 + fw, fy0 + fh);
-    x.globalCompositeOperation = 'destination-in'; x.drawImage(AMB.fm, 0, 0);
-    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .8; ctx.drawImage(AMB.wk, fx0, fy0, fw, fh, X(fx0 / w), Y(fy0 / h), r.w * fw / w, r.h * fh / h); ctx.restore(); }
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = .8; ctx.drawImage(AMB.wk, 0, 0, w, 150, r.x, r.y, r.w, r.h * 150 / h); ctx.restore(); }
+  if (AMB.fk) { const F = AMBF.fall, x = AMB.fkx, fw = AMB.fk.width, fh = AMB.fk.height; // água caindo: sombras e fios em três velocidades, recortados no formato da cachoeira
+    x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, fw, fh); ambTile(x, AMB.fd, 0, t * 105, 1, 0, 0, fw, fh); ambTile(x, AMB.fw2, 23, t * 150, 1, 0, 0, fw, fh); ambTile(x, AMB.fw1, 0, t * 215, 1, 0, 0, fw, fh);
+    x.globalCompositeOperation = 'destination-in'; x.drawImage(AMB.fmk, 0, 0);
+    ctx.drawImage(AMB.fk, X(F[0]), Y(F[1]), r.w * (F[2] - F[0]), r.h * (F[3] - F[1]));
+    const fx = X(AMBF.foam[0]), fy = Y(AMBF.foam[1]); ctx.save(); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.3 * k;
+    for (let i = 0; i < 3; i++) { const ph = (t * .55 + i / 3) % 1, rx = (9 + ph * 30) * k; ctx.globalAlpha = .55 * (1 - ph); ctx.beginPath(); ctx.ellipse(fx, fy + 7 * k, rx, rx * .3, 0, 0, 7); ctx.stroke(); } // ondas abrindo onde a água bate
+    ctx.fillStyle = '#ffffff'; for (let i = 0; i < 12; i++) { const ph = (t * (1.25 + (i % 4) * .2) + i * .083) % 1, dir = (i % 2 ? 1 : -1) * (.4 + (i % 5) * .22); ctx.globalAlpha = .9 * (1 - ph); ctx.beginPath(); ctx.arc(fx + dir * ph * 20 * k, fy + 2 * k - Math.sin(ph * 3.14) * (9 + (i % 3) * 5) * k, (1.5 - ph * .7) * k, 0, 7); ctx.fill(); } // respingos pulando
+    ctx.restore(); }
   ctx.save();
   for (let i = 0; i < 5; i++) { const ph = (t * .45 + i / 5) % 1, rr = (9 + ph * 13) * k; ctx.globalAlpha = .34 * (1 - ph); ctx.drawImage(AMB.mist, X(AMBF.foam[0]) + (i - 2) * 7 * k + Math.sin(t * 1.3 + i * 2) * 3 * k - rr, Y(AMBF.foam[1]) - ph * 15 * k - rr, rr * 2, rr * 2); } // névoa ao pé da cachoeira
   if (G && G.decals) { G.decals = G.decals.filter((d) => G.t - d.t < 7); for (const d of G.decals) { const a = (G.t - d.t) / 7; ctx.globalAlpha = .5 * (1 - a) * Math.min(1, (G.t - d.t) * 6); ctx.drawImage(AMB.dark, d.x - d.r, d.y - d.r * .42, d.r * 2, d.r * .84); } } // chamuscado no chão
@@ -2110,7 +2120,7 @@ function draw() {
   ctx.clearRect(0, 0, W, H);
   const sh = G && (G.state === 'run' || G.state === 'end') ? G.shake : 0; // pausado ou escolhendo carta: tela parada, sem tremer
   ctx.save(); if (sh > 0) { const z = 1 + Math.min(.06, sh * .004), mx = (z - 1) * W / 2, my = (z - 1) * H / 2; ctx.translate(W / 2 + Math.max(-mx, Math.min(mx, rnd(-sh, sh))), H / 2 + Math.max(-my, Math.min(my, rnd(-sh, sh)))); ctx.scale(z, z); ctx.translate(-W / 2, -H / 2); } // amplia um pouco ao tremer, para a borda do cenário não aparecer
-  if (AMB_ON && G) { if (G.state === 'run') AMB.cam += ((G.px - W / 2) / (W / 2) - AMB.cam) * .07; const y0 = CANNON().y, sh = -AMB.cam * CAMS; ctx.transform(CAMZ, 0, CAMZ * sh, CAMZ, W / 2 - CAMZ * W / 2 - CAMZ * sh * y0, y0 - CAMZ * y0); } // o que está longe desliza um pouco mais que o que está perto: dá profundidade
+  if (AMB_ON && G) { if (G.state === 'run') AMB.cam += ((G.px - W / 2) / (W / 2) - AMB.cam) * .07; const y0 = CANNON().y, sh = -AMB.cam * CAMS, CAMZ = camZ(); ctx.transform(CAMZ, 0, CAMZ * sh, CAMZ, W / 2 - CAMZ * W / 2 - CAMZ * sh * y0, y0 - CAMZ * y0); } // o que está longe desliza um pouco mais que o que está perto: dá profundidade
   drawScene();
   ctx.restore();
 }
