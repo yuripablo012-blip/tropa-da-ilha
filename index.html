@@ -422,6 +422,7 @@ button { transition: scale .12s cubic-bezier(.3,1.8,.5,1); }
 #pauseOv .btn { width: min(78%, 290px); min-height: 58px; margin: 0; font-size: 22px; padding: 12px 10px 8px; display: flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; }
 #pauseOv .btn .emo-i { height: 1.15em; vertical-align: 0; }
 #pauseOv .btn.sndb { background: linear-gradient(#5db6ff, #2774c9); }
+#pauseOv .vtag2 { position: absolute; left: 0; right: 0; bottom: 14px; font-size: 12px; font-weight: 900; color: rgba(255,255,255,.6); text-shadow: 0 1px 2px #000; letter-spacing: .3px; }
 /* ícones pintados que substituem emoji */
 .emo-i { height: 1.2em; width: auto; vertical-align: -.24em; display: inline-block; filter: drop-shadow(0 1px 0 rgba(0,0,0,.35)); }
 .emo-i.off { filter: grayscale(1) brightness(.55); opacity: .75; }
@@ -446,6 +447,7 @@ button { transition: scale .12s cubic-bezier(.3,1.8,.5,1); }
 .endpanel .almost { width: 100%; }
 /* fundo liso atrás dos títulos das telas sobrepostas */
 #mapOv, #giftOv, #missOv, #pick, #pauseOv, #end, #shopOv, #chestOv, #genOv { background: radial-gradient(ellipse at 50% 30%, #17406e, #071a33 75%) !important; }
+#pauseOv { background: radial-gradient(ellipse at 50% 45%, rgba(4,12,24,.38), rgba(4,12,24,.66)) !important; -webkit-backdrop-filter: blur(1.5px); backdrop-filter: blur(1.5px); } /* pausa: aparece o jogo parado atrás, só escurecido */
 .lnav { gap: 5px !important; padding-left: 8px !important; padding-right: 8px !important; }
 .lnav button { font-size: clamp(8px, 2.5vw, 11px) !important; padding-left: 0 !important; padding-right: 0 !important; min-width: 0; }
 .lnav.noshop { grid-template-columns: repeat(5, 1fr) !important; gap: 8px !important; padding-left: 12px !important; padding-right: 12px !important; } .lnav.noshop button { font-size: 11px !important; }
@@ -820,6 +822,7 @@ button { transition: scale .12s cubic-bezier(.3,1.8,.5,1); }
     <button class="btn green" id="resume">CONTINUAR</button>
     <button class="btn sndb" id="sndBtn2">🔊 SOM LIGADO</button>
     <button class="btn" id="quit" style="background:linear-gradient(#ff8a8a,#d23c3c)">SAIR DA FASE</button>
+    <div class="vtag2" id="buildTag"></div>
   </div>
 
   <div class="screen hidden" id="mapOv">
@@ -1055,6 +1058,7 @@ const curLv = () => (G ? G.lv : (P.sel || P.level));
 const CANNON = () => ({ x: G ? G.px : W / 2, y: H - 100 });
 const DEF = () => H - 205;
 const SHOW_FENCE = false;                  // linha que os piratas não podem passar
+const BUILD = 'Versão 50 · 14/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
 const GANHO = 2; // multiplicador geral das moedas de batalha
 const coinMul = () => (1 + fireBonus()) * (1 + (P.vila ? VB().c : 0)) * (1 + canCoin()) * .7 * GANHO; // bônus de sequência, da vila e do canhão
 const earn = (v) => { const x = v * (G.cm || 1); G.earned += x; return Math.max(1, Math.round(x)); }; // soma moedas da batalha já com os bônus; devolve o valor que aparece na tela
@@ -1683,6 +1687,7 @@ function spRain() { G.rain = 18; G.shake = 8; sfx('power'); sfx('big'); const el
 document.addEventListener('visibilitychange', () => { if (document.hidden && G && G.state === 'run') { G.state = 'pause'; G.holding = false; $('pauseOv').classList.remove('hidden'); } });
 function sndSync() { $('sndBtn').textContent = P.mute ? '🔇' : '🔊'; $('sndBtn2').textContent = P.mute ? '🔇 SOM DESLIGADO' : '🔊 SOM LIGADO'; }
 ['sndBtn', 'sndBtn2'].forEach((id) => $(id).addEventListener('click', () => { P.mute = !P.mute; save(); sndSync(); if (!P.mute) beep(660, .08, 'triangle', .05); })); sndSync();
+$('buildTag').textContent = BUILD;
 $('pauseBtn').addEventListener('click', () => { if (!G || G.state !== 'run') return; G.state = 'pause'; G.holding = false; $('pauseOv').classList.remove('hidden'); });
 $('resume').addEventListener('click', () => { $('pauseOv').classList.add('hidden'); if (G) { G.state = 'run'; last = performance.now(); } });
 $('quit').addEventListener('click', () => { $('pauseOv').classList.add('hidden'); hideGameHud(); showMenu(); });
