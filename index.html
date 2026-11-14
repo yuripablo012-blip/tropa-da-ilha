@@ -395,7 +395,7 @@ button { transition: scale .12s cubic-bezier(.3,1.8,.5,1); }
 /* barras de progresso em trilho escavado */
 .upc .pips i, .tro .tb, .xpbar, .evo-prog { box-shadow: inset 0 2px 3px rgba(0,0,0,.45) !important; }
 .upc .pips i { background: #cdb68a !important; border-radius: 3px !important; }
-.upc .pips i.on { background: linear-gradient(#ffe98a, #e8a316 60%, #a86a08) !important; box-shadow: 0 0 6px rgba(255,190,40,.6) !important; }
+.upc .pips i.on { background: linear-gradient(#c9ff9a, #4cc93f 60%, #2b922a) !important; box-shadow: 0 0 6px rgba(90,220,70,.6) !important; }
 .tro .tb { background: #cdb68a !important; } .tro .tb i { background: linear-gradient(#a6f08a, #3fae2f 60%, #2a7d1f) !important; }
 /* etiquetas de nível como placas de latão */
 .upc .nm small { background: linear-gradient(var(--brass1), var(--brass2) 55%, var(--brass3)) !important; color: #3a220c !important; border: 1.5px solid #4a2c12; text-shadow: 0 1px 0 rgba(255,255,255,.5); }
@@ -1078,7 +1078,7 @@ const CANNON = () => ({ x: G ? G.px : W / 2, y: H - 100 });
 const DEF = () => H - 205;
 const HITY = () => DEF() + 36; // onde o inimigo alcança o pirata e ataca (antes era na linha de defesa, um corpo de distância)
 const SHOW_FENCE = false;                  // linha que os piratas não podem passar
-const BUILD = 'Versão 60 · 15/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
+const BUILD = 'Versão 61 · 15/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
 const GANHO = 2; // multiplicador geral das moedas de batalha
 const coinMul = () => (1 + fireBonus()) * (1 + (P.vila ? VB().c : 0)) * (1 + canCoin()) * .7 * GANHO; // bônus de sequência, da vila e do canhão
 const ecoVal = () => { const n = P.level || 1; return (60 + 40 * n + .5 * n * n) * coinMul(); }; // quanto vale hoje, em moedas, um bom pedaço de fase (cerca de 1/4 do que uma fase paga)
@@ -1697,40 +1697,34 @@ function endChestThen(fn) { const vc = $('vchest'); if (vc.classList.contains('h
 $('again').addEventListener('click', () => endChestThen(() => { $('end').classList.add('hidden'); startLevel(); }));
 
 /* ---------- Poderes entre as ondas ---------- */
+// Só três poderes (pedido do dono): cada um tem um ataque na hora (cast) e um bônus até o fim da fase (ap), que para de somar no nível máximo.
 const POWERS = [
-  { id: 'multi', ic: '🎆', n: 'Canhões Gêmeos', d: '+1 bala a cada disparo', c: ['#ff9a2e', '#ffd36a'], max: 3, ap: () => G.multi++ },
-  { id: 'pierce', ic: '🔱', n: 'Arpão do Baleeiro', d: 'A bala atravessa +1 pirata', c: ['#2f8ff0', '#8fd3ff'], max: 3, ap: () => G.pierce++ },
-  { id: 'fire', ic: '🎇', n: 'Pólvora Flamejante', d: 'Os inimigos pegam fogo e queimam', c: ['#e2372b', '#ff9a6a'], max: 3, ap: () => G.fire++ },
-  { id: 'ice', ic: '🐙', n: 'Maldição do Kraken', d: 'Tentáculos deixam os inimigos lentos', c: ['#1fb5c9', '#b6f3ff'], max: 2, ap: () => G.ice++ },
-  { id: 'blast', ic: '💥', n: 'Barril de Pólvora', d: 'Raio da explosão +40%', c: ['#9b4dff', '#d7b0ff'], max: 3, ap: () => G.blast++ },
-  { id: 'rate', ic: '⚡', n: 'Artilheiro Veloz', d: 'O canhão atira sozinho, muito rápido, por 5 segundos. Depois, atira 25% mais rápido', c: ['#e8b10e', '#fff2a0'], max: 4, ap: () => { G.reload *= .8; }, cast: () => { G.burst = 5; G.shake = 8; sfx('power'); pwBanner('⚡ RAJADA!'); } },
-  { id: 'dmg', ic: '⛓', n: 'Bala de Corrente', d: 'Duas balas presas por uma corrente varrem a ponte e acertam todos. Depois, +30% de dano', c: ['#7d4a2a', '#d9a45c'], max: 4, ap: () => { G.dmg *= 1.3; }, cast: () => { (G.chains = G.chains || []).push({ y: CANNON().y - 70, t: 0, hit: [] }); setTimeout(() => { if (G && G.state === 'run') G.chains.push({ y: CANNON().y - 70, t: 0, hit: [] }); }, 520); G.shake = 10; sfx('power'); sfx('big'); pwBanner('⛓ CORRENTE!'); } },
-  { id: 'heart', ic: '❤️', n: 'Rum de Cura', d: 'Cura seus corações agora e aumenta o máximo', c: ['#e23b6a', '#ff9ccf'], max: 9, ap: () => { const hv = Math.max(2, Math.round(G.maxLives * .15)), l0 = G.lives; G.maxLives += hv; G.lives = Math.min(G.maxLives, G.lives + hv + Math.ceil(G.maxLives * .3)); G.healN = G.lives - l0; }, /* cura de verdade: devolve 30% dos corações, além dos corações novos */ cast: () => { G.healFx = 1.8; sfx('power'); [523, 659, 784, 1046].forEach((f, j) => setTimeout(() => beep(f, .12, 'triangle', .06), j * 90)); addFloat(CANNON().x, CANNON().y - 110, '+' + (G.healN || 2) + ' ❤️', '#ff8fb3', 26); pwBanner('❤️ RUM DE CURA!'); const h = $('hearts'); h.classList.remove('heal'); void h.offsetWidth; h.classList.add('heal'); } },
-  { id: 'coin', ic: '🪙', n: 'Mapa do Tesouro', d: '+50% de moedas na fase', c: ['#2e9b2d', '#9be38c'], max: 2, ap: () => G.coinMult++ },
+  { id: 'rate', ic: '⚡', n: 'Artilheiro Veloz', d: 'O canhão atira sozinho, muito rápido, por 5 segundos. Depois, atira 25% mais rápido', d2: 'O canhão atira sozinho, muito rápido, por 5 segundos', c: ['#e8b10e', '#fff2a0'], max: 4, ap: () => { G.reload *= .8; }, cast: () => { G.burst = 5; G.shake = 8; sfx('power'); pwBanner('⚡ RAJADA!'); } },
+  { id: 'dmg', ic: '⛓', n: 'Bala de Corrente', d: 'Duas balas presas por uma corrente varrem a ponte e acertam todos. Depois, +30% de dano', d2: 'Duas balas presas por uma corrente varrem a ponte e acertam todos', c: ['#7d4a2a', '#d9a45c'], max: 4, ap: () => { G.dmg *= 1.3; }, cast: () => { (G.chains = G.chains || []).push({ y: CANNON().y - 70, t: 0, hit: [] }); setTimeout(() => { if (G && G.state === 'run') G.chains.push({ y: CANNON().y - 70, t: 0, hit: [] }); }, 520); G.shake = 10; sfx('power'); sfx('big'); pwBanner('⛓ CORRENTE!'); } },
+  { id: 'heart', ic: '❤️', n: 'Rum de Cura', d: 'Cura seus corações agora e aumenta o máximo', d2: 'Cura seus corações agora', c: ['#e23b6a', '#ff9ccf'], max: 9, ap: () => { const hv = Math.max(2, Math.round(G.maxLives * .15)); G.maxLives += hv; G.lives += hv; G.hvLast = hv; }, cast: () => { const l0 = G.lives; G.lives = Math.min(G.maxLives, G.lives + Math.ceil(G.maxLives * .3)); G.healN = G.lives - l0 + (G.hvLast || 0); /* cura de verdade: devolve 30% dos corações, além dos corações novos */ G.healFx = 1.8; sfx('power'); [523, 659, 784, 1046].forEach((f, j) => setTimeout(() => beep(f, .12, 'triangle', .06), j * 90)); addFloat(CANNON().x, CANNON().y - 110, '+' + (G.healN || 2) + ' ❤️', '#ff8fb3', 26); pwBanner('❤️ RUM DE CURA!'); const h = $('hearts'); h.classList.remove('heal'); void h.offsetWidth; h.classList.add('heal'); } },
 ];
 const pwIcon = (p, cls) => ({ blast: ii('dmg', cls), rate: ii('rate', cls), heart: ii('heart', cls), coin: ii('coin', cls) }[p.id] || p.ic);
 function renderPw() { const el = $('pwBar'); if (!el) return; el.innerHTML = G ? POWERS.filter((p) => G.pw[p.id]).map((p) => `<span class="pw" style="--c1:${p.c[0]};--c2:${p.c[1]}">${pwIcon(p, 'ii')}${G.pw[p.id] > 1 ? '<b>' + G.pw[p.id] + '</b>' : ''}</span>`).join('') : ''; } // poderes ativos na fase, com o nível
 function openPick() {
   G.state = 'pick'; G.holding = false; G.pickT = performance.now();
-  const avail = POWERS.filter((p) => (G.pw[p.id] || 0) < p.max);
-  const pick = []; while (pick.length < 3 && avail.length) pick.push(avail.splice(Math.floor(Math.random() * avail.length), 1)[0]);
+  const pick = POWERS.slice(0, 3); // sempre as mesmas três cartas, na mesma ordem
   $('pickSub').textContent = 'Canhão carregado! Escolha o seu poder:';
-  $('cards').innerHTML = pick.map((p) => `<button class="card" data-pw="${p.id}" style="--c1:${p.c[0]};--c2:${p.c[1]}"><span class="ci">${pwIcon(p, 'ii i-cd')}</span><span class="cn">${p.n}</span><span class="cd">${p.d}</span>${synHint(p.id)}${G.pw[p.id] ? `<span class="cl">Nível ${G.pw[p.id] + 1}</span>` : '<span class="cl">NOVO</span>'}</button>`).join('');
+  $('cards').innerHTML = pick.map((p) => `<button class="card" data-pw="${p.id}" style="--c1:${p.c[0]};--c2:${p.c[1]}"><span class="ci">${pwIcon(p, 'ii i-cd')}</span><span class="cn">${p.n}</span><span class="cd">${(G.pw[p.id] || 0) >= p.max ? p.d2 : p.d}</span>${synHint(p.id)}${(G.pw[p.id] || 0) >= p.max ? '<span class="cl">NÍVEL MÁX</span>' : G.pw[p.id] ? `<span class="cl">Nível ${G.pw[p.id] + 1}</span>` : '<span class="cl">NOVO</span>'}</button>`).join('');
   $('pick').classList.remove('hidden'); sfx('power');
 }
 $('cards').addEventListener('click', (e) => {
   const b = e.target.closest('[data-pw]'); if (!b || !G || G.state !== 'pick' || performance.now() - (G.pickT || 0) < 350) return; // 350 ms: o dedo que apertou o botão do poder ainda está saindo da tela
-  const p = POWERS.find((x) => x.id === b.dataset.pw); p.ap(); G.pw[p.id] = (G.pw[p.id] || 0) + 1; mprog('card'); synCheck();
+  const p = POWERS.find((x) => x.id === b.dataset.pw); G.hvLast = 0; if ((G.pw[p.id] || 0) < p.max) { p.ap(); G.pw[p.id] = (G.pw[p.id] || 0) + 1; } mprog('card'); synCheck(); // no nível máximo o bônus não soma mais, mas o ataque continua valendo
   $('pick').classList.add('hidden'); G.state = 'run'; last = performance.now(); sfx('coin');
   addFloat(CANNON().x, CANNON().y - 90, p.ic + ' ' + p.n, '#ffe36b', 20);
-  renderPw(); G.picked = 1; if (p.cast) p.cast(); else spRain(); // três poderes têm ataque próprio; os outros soltam a chuva de balas
+  renderPw(); G.picked = 1; if (p.cast) p.cast(); else spRain();
 });
 /* ---------- Especial: chuva de balas ---------- */
 $('spBtn').addEventListener('pointerdown', (e) => {
   e.stopPropagation();
   if (!G || G.state !== 'run' || G.charge < 1) return;
   G.charge = 0; mprog('sp');
-  if (POWERS.some((p) => (G.pw[p.id] || 0) < p.max)) openPick(); else spRain(); // escolhe uma carta e solta a chuva de balas
+  openPick(); // escolhe uma das três cartas
 });
 function pwBanner(tx) { const el = document.createElement('div'); el.className = 'wave fury'; el.textContent = tx; $('waveBox').innerHTML = ''; $('waveBox').appendChild(el); } // aviso grande do poder
 function chainHit(e, d) { if (e.sh > 0) { e.sh -= d; if (e.sh <= 0) { d = -e.sh; e.sh = 0; addFloat(e.x, e.y - 20, 'ESCUDO QUEBROU!', '#ffd84a', 15); sfx('wood'); } else d = 0; } if (d > 0) { e.hp -= d; addFloat(e.x + rnd(-10, 10), e.y - 26, '-' + Math.round(d), '#ffffff', 16); } e.flash = .14; if (e.t !== 'barrel') e.kb = e.t === 'boss' ? 2 : 11; G.fx.push({ x: e.x, y: e.y, t: 0, c: '#ffe9a8', r: 18 }); if (e.hp <= 0 && !e.dead) kill(e); } // golpe da corrente: quebra escudo, tira vida e empurra para trás
@@ -1755,12 +1749,7 @@ function gdt(dt) { if (G.hs > 0) { G.hs -= dt; return dt * .04; } if (G.slo > 0)
 const CHESTIM = new Image(); CHESTIM.src = ICO.chest;
 const LOWHP = document.createElement('div'); LOWHP.id = 'lowhp'; $('danger').after(LOWHP);
 // combinações: ter as duas cartas liga um efeito extra
-const SYN = [
-  { k: 'vapor', a: 'fire', b: 'ice', ic: '🌊', n: 'MAR EM CHAMAS', d: 'Explosões causam +25% de dano' },
-  { k: 'metr', a: 'multi', b: 'pierce', ic: '⚔️', n: 'ABORDAGEM', d: 'Cada bala atravessa +1 pirata' },
-  { k: 'inf', a: 'fire', b: 'blast', ic: '☠️', n: 'PÓLVORA NEGRA', d: 'O fogo dura o dobro' },
-  { k: 'real', a: 'rate', b: 'dmg', ic: '🏴‍☠️', n: 'TERROR DOS MARES', d: '+15% de chance de crítico' },
-];
+const SYN = []; // sem combinações: só existem os três poderes
 const synOf = (id) => SYN.find((y) => !(G.syn || {})[y.k] && ((y.a === id && G.pw[y.b]) || (y.b === id && G.pw[y.a])));
 const synHint = (id) => { const y = synOf(id); return y ? '<span class="cl" style="color:#1d2230;background:#ffe36b;border-radius:8px;padding:1px 7px">🔗 ' + y.n + '</span>' : ''; };
 function synCheck() { G.syn = G.syn || {}; for (const y of SYN) if (!G.syn[y.k] && G.pw[y.a] && G.pw[y.b]) { G.syn[y.k] = 1; G.slo = .6; G.shake = 10; buzz([30, 40, 60]); sfx('big'); setTimeout(() => { if (!G) return; const el = document.createElement('div'); el.className = 'wave fury'; el.textContent = y.ic + ' ' + y.n + '!'; $('waveBox').innerHTML = ''; $('waveBox').appendChild(el); addFloat(W / 2, H * .5, y.d, '#ffe36b', 18); }, 900); } }
@@ -2285,7 +2274,7 @@ function renderLobby() {
   // upgrades
   $('ups').innerHTML = UPS.map((u) => {
     const lv = P[u.k], c = upCost(u.k), maxed = lv >= capOf();
-    const pl = Math.min(evoAt(), 25), pips = Array.from({ length: pl }, (_, i) => `<i class="${i < Math.min(pl, lv * pl / evoAt()) ? 'on' : ''}"></i>`).join(''); // barrinhas = caminho até a próxima evolução
+    const pl = 5, pips = Array.from({ length: pl }, (_, i) => `<i class="${i < lv % pl ? 'on' : ''}"></i>`).join(''); // cinco pontinhos: enchem um a um e, ao completar, zeram e recomeçam (o número do nível continua subindo). Nunca ficam todos cheios
     return `<div class="upc" data-k="${u.k}"><div class="ic" style="background:${u.bg}">${u.ic}</div>
       <div><div class="nm">${u.n}<small>${capOf() >= CAPINF ? 'NV ' + lv : lv + '/' + capOf()}</small></div>
       <div class="val">${u.fmt(stat[u.k](lv))}${maxed ? ' · <b>MÁXIMO</b>' : u.k === 'rate' && stat.raw(lv + 1) > RMAX ? ` → <b>+${((stat.over(lv + 1) / stat.over(lv) - 1) * 100).toFixed(1).replace('.', ',')}% dano</b>` : ` → <b>${u.fmt(stat[u.k](lv + 1))}</b>`}</div>
