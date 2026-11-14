@@ -79,6 +79,12 @@ canvas { display: block; width: 100%; height: 100%; }
 .lobby::before { content: ""; position: absolute; inset: 0; background: linear-gradient(rgba(8,24,44,.55), rgba(8,24,44,.85)); pointer-events: none; }
 .lobby > * { position: relative; }
 #app:has(#menu:not(.hidden)) .hud { display: none; }
+.pwbar { position: absolute; left: 8px; top: calc(104px + env(safe-area-inset-top, 0px)); display: flex; flex-direction: column; gap: 6px; z-index: 3; pointer-events: none; }
+#app:has(#menu:not(.hidden)) .pwbar, #app:has(#splash:not(.hidden)) .pwbar { display: none; }
+.pwbar .pw { position: relative; width: 32px; height: 32px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, var(--c2), var(--c1)); border: 2px solid #1d2230; display: grid; place-items: center; box-shadow: 0 2px 0 rgba(0,0,0,.6); font-size: 17px; line-height: 1; animation: pwIn .35s ease-out; }
+.pwbar .pw img { width: 21px; height: 21px; object-fit: contain; }
+.pwbar .pw b { position: absolute; right: -6px; bottom: -5px; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 8px; background: #1d2230; color: #ffe36b; font: 900 11px/16px system-ui, sans-serif; text-align: center; border: 1px solid #ffe36b; }
+@keyframes pwIn { 0% { transform: scale(2.2); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 .ltop { display: flex; justify-content: space-between; padding: calc(12px + env(safe-area-inset-top, 0px)) 14px 6px; }
 .lchip { background: rgba(0,0,0,.5); border: 2px solid rgba(255,255,255,.25); color: #fff; border-radius: 20px; padding: 6px 14px 4px; font-family: "Luckiest Guy", Impact, sans-serif; text-transform: uppercase; font-size: 18px; }
 .lchip.gold b { color: #ffd84a; }
@@ -699,6 +705,7 @@ button { transition: scale .12s cubic-bezier(.3,1.8,.5,1); }
   <div class="danger" id="danger"></div>
   <button class="special hidden" id="spBtn" aria-label="Ataque especial"><i id="spRing"></i><span>💣</span><b id="spTxt">0%</b></button>
   <div class="bar hidden" id="bossBar"><i id="bossFill"></i></div>
+  <div class="pwbar" id="pwBar"></div>
   <div class="hearts" id="hearts"></div>
   <div class="hint hidden" id="hint">👆 Segure para atirar · arraste para mirar</div>
   <div id="waveBox"></div>
@@ -1065,13 +1072,13 @@ const curLv = () => (G ? G.lv : (P.sel || P.level));
 const CANNON = () => ({ x: G ? G.px : W / 2, y: H - 100 });
 const DEF = () => H - 205;
 const SHOW_FENCE = false;                  // linha que os piratas não podem passar
-const BUILD = 'Versão 53 · 14/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
+const BUILD = 'Versão 54 · 14/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
 const GANHO = 2; // multiplicador geral das moedas de batalha
 const coinMul = () => (1 + fireBonus()) * (1 + (P.vila ? VB().c : 0)) * (1 + canCoin()) * .7 * GANHO; // bônus de sequência, da vila e do canhão
 const ecoVal = () => { const n = P.level || 1; return (60 + 40 * n + .5 * n * n) * coinMul(); }; // quanto vale hoje, em moedas, um bom pedaço de fase (cerca de 1/4 do que uma fase paga)
 const ecoK = () => Math.max(1, ecoVal() / 140); // prêmios de fora da batalha (baús, presente diário, missões, troféus, capitão, renda da ilha) crescem junto com as fases
 const ecoN = (v) => { const x = v * ecoK(); if (x < 1000) return Math.round(x); const m = Math.pow(10, Math.floor(Math.log10(x)) - 2); return Math.round(x / m) * m; }; // valor fixo antigo -> valor de hoje, arredondado
-const earn = (v) => { const x = v * (G.cm || 1); G.earned += x; return Math.max(1, Math.round(x)); }; // soma moedas da batalha já com os bônus; devolve o valor que aparece na tela
+const earn = (v) => { const x = v * (G.cm || 1) * (1 + (G.coinMult || 0) * .5); G.earned += x; return Math.max(1, Math.round(x)); }; // soma moedas da batalha já com os bônus; devolve o valor que aparece na tela
 const DIFF = (n) => (1 + (n - 1) * .65 + Math.max(0, n - 4) * .1 + Math.max(0, n - 8) * .2 + Math.max(0, n - 15) * .25) * Math.pow(1 + Math.max(0, n - 10) / 40, 1.8);   // força dos inimigos por fase (calibrada com ferramentas/modelo_economia.js)
 const NE = (n) => n <= 10 ? n : 10 + 6 * Math.log(1 + (n - 10) / 6); // "pressão" da fase: quantos inimigos vêm. Cresce sempre, cada vez mais devagar
 function buildWaves(n) {
@@ -1128,7 +1135,7 @@ function startLevel() {
     triple: 0, aim: -Math.PI / 2, aimA: 0, px: W / 2, tpx: W / 2, target: null, earned: 0, t: 0, state: 'run', recoil: 0, holding: false, hx: 0, hy: 0 };
   $('menu').classList.add('hidden'); $('end').classList.add('hidden');
   if (P.startCards > 0) { P.startCards--; save(); const opts = POWERS.filter((p) => p.id !== 'coin'); const p = opts[Math.floor(Math.random() * opts.length)]; p.ap(); G.pw[p.id] = 1; setTimeout(() => G && addFloat(W / 2, H * .55, '🃏 Poder inicial: ' + p.n, '#d7b0ff', 20), 400); }
-  $('lvl').textContent = 'Fase ' + LV; $('spBtn').classList.remove('hidden'); $('leftPill').classList.remove('hidden');
+  renderPw(); $('lvl').textContent = 'Fase ' + LV; $('spBtn').classList.remove('hidden'); $('leftPill').classList.remove('hidden');
   if (!P.tut && !P.wins) tutStart(); else { $('hint').classList.remove('tut'); $('hint').textContent = '👆 Segure para atirar · arraste para mirar'; $('hint').classList.remove('hidden'); setTimeout(() => { if (!TUT) $('hint').classList.add('hidden'); }, 3500); }
   nextWave();
 }
@@ -1694,20 +1701,22 @@ const POWERS = [
   { id: 'heart', ic: '❤️', n: 'Rum de Cura', d: 'Mais corações agora', c: ['#e23b6a', '#ff9ccf'], max: 9, ap: () => { const hv = Math.max(2, Math.round(G.maxLives * .15)); G.maxLives += hv; G.lives += hv; } },
   { id: 'coin', ic: '🪙', n: 'Mapa do Tesouro', d: '+50% de moedas na fase', c: ['#2e9b2d', '#9be38c'], max: 2, ap: () => G.coinMult++ },
 ];
+const pwIcon = (p, cls) => ({ blast: ii('dmg', cls), rate: ii('rate', cls), heart: ii('heart', cls), coin: ii('coin', cls) }[p.id] || p.ic);
+function renderPw() { const el = $('pwBar'); if (!el) return; el.innerHTML = G ? POWERS.filter((p) => G.pw[p.id]).map((p) => `<span class="pw" style="--c1:${p.c[0]};--c2:${p.c[1]}">${pwIcon(p, 'ii')}${G.pw[p.id] > 1 ? '<b>' + G.pw[p.id] + '</b>' : ''}</span>`).join('') : ''; } // poderes ativos na fase, com o nível
 function openPick() {
-  G.state = 'pick'; G.holding = false;
+  G.state = 'pick'; G.holding = false; G.pickT = performance.now();
   const avail = POWERS.filter((p) => (G.pw[p.id] || 0) < p.max);
   const pick = []; while (pick.length < 3 && avail.length) pick.push(avail.splice(Math.floor(Math.random() * avail.length), 1)[0]);
   $('pickSub').textContent = 'Canhão carregado! Escolha o seu poder:';
-  $('cards').innerHTML = pick.map((p) => `<button class="card" data-pw="${p.id}" style="--c1:${p.c[0]};--c2:${p.c[1]}"><span class="ci">${{ blast: ii('dmg', 'ii i-cd'), rate: ii('rate', 'ii i-cd'), heart: ii('heart', 'ii i-cd'), coin: ii('coin', 'ii i-cd') }[p.id] || p.ic}</span><span class="cn">${p.n}</span><span class="cd">${p.d}</span>${synHint(p.id)}${G.pw[p.id] ? `<span class="cl">Nível ${G.pw[p.id] + 1}</span>` : '<span class="cl">NOVO</span>'}</button>`).join('');
+  $('cards').innerHTML = pick.map((p) => `<button class="card" data-pw="${p.id}" style="--c1:${p.c[0]};--c2:${p.c[1]}"><span class="ci">${pwIcon(p, 'ii i-cd')}</span><span class="cn">${p.n}</span><span class="cd">${p.d}</span>${synHint(p.id)}${G.pw[p.id] ? `<span class="cl">Nível ${G.pw[p.id] + 1}</span>` : '<span class="cl">NOVO</span>'}</button>`).join('');
   $('pick').classList.remove('hidden'); sfx('power');
 }
 $('cards').addEventListener('click', (e) => {
-  const b = e.target.closest('[data-pw]'); if (!b || !G || G.state !== 'pick') return;
+  const b = e.target.closest('[data-pw]'); if (!b || !G || G.state !== 'pick' || performance.now() - (G.pickT || 0) < 350) return; // 350 ms: o dedo que apertou o botão do poder ainda está saindo da tela
   const p = POWERS.find((x) => x.id === b.dataset.pw); p.ap(); G.pw[p.id] = (G.pw[p.id] || 0) + 1; mprog('card'); synCheck();
   $('pick').classList.add('hidden'); G.state = 'run'; last = performance.now(); sfx('coin');
   addFloat(CANNON().x, CANNON().y - 90, p.ic + ' ' + p.n, '#ffe36b', 20);
-  spRain();
+  renderPw(); spRain();
 });
 /* ---------- Especial: chuva de balas ---------- */
 $('spBtn').addEventListener('pointerdown', (e) => {
@@ -1725,7 +1734,7 @@ $('buildTag').textContent = BUILD;
 $('pauseBtn').addEventListener('click', () => { if (!G || G.state !== 'run') return; G.state = 'pause'; G.holding = false; $('pauseOv').classList.remove('hidden'); });
 $('resume').addEventListener('click', () => { $('pauseOv').classList.add('hidden'); if (G) { G.state = 'run'; last = performance.now(); } });
 $('quit').addEventListener('click', () => { $('pauseOv').classList.add('hidden'); hideGameHud(); showMenu(); });
-function hideGameHud() { ['spBtn', 'leftPill', 'pick'].forEach((i) => $(i).classList.add('hidden')); $('danger').classList.remove('on'); if (typeof LOWHP !== 'undefined') LOWHP.classList.remove('on'); }
+function hideGameHud() { ['spBtn', 'leftPill', 'pick'].forEach((i) => $(i).classList.add('hidden')); if ($('pwBar')) $('pwBar').innerHTML = ''; $('danger').classList.remove('on'); if (typeof LOWHP !== 'undefined') LOWHP.classList.remove('on'); }
 
 /* ---------- Atualização ---------- */
 const HUDC = {};
@@ -1904,7 +1913,7 @@ function kill(e) {
     G.combo++; G.comboT = 1.8 + (P.vila ? VB().cb : 0); G.best = Math.max(G.best, G.combo);
     const cm = 1 + Math.min(G.combo, 40) * .05;
     const base = e.kind === 'gold' ? 15 + G.lv * 3 : e.t === 'boss' ? (e.mini ? 20 : 50) : e.big ? 4 : e.kind === 'bomb' || e.kind === 'shield' ? 3 : e.kind === 'bird' ? 2 : 1;
-    const c = earn(base * (1 + G.coinMult * .5) * cm * (1 + .02 * Math.max(0, G.lv - 10))); // da fase 10 em diante cada inimigo vale mais
+    const c = earn(base * cm * (1 + .02 * Math.max(0, G.lv - 10))); // da fase 10 em diante cada inimigo vale mais
     sfx('coin'); beep(420 + Math.min(G.combo, 32) * 36, .045, 'triangle', .03); // o tom sobe a cada abate do combo
     if (e.kind === 'gold') { addFloat(e.x, e.y - 30, '💰 TESOURO! +' + c, '#ffe36b', 26); G.shake = 10; sfx('power'); }
     else addFloat(e.x, e.y - 10, '+' + c, '#ffd84a', 17);
@@ -1922,7 +1931,7 @@ function finish(win) {
   const stars = win ? (G.lives >= G.maxLives ? 3 : G.lives >= G.maxLives / 2 ? 2 : 1) : 0;
   P.stars = P.stars || {}; if (win) P.stars[G.lv] = Math.max(P.stars[G.lv] || 0, stars);
   const newDay = streakTouch(), fb = fireBonus();
-  const reward = Math.round(G.earned + (win ? (firstClear ? 20 + G.lv * 10 + .1 * G.lv * G.lv : 10 + G.lv * 4 + .03 * G.lv * G.lv) + G.lives * 3 : 5 + G.lv * 2) * coinMul()); // G.earned já vem com os bônus (earn) // .7: ritmo de 2 a 4 compras por fase
+  const reward = Math.round(G.earned + (win ? (firstClear ? 20 + G.lv * 10 + .1 * G.lv * G.lv : 10 + G.lv * 4 + .03 * G.lv * G.lv) + G.lives * 3 : 5 + G.lv * 2) * coinMul() * (1 + (G.coinMult || 0) * .5)); // G.earned já vem com os bônus (earn) // .7: ritmo de 2 a 4 compras por fase
   if (win) { mprog('win'); if (stars === 3) mprog('star3'); }
   mprog('coins', reward);
   P.coins += reward; if (firstClear) { P.level++; P.sel = P.level; } if (win) P.wins++;
@@ -2113,6 +2122,14 @@ function loop(now) {
   if (G && G.state === 'run') { fpsAcc += now - last; fpsN++; if (fpsN >= 90) { const avg = fpsAcc / fpsN; fpsAcc = 0; fpsN = 0; if (avg > 24 && DPR_CAP > 1) { if (++lowStrikes >= 2) { DPR_CAP = Math.max(1, DPR_CAP - .3); lowStrikes = 0; resize(); } } else lowStrikes = 0; } } const dt = Math.min(.04, (now - last) / 1000); last = now; if (G && G.state === 'run') update(gdt(dt)); else if (G && G.state === 'end' && G.shake > 0) G.shake = Math.max(0, G.shake - dt * 30); /* fim da fase: a tremida termina sozinha em vez de ficar para sempre */ if (!MENU_EL || MENU_EL.classList.contains('hidden') || (G && G.state === 'run')) draw(); requestAnimationFrame(loop); }
 const MENU_EL = document.getElementById('menu');
 
+/* ---------- Segundo dedo nos botões ---------- */
+// O navegador só gera "click" para o primeiro dedo na tela. Com um dedo segurando o tiro, tocar numa carta de poder,
+// na pausa ou em qualquer botão com outro dedo não fazia nada. Aqui o toque dos outros dedos vira clique.
+const PD2 = new Map();
+document.addEventListener('pointerdown', (e) => { if (e.isPrimary) return; const b = e.target && e.target.closest && e.target.closest('button'); if (b) PD2.set(e.pointerId, b); }, true);
+document.addEventListener('pointerup', (e) => { const b = PD2.get(e.pointerId); PD2.delete(e.pointerId); if (!b || b.disabled) return; const el = document.elementFromPoint(e.clientX, e.clientY); if (el && (el === b || b.contains(el))) { b.dataset.syn = String(performance.now()); b.click(); } }, true);
+document.addEventListener('pointercancel', (e) => { PD2.delete(e.pointerId); }, true);
+document.addEventListener('click', (e) => { const b = e.isTrusted && e.target && e.target.closest && e.target.closest('button'); if (b && b.dataset.syn && performance.now() - +b.dataset.syn < 500) { e.stopImmediatePropagation(); e.preventDefault(); } }, true); // se o navegador também mandar o clique, não conta duas vezes
 /* ---------- Toque nos botões: resposta tátil ---------- */
 document.addEventListener('pointerdown', (e) => {
   const b = e.target.closest('button'); if (!b || b.disabled || b.id === 'spBtn') return;
