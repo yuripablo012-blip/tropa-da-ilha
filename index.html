@@ -518,6 +518,7 @@ button { transition: scale .12s cubic-bezier(.3,1.8,.5,1); }
 .lchip.gift { display: flex; align-items: center; }
 
 #genOv { z-index: 25; background: linear-gradient(rgba(8,26,52,.92), rgba(5,16,34,.98)); }
+#bemOv { z-index: 30; background: radial-gradient(ellipse at 50% 42%, rgba(4,12,24,.6), rgba(4,12,24,.88)); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); } /* presente de boas-vindas: por cima de tudo, inclusive da escolha do pirata */
 .gens { display: flex; gap: 12px; width: min(100%, 360px); }
 .gen { flex: 1; border: 3px solid #4a2c12; border-radius: 18px; padding: 10px 6px 8px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px;
   background: var(--parch), radial-gradient(ellipse at 50% 20%, #fffaf0, #e2c992); box-shadow: 0 5px 0 #2b1a0e, 0 10px 16px rgba(0,0,0,.45); }
@@ -823,6 +824,12 @@ button { transition: scale .12s cubic-bezier(.3,1.8,.5,1); }
     <button class="btn" id="missClose">FECHAR</button>
   </div>
 
+  <div class="screen hidden" id="bemOv" style="--rc:#ffd23f">
+    <div class="logo" style="font-size:clamp(24px, 7.6vw, 34px);line-height:1.08;white-space:nowrap;margin-bottom:30px;position:relative;z-index:2">PRESENTE<br>DE BOAS-VINDAS</div>
+    <div class="co-wrap"><div class="co-rays"></div><div class="co-img pop" id="bemImg"></div></div>
+    <div class="co-items" id="bemItems"></div>
+    <button class="btn green" id="bemBtn">PEGAR</button>
+  </div>
   <div class="screen hidden" id="chestOv">
     <div class="logo" id="coTitle" style="font-size:40px">BAÚ!</div>
     <div class="co-wrap"><div class="co-rays"></div><div class="co-img" id="coImg"></div></div>
@@ -1078,7 +1085,7 @@ const CANNON = () => ({ x: G ? G.px : W / 2, y: H - 100 });
 const DEF = () => H - 205;
 const HITY = () => DEF() + 36; // onde o inimigo alcança o pirata e ataca (antes era na linha de defesa, um corpo de distância)
 const SHOW_FENCE = false;                  // linha que os piratas não podem passar
-const BUILD = 'Versão 63 · 15/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
+const BUILD = 'Versão 64 · 15/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
 const GANHO = 2; // multiplicador geral das moedas de batalha
 const coinMul = () => (1 + fireBonus()) * (1 + (P.vila ? VB().c : 0)) * (1 + canCoin()) * .7 * GANHO; // bônus de sequência, da vila e do canhão
 const ecoVal = () => { const n = P.level || 1; return (60 + 40 * n + .5 * n * n) * coinMul(); }; // quanto vale hoje, em moedas, um bom pedaço de fase (cerca de 1/4 do que uma fase paga)
@@ -1276,8 +1283,9 @@ function V() { if (!P.vila) P.vila = { i: 0, b: {}, t: Date.now(), v9: 1, z0: 1,
 const vLv = (k) => V().b[k] || 0;
 const vTot = (k) => vLv(k) / 3; // bônus igual ao de antes no nível cheio; cada passo vale um terço
 const VTEST1 = false; // modo teste (tudo custa 1 moeda e 100 mil de brinde): desligado. Para testar, toque 7 vezes seguidas nas moedas do lobby.
-const PRESENTE = 20000; // presente de boas-vindas: cada aparelho recebe 20 mil moedas UMA vez, ao abrir o jogo (0 = sem presente)
-if (PRESENTE && !P.presente) { P.coins = (Number(P.coins) || 0) + PRESENTE; P.presente = PRESENTE; save(); } // quem já recebeu um presente antes (inclusive o antigo, de 10 milhões) não recebe de novo
+const PRESENTE = 20000; // presente de boas-vindas: 20 mil moedas, UMA vez por aparelho, numa janela que aparece assim que a pessoa entra no jogo (0 = sem presente). Quem já recebeu um presente antes não recebe de novo
+function bemVindo() { if (!PRESENTE || P.presente || window.bemShown || !$('splash').classList.contains('hidden')) return; window.bemShown = true; $('bemImg').innerHTML = ii('chest', ''); $('bemItems').innerHTML = `<div class="co-it" style="--c1:#e8a316;--c2:#fff2a0">${ii('coin', '')}<b>+${PRESENTE.toLocaleString('pt-BR')}</b><small>moedas</small></div>`; $('bemOv').classList.remove('hidden'); sfx('power'); }
+$('bemBtn').addEventListener('click', () => { if (P.presente) { $('bemOv').classList.add('hidden'); return; } P.coins = (Number(P.coins) || 0) + PRESENTE; P.presente = PRESENTE; save(); $('bemOv').classList.add('hidden'); sfx('big'); [784, 988, 1318].forEach((f, j) => setTimeout(() => beep(f, .12, 'triangle', .06), j * 90)); renderLobby(); });
 if (VTEST1 && !P.t100k) { P.coins = Math.max(P.coins || 0, 100000); P.t100k = 1; save(); } // modo teste: 100 mil moedas, uma vez por save
 const vCost = (k) => { if (VTEST1) return 1; const d = VDEF.find((x) => x.k === k), l = vLv(k); return Math.round(d.c * [.6, 1, 1.6, 2.4, 3.5, 5, 7, 10, 14][l % 9] * Math.pow(2.4, Math.floor(l / 9)) / 5) * 5; };
 const vRate = (t) => ecoN(12 * t);
@@ -2433,6 +2441,7 @@ function showMenu() {
   if (BG.src) $('menu').style.backgroundImage = 'url(' + BG.src + ')';
   showPage('play'); shopHud(); setTimeout(shopOffer, 700);
   document.querySelectorAll('.gswitch button').forEach((b) => b.classList.toggle('on', b.dataset.g === GEN()));
+  bemVindo();
   if (!window.genAsked && !P.gender && $('splash').classList.contains('hidden')) { window.genAsked = true; document.querySelectorAll('.gen').forEach((b) => b.classList.toggle('sel', b.dataset.g === P.gender)); $('genOv').classList.remove('hidden'); }
 }
 document.querySelectorAll('.lnav button[data-pg]').forEach((b) => b.addEventListener('click', () => { beep(520, .05, 'triangle', .05); showPage(b.dataset.pg); }));
