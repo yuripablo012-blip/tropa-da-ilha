@@ -1,0 +1,7 @@
+# Faz o navegador conferir se há versão nova do jogo toda vez que a página abre.
+# Sem isto o Chrome guardava uma cópia antiga do index.html e a pessoa não via as atualizações.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|json)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+</IfModule>
