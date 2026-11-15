@@ -1085,41 +1085,42 @@ const CANNON = () => ({ x: G ? G.px : W / 2, y: H - 100 });
 const DEF = () => H - 205;
 const HITY = () => DEF() + 36; // onde o inimigo alcança o pirata e ataca (antes era na linha de defesa, um corpo de distância)
 const SHOW_FENCE = false;                  // linha que os piratas não podem passar
-const BUILD = 'Versão 64 · 15/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
-const GANHO = 2; // multiplicador geral das moedas de batalha
+const BUILD = 'Versão 65 · 15/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
+const GANHO = 6; // multiplicador geral das moedas de batalha
 const coinMul = () => (1 + fireBonus()) * (1 + (P.vila ? VB().c : 0)) * (1 + canCoin()) * .7 * GANHO; // bônus de sequência, da vila e do canhão
 const ecoVal = () => { const n = P.level || 1; return (60 + 40 * n + .5 * n * n) * coinMul(); }; // quanto vale hoje, em moedas, um bom pedaço de fase (cerca de 1/4 do que uma fase paga)
 const ecoK = () => Math.max(1, ecoVal() / 140); // prêmios de fora da batalha (baús, presente diário, missões, troféus, capitão, renda da ilha) crescem junto com as fases
 const ecoN = (v) => { const x = v * ecoK(); if (x < 1000) return Math.round(x); const m = Math.pow(10, Math.floor(Math.log10(x)) - 2); return Math.round(x / m) * m; }; // valor fixo antigo -> valor de hoje, arredondado
 const earn = (v) => { const x = v * (G.cm || 1) * (1 + (G.coinMult || 0) * .5); G.earned += x; return Math.max(1, Math.round(x)); }; // soma moedas da batalha já com os bônus; devolve o valor que aparece na tela
-const DIFF = (n) => (1 + (n - 1) * .65 + Math.max(0, n - 4) * .1 + Math.max(0, n - 8) * .2 + Math.max(0, n - 15) * .25) * Math.pow(1 + Math.max(0, n - 10) / 40, 1.8);   // força dos inimigos por fase (calibrada com ferramentas/modelo_economia.js)
-const NE = (n) => n <= 10 ? n : 10 + 6 * Math.log(1 + (n - 10) / 6); // "pressão" da fase: quantos inimigos vêm. Cresce sempre, cada vez mais devagar
+const DIFF = (n) => (1 + (n - 1) * .65 + Math.max(0, n - 4) * .1 + Math.max(0, n - 8) * .2 + Math.max(0, n - 15) * .25) * Math.pow(1 + Math.max(0, n - 10) / 40, 2.9);   // força dos inimigos por fase (calibrada com ferramentas/modelo_economia.js)
+const PWN = (n) => Math.min(8, 1.2 + n * .25); // quantas vezes, mais ou menos, o poder carrega numa fase (1 na primeira, até 8 nas altas)
+const ENEM = (n) => 10 * n; // quantos inimigos tem a fase: 10 na primeira e 10 a mais a cada fase (o barril não conta)
+const SPAWN = (n) => 3.2 + 1.8 * (1 - Math.exp(-n / 20)) + Math.min(7, n / 40); // no máximo quantos inimigos chegam por segundo; sobe com a fase para as fases altas não ficarem intermináveis
 function buildWaves(n) {
-  const waves = [];
-  const count = (n === 1 ? 3 : 2) + Math.min(2, Math.floor(n / 4));              // fases curtas: 2 a 4 ondas + chefão
-  const m = NE(n);
+  const total = ENEM(n), waves = [];
+  const esc = Math.min(8, Math.floor(total * .15)), bossN = 1 + (n >= 4 ? 1 : 0) + esc; // onda final: chefão, subchefe (fase 4+) e escolta
+  let rest = total - bossN;
+  const goldW = n >= 3 && rest >= 30 && Math.random() < .2 ? 8 : 0; rest -= goldW; // surpresa: onda só de tesouros (sai da conta da fase)
+  const count = Math.max(2, Math.ceil(rest / Math.min(60, 14 + n * .6))), base = Math.floor(rest / count);
   for (let w = 0; w < count; w++) {
-    const list = [];
-    const open1 = n === 1 && w === 0;
-    const k = open1 ? 7 : 6 + Math.min(8, Math.floor(n * .7)) + w * 2 + Math.floor(Math.max(0, m - 10) / 2);
-    const gap = open1 ? .42 : Math.max(.45, .8 - n * .02);
+    const list = [], sz = base + (w >= count - (rest - base * count) ? 1 : 0), open1 = n === 1 && w === 0;
+    const mini = w === count - 1 && n >= 2 ? 1 : 0, nx = sz - mini; // subchefe na última onda
+    let big = open1 || nx < 4 ? 0 : Math.max(1, Math.round(nx * .12)), fast = w >= 1 || n >= 2 ? Math.round(nx * .18) : 0, shield = n >= 2 ? Math.round(nx * .1) : 0, bird = n >= 2 ? Math.round(nx * .08) : 0, bomb = n >= 3 && w >= 1 ? Math.round(nx * .05) : 0, gold = nx >= 6 && Math.random() < .55 ? 1 : 0;
+    const k = Math.max(1, nx - big - fast - shield - bird - bomb - gold); // o resto são piratas comuns
+    const gap = open1 ? .42 : Math.max(.45, .8 - n * .02), T = Math.max(1.6, k * gap);
     for (let i = 0; i < k; i++) list.push({ t: 'enemy', delay: i * rnd(gap * .7, gap * 1.3), big: false });
-    const T = k * gap;
-    for (let i = 0; i < 1 + Math.floor((m + w) / 3); i++) list.push({ t: 'enemy', delay: rnd(1, T), big: true });
-    if (w === count - 1 && n >= 2) list.push({ t: 'boss', mini: true, delay: T * .6 });
+    for (let i = 0; i < big; i++) list.push({ t: 'enemy', delay: rnd(1, T), big: true });
+    if (mini) list.push({ t: 'boss', mini: true, delay: T * .6 });
     const extra = (kind, q) => { for (let i = 0; i < q; i++) list.push({ t: 'enemy', kind, delay: rnd(1, T) }); };
-    if (w >= 1 || n >= 2) extra('fast', 1 + Math.floor((m + w) / 2));
-    if (Math.random() < .55) extra('gold', 1);
-    if (n >= 2) extra('shield', 1 + Math.floor((m + w) / 3));
-    if (n >= 2) extra('bird', Math.floor((m + w) / 3));
-    if (n >= 3 && w >= 1) extra('bomb', 1 + Math.floor(m / 5));
-    { const cnt = list.length, esp = cnt / ((3.2 + 1.8 * (1 - Math.exp(-n / 20))) * T); if (esp > 1) for (const q of list) q.delay *= esp; } // muita gente? a onda dura mais, em vez de vir tudo de uma vez
+    extra('fast', fast); extra('gold', gold); extra('shield', shield); extra('bird', bird); extra('bomb', bomb);
+    while (list.length > sz) list.pop(); // (só por garantia: a onda tem exatamente sz inimigos)
+    { const esp = list.length / (SPAWN(n) * T); if (esp > 1 || n > 10) for (const q of list) q.delay *= Math.max(.3, esp); } // acerta o ritmo da onda para SPAWN inimigos por segundo: estica se vier gente demais e, da fase 11 em diante, aperta se vier devagar
     list.push({ t: 'barrel', delay: rnd(1, 3) });
-    if (!(n === 1 && w === 0) && Math.random() < .25) list.push({ t: 'barrel', chest: true, delay: rnd(2, Math.max(3, T)) }); // baú rolando: acerte para ganhar moedas e um baú melhor no fim
+    if (!open1 && Math.random() < .25) list.push({ t: 'barrel', chest: true, delay: rnd(2, Math.max(3, T)) }); // baú rolando: acerte para ganhar moedas e um baú melhor no fim
     waves.push(list);
   }
-  if (n >= 2 && Math.random() < .2) { const gw = Array.from({ length: 8 }, (_, i) => ({ t: 'enemy', kind: 'gold', delay: .4 + i * .32 })); gw.gold = true; waves.push(gw); } // surpresa: onda só de tesouros
-  waves.push([{ t: 'boss', delay: 1 }, ...(n >= 4 ? [{ t: 'boss', mini: true, delay: 5 }] : []), ...Array.from({ length: 4 + Math.min(8, n) }, (_, i) => ({ t: 'enemy', kind: i % 3 === 2 && n >= 2 ? 'fast' : undefined, delay: 1.5 + i * .9, big: false }))]);
+  if (goldW) { const gw = Array.from({ length: goldW }, (_, i) => ({ t: 'enemy', kind: 'gold', delay: .4 + i * .32 })); gw.gold = true; waves.push(gw); }
+  waves.push([{ t: 'boss', delay: 1 }, ...(n >= 4 ? [{ t: 'boss', mini: true, delay: 5 }] : []), ...Array.from({ length: esc }, (_, i) => ({ t: 'enemy', kind: i % 3 === 2 && n >= 2 ? 'fast' : undefined, delay: 1.5 + i * .9, big: false }))]);
   return waves;
 }
 // tutorial da primeira batalha: atirar → mover → bomba. Cada passo só some quando o jogador faz a ação.
@@ -1155,7 +1156,7 @@ function startLevel() {
 function nextWave() {
   G.wi++;
   if (G.wi >= G.waves.length) return finish(true);
-  G.spawnQ = G.waves[G.wi].map((s) => ({ ...s })); G.waveT = 0;
+  G.spawnQ = G.waves[G.wi].map((s) => ({ ...s })); G.waveT = 0; G.fut = G.waves.slice(G.wi + 1).reduce((a, w) => a + w.filter((q) => q.t !== 'barrel').length, 0); // inimigos das ondas que ainda vêm
   const last = G.wi === G.waves.length - 1;
   const el = document.createElement('div'); el.className = 'wave';
   if (G.waves[G.wi].gold) { el.className = 'wave fury'; buzz([20, 30, 20]); sfx('power'); }
@@ -1866,13 +1867,13 @@ function update(dt) {
   const hk = G.lives + '/' + G.maxLives; if (hk !== HUDC.hearts) { HUDC.hearts = hk; $('hearts').innerHTML = G.maxLives > 10 ? '❤️ <b style="font-family:Luckiest Guy,Impact,sans-serif;color:#fff;-webkit-text-stroke:1px #1d2230">' + G.lives + '/' + G.maxLives + '</b>' : '❤️'.repeat(G.lives) + '🤍'.repeat(Math.max(0, G.maxLives - G.lives)); }
 
   // hud: piratas restantes, perigo, especial
-  const left = G.spawnQ.filter((q) => q.t !== 'barrel').length + G.enemies.filter((e) => e.t !== 'barrel').length;
+  const left = (G.fut || 0) + G.spawnQ.filter((q) => q.t !== 'barrel').length + G.enemies.filter((e) => e.t !== 'barrel' && !e.dead).length; // todos os inimigos que faltam na fase (começa em 10 × fase)
   const cn = P.coins + Math.round(G.earned); if (HUDC.cn !== cn) { HUDC.cn = cn; $('coin').innerHTML = ii('coin') + ' ' + (cn < 1e8 ? cn.toLocaleString('pt-BR') : fmtN(cn)); }
   if (HUDC.left !== left) { HUDC.left = left; $('leftPill').textContent = '☠️ ' + left; }
   const dng = ( G.enemies.some((e) => e.t !== 'barrel' && e.y > DEF() - 110) || G.bombs.length > 0); if (dng !== HUDC.dng) { HUDC.dng = dng; $('danger').classList.toggle('on', dng); }
   const chp = Math.floor(G.charge * 100); if (chp !== HUDC.ch) { HUDC.ch = chp; $('spBtn').style.setProperty('--p', chp + '%'); $('spBtn').classList.toggle('full', chp >= 100); $('spTxt').textContent = chp >= 100 ? 'PRONTO!' : chp + '%'; }
   if (G.lives <= 0) return finish(false);
-  if (!G.spawnQ.length && !G.enemies.some((e) => e.t !== 'barrel') && !G.bombs.length) { nextWave(); }
+  if (!G.spawnQ.length && G.wi < G.waves.length - 1 ? G.enemies.filter((e) => e.t !== 'barrel' && !e.dead).length <= Math.min(12, Math.floor(G.lv / 12)) : !G.spawnQ.length && !G.enemies.some((e) => e.t !== 'barrel') && !G.bombs.length) { nextWave(); } // nas fases altas a próxima onda entra quando sobram poucos inimigos (senão a fase 400 levava 15 minutos); a fase só termina com a tela limpa
 }
 function explode(x, y, mult = 1, rmult = 1) {
   const R = 34 * (1 + G.blast * .4) * rmult, dmg = G.dmg * mult * ((G.syn || {}).vapor ? 1.25 : 1);
@@ -1914,7 +1915,7 @@ function kill(e) {
   if (e.t === 'boss') { G.hs = .12; G.slo = e.mini ? .5 : 1.2; buzz([40, 30, 90]); } else if (e.big) { hstop(.05); buzz(16); }
   if (e.t !== 'barrel' && !G.spawnQ.some((q) => q.t !== 'barrel') && !G.enemies.some((x) => x !== e && !x.dead && x.t !== 'barrel')) { G.slo = Math.max(G.slo || 0, .75); if (G.wi < G.waves.length - 1) addFloat(W / 2, H * .34, 'ONDA LIMPA!', '#9fe8ff', 30); }
   G.fx.push({ x: e.x, y: e.y, t: 0, c: e.t === 'barrel' ? '#c98a4b' : '#ff5a5a', r: e.t === 'boss' ? 80 : 26 });
-  G.charge = Math.min(1, G.charge + (e.t === 'boss' ? .35 : e.big ? .1 : e.t === 'barrel' ? .05 : .06));
+  { const kq = Math.min(.12, PWN(G.lv) / ENEM(G.lv)); G.charge = Math.min(1, G.charge + (e.t === 'boss' ? .35 : e.big ? kq * 1.7 : e.t === 'barrel' ? kq * .8 : kq)); } // a carga por abate acompanha o tamanho da fase
   if (e.t === 'boss') { G.shake = 18; sfx('big'); } else if (e.t !== 'barrel' && Math.random() < .5) sfx('argh');
   if (e.t === 'barrel') mprog('barrel'); else if (e.t === 'boss') { if (!e.mini) mprog('boss'); } else { mprog('kill'); if (e.big) mprog('big'); if (e.kind === 'fast') mprog('fast'); }
   if (e.t === 'barrel') P.barrels++; else if (e.t === 'boss') { if (!e.mini) P.bosses++; else P.bigs += 2; } else { P.kills++; if (e.big) P.bigs++; }
