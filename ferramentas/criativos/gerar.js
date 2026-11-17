@@ -45,6 +45,11 @@ const CSS_AD = `
 #ad .faixa.on { display: flex; }
 #ad .faixa span { font-size: 30px; padding: 12px 30px 8px; border-radius: 20px; border: 4px solid #1d2230; background: linear-gradient(#7be86f, #36b53a); box-shadow: 0 7px 0 #1d2230, 0 14px 18px rgba(0,0,0,.5), inset 0 -6px 0 rgba(0,0,0,.18); -webkit-text-stroke: 1.4px #1d2230; paint-order: stroke fill; white-space: nowrap; }
 #ad .faixa small { font-size: 19px; color: #ffd84a; -webkit-text-stroke: 1.2px #1d2230; paint-order: stroke fill; text-shadow: 0 3px 0 #1d2230; }
+#ad .leg { position: absolute; left: 22px; right: 22px; top: 18.5%; font-family: "Nunito", system-ui, sans-serif; text-transform: none; font-weight: 900; font-size: 25px; line-height: 1.52; opacity: 0; transform: scale(.75); transition: transform .22s cubic-bezier(.3,1.6,.5,1), opacity .15s; }
+#ad .leg.on { opacity: 1; transform: scale(1); }
+#ad .leg span { background: #fff; color: #111; padding: 5px 13px; border-radius: 9px; -webkit-box-decoration-break: clone; box-decoration-break: clone; box-shadow: 0 4px 10px rgba(0,0,0,.35); }
+#ad .tag { position: absolute; left: 50%; top: 61%; transform: translate(-50%, 0) scale(0); transition: transform .3s cubic-bezier(.3,1.7,.5,1); font-size: 21px; white-space: nowrap; padding: 10px 20px 6px; border-radius: 18px; border: 3px solid #1d2230; background: linear-gradient(#7be86f, #36b53a); box-shadow: 0 5px 0 #1d2230, 0 10px 14px rgba(0,0,0,.45); -webkit-text-stroke: 1.1px #1d2230; paint-order: stroke fill; }
+#ad .tag.on { transform: translate(-50%, 0) scale(1); }
 @keyframes adpulsa { 50% { transform: scale(1.07); } }
 `;
 async function camada(page) {
@@ -52,12 +57,14 @@ async function camada(page) {
     if (document.getElementById('ad')) return;
     const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
     const ad = document.createElement('div'); ad.id = 'ad';
-    ad.innerHTML = '<div class="hook"></div><div class="url">' + site + '</div><div class="dedo"></div><div class="faixa"><span>JOGUE GRÁTIS</span><small>' + site + '</small></div><div class="fim"><img alt=""><div class="t"></div><div class="b">JOGUE GRÁTIS</div><div class="u">' + site + '</div><div class="s">Direto no navegador, sem instalar nada</div></div>';
+    ad.innerHTML = '<div class="hook"></div><div class="url">' + site + '</div><div class="leg"><span></span></div><div class="tag"></div><div class="dedo"></div><div class="faixa"><span>JOGUE GRÁTIS</span><small>' + site + '</small></div><div class="fim"><img alt=""><div class="t"></div><div class="b">JOGUE GRÁTIS</div><div class="u">' + site + '</div><div class="s">Direto no navegador, sem instalar nada</div></div>';
     document.body.appendChild(ad); ad.querySelector('.fim img').src = document.querySelector('.slogo').src;
     window.AD = {
-      hook: (t, sub, seg) => { const h = ad.querySelector('.hook'); clearTimeout(window.__hk); if (t) { h.textContent = t; if (sub) { const b = document.createElement('b'); b.textContent = sub; h.appendChild(b); } } h.classList.toggle('on', !!t); ad.querySelector('.url').classList.toggle('on', !t); if (t && seg) window.__hk = setTimeout(() => window.AD.hook(''), seg * 1000); },
+      hook: (t, sub, seg) => { const h = ad.querySelector('.hook'); clearTimeout(window.__hk); if (t) { h.textContent = t; if (sub) { const b = document.createElement('b'); b.textContent = sub; h.appendChild(b); } } h.classList.toggle('on', !!t); ad.querySelector('.url').classList.toggle('on', !t && !window.AD.org); if (t && seg) window.__hk = setTimeout(() => window.AD.hook(''), seg * 1000); },
       cartaz: (t, sub) => { window.AD.limpa(); window.AD.hook(t, sub); ad.querySelector('.url').classList.remove('on'); ad.querySelector('.faixa').classList.add('on'); },
       url: (on) => ad.querySelector('.url').classList.toggle('on', !!on),
+      leg: (t) => { const l = ad.querySelector('.leg'); l.classList.remove('on'); if (!t) return; l.querySelector('span').textContent = t; void l.offsetWidth; l.classList.add('on'); }, // legenda no estilo do Instagram
+      tag: (t) => { const g = ad.querySelector('.tag'); g.textContent = t || ''; g.classList.toggle('on', !!t); },
       dedo: (x, y) => { const d = ad.querySelector('.dedo'); if (x == null) { d.classList.remove('on'); return; } d.style.left = x + 'px'; d.style.top = y + 'px'; d.classList.add('on'); },
       fim: (t) => { ad.querySelector('.fim .t').textContent = t || ''; ad.querySelector('.hook').classList.remove('on'); ad.querySelector('.url').classList.remove('on'); ad.querySelector('.dedo').classList.remove('on'); ad.querySelector('.fim').classList.add('on'); },
       limpa: () => { ad.querySelectorAll('.on').forEach((e) => e.classList.remove('on')); },
@@ -97,7 +104,7 @@ async function abre(navegador) {
 async function jogador(page, { fase = 20, nivel, tier, vila, moedas = 0, ela = false } = {}) {
   await page.evaluate(([fase, nivel, tier, vila, moedas, ela]) => {
     Object.assign(P, { gender: ela ? 'f' : 'm', tut: 1, mute: true, presente: 1, level: fase, sel: fase, wins: fase, dmg: nivel, rate: nivel, hp: nivel, tier, coins: moedas, startCards: 0, hlv: Math.max(1, Math.round(fase / 3)), offSeen: { p1: 1, p1v: 1, p2: 1, p2v: 1, p3: 1, p3v: 1 } });
-    P.vila = { i: 0, b: {}, t: Date.now(), v9: 1, z0: 1, inf: 1 }; VDEF.forEach((d, i) => { P.vila.b[d.k] = Math.max(1, vila + ((i * 5) % 7) - 3); });
+    P.vila = { i: Math.max(0, Math.floor((vila - 3) / 9)), b: {}, t: Date.now(), v9: 1, z0: 1, inf: 1 }; /* categoria da vila de acordo com o nível, para a janela "A vila evoluiu" não abrir em cima da cena */ VDEF.forEach((d, i) => { P.vila.b[d.k] = Math.max(1, vila + ((i * 5) % 7) - 3); });
     document.getElementById('genOv').classList.add('hidden'); document.getElementById('bemOv').classList.add('hidden'); if (typeof setGender === 'function') setGender(P.gender); showMenu();
   }, [fase, nivel != null ? nivel : Math.round(fase * .9) + 4, tier != null ? tier : Math.min(8, Math.floor(fase / 12)), vila != null ? vila : Math.max(2, Math.round(fase / 3)), moedas, ela]);
 }
@@ -106,17 +113,18 @@ async function jogador(page, { fase = 20, nivel, tier, vila, moedas = 0, ela = f
 // batalha: o robô segura o dedo na tela e mira no inimigo mais perto; poderes = [{ t: segundos, id: 'rate' | 'dmg' | 'heart' }]
 // Durante o "aquece" (não gravado) o robô não atira, para a ponte encher. Com chefe: true vai direto para a onda do chefe,
 // espera ele entrar e o traz para o meio da ponte, e o robô mira nele.
-async function cenaBatalha(page, rec, { fase = 20, aquece = 4.3, dur = 8, poderes = [], chefe = false, hook, sub, hookDur = 3, foto } = {}) {
+async function cenaBatalha(page, rec, { fase = 20, aquece = 4.3, dur = 8, poderes = [], chefe = false, hook, sub, hookDur = 3, foto, legendas = [] } = {}) {
   await page.evaluate((chefe) => { startLevel(); document.getElementById('hint').classList.add('hidden'); if (chefe) { G.waves = [G.waves[G.waves.length - 1]]; G.wi = -1; G.spawnQ = []; G.enemies = []; nextWave(); } }, chefe);
   const Y = TELA.height * .88; await page.mouse.move(TELA.width / 2, Y);
   if (chefe) { await page.waitForFunction(() => G && G.enemies.some((e) => e.boss || e.t === 'boss'), null, { timeout: 15000 }).catch(() => {}); await page.evaluate(() => { const b = G.enemies.find((e) => e.boss || e.t === 'boss'); if (b) b.y = H * .34; }); }
-  const fila = poderes.slice().sort((a, b) => a.t - b.t); let t0 = 0, gravando = false, escolha = null;
+  const fila = poderes.slice().sort((a, b) => a.t - b.t), legs = legendas.slice().sort((a, b) => a.t - b.t); let t0 = 0, gravando = false, escolha = null;
   const ini = Date.now();
   for (;;) {
     const agora = (Date.now() - ini) / 1000;
     if (!gravando && agora >= aquece) { gravando = true; t0 = Date.now(); await page.mouse.down(); await page.evaluate(([h, s, d]) => { AD.limpa(); AD.hook(h, s, d); }, [hook || '', sub || '', hookDur]); await rec.liga(); }
     const t = gravando ? (Date.now() - t0) / 1000 : -1;
     if (gravando && t >= dur) break;
+    while (gravando && legs.length && t >= legs[0].t) { const l = legs.shift(); await page.evaluate((l) => { if (l.tag != null) AD.tag(l.tag); if (l.texto != null) AD.leg(l.texto); }, l); }
     const s = await page.evaluate((chefe) => { if (!G) return { s: 'fim' }; const vivos = G.enemies.filter((e) => !e.dead && e.t !== 'barrel').sort((a, b) => b.y - a.y), perto = vivos[0], bs = chefe && vivos.find((e) => e.boss || e.t === 'boss'), en = bs && !(perto && perto.y > H * .55) ? bs : perto; return { s: G.state, x: en ? en.x / W : null }; }, chefe);
     if (s.s === 'fim' || s.s === 'end') break;
     if (s.s === 'pick') { // mostra as cartas um instante e escolhe
@@ -124,6 +132,7 @@ async function cenaBatalha(page, rec, { fase = 20, aquece = 4.3, dur = 8, podere
       await page.evaluate((id) => { G.pickT = 0; const c = document.querySelector('#cards [data-pw="' + id + '"]') || document.querySelector('#cards [data-pw]'); if (c) c.click(); }, escolha || 'rate');
       await espera(120); await page.mouse.move(TELA.width / 2, Y); if (gravando) await page.mouse.down(); continue;
     }
+    if (gravando && fila.length && t >= fila[0].t && fila[0].direto) { const id = fila.shift().id; await page.evaluate((id) => { const p = POWERS.find((x) => x.id === id); if (!p || !G || G.state !== 'run') return; if ((G.pw[id] || 0) < p.max) { p.ap(); G.pw[id] = (G.pw[id] || 0) + 1; } p.cast(); renderPw(); }, id); continue; } // poder direto, sem abrir as cartas
     if (gravando && fila.length && t >= fila[0].t) { escolha = fila.shift().id; await page.mouse.up(); await page.evaluate(() => { G.charge = 1; }); await espera(60); const b = await page.evaluate(() => { const r = document.getElementById('spBtn').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; }); await page.evaluate(([x, y]) => AD.dedo(x, y), b); await espera(220); await page.touchscreen.tap(b[0], b[1]); await espera(150); continue; }
     if (gravando && s.x != null) { const x = Math.max(.14, Math.min(.86, s.x)) * TELA.width; await page.mouse.move(x, Y, { steps: 2 }); await page.evaluate(([x, y]) => AD.dedo(x, y), [x, Y]); }
     await espera(70);
@@ -143,13 +152,15 @@ async function passo(page, p) {
   }
   if (p.semDedo) await page.evaluate(() => AD.dedo(null));
   if (p.hook != null) await page.evaluate(([h, s, d]) => AD.hook(h, s, d), [p.hook, p.sub || '', p.hookDur || 0]);
+  if (p.leg != null) await page.evaluate((t) => AD.leg(t), p.leg);
+  if (p.tag != null) await page.evaluate((t) => AD.tag(t), p.tag);
   if (p.foto) await fotos(page, p.foto);
   if (p.espera) await espera(p.espera * 1000);
 }
 // roteiro: "antes" acontece sem gravar; "passos" são gravados
 async function cenaRoteiro(page, rec, { antes = [], passos = [], hook, sub, hookDur = 3 } = {}) {
   for (const p of antes) await passo(page, p);
-  await page.evaluate(([h, s, d]) => { AD.limpa(); AD.hook(h, s, d); }, [hook || '', sub || '', hookDur]); await espera(60); await rec.liga();
+  await page.evaluate(([h, s, d]) => { AD.limpa(); AD.hook(h, s, d); }, [hook || '', sub || '', hookDur]); await espera(280); await rec.liga(); // espera a legenda da cena anterior sumir
   for (const p of passos) await passo(page, p);
 }
 // imagem parada: o que está na tela, com a chamada e o botão por cima. foto = { nome, titulo, sub }
@@ -165,6 +176,7 @@ async function cenaFim(page, rec, { texto = 'Defenda a ponte e construa sua ilha
 /* ---------- os criativos ---------- */
 /* Cada criativo: nome do arquivo, o jogador de mostruário e as cenas, na ordem.
    Cenas: ['batalha', {...}]  ['roteiro', {...}]  ['fim', {...}]. Textos curtos: a chamada fica 3 segundos na tela. */
+const BIO = 'Jogue grátis · link na bio';
 const MELHORA = (k) => [{ toca: '[data-buy="' + k + '"]', vezes: 2, pausa: 330 }];
 const CRIATIVOS = [
   { nome: 'horda', jogador: { fase: 40, nivel: 24 }, cenas: [
@@ -185,6 +197,20 @@ const CRIATIVOS = [
     ['roteiro', { antes: [{ pagina: 'vila' }, { zoom: 1.15, dur: .1 }], passos: [{ ficha: 'tes', pausa: 500 }, { toca: '#vShBuy', vezes: 6, pausa: 330 }, { toca: '#vShClose', pausa: 150, semDedo: true }, { zoom: .9, dur: 1.2 }] }],
     ['batalha', { chefe: true, aquece: 1.5, dur: 4.4, poderes: [{ t: 1, id: 'rate' }] }],
     ['fim', { texto: 'Defenda a ponte e construa sua ilha!' }]] },
+  /* ----- Reels para postar no orgânico: legenda no estilo do Instagram, comparações, final "link na bio", sem cara de anúncio ----- */
+  { nome: 'reels_fase1_fase100', organico: true, cenas: [
+    ['batalha', { jogador: { fase: 1, nivel: 0, tier: 0 }, aquece: 3.2, dur: 3.6, legendas: [{ t: 0, texto: 'Fase 1' }] }],
+    ['batalha', { jogador: { fase: 100, nivel: 94, tier: 8 }, aquece: 4.8, dur: 9, legendas: [{ t: 0, texto: 'Fase 100' }, { t: 6.4, texto: 'Você chega em qual?', tag: BIO }], poderes: [{ t: 2.2, id: 'rate', direto: true }, { t: 5, id: 'dmg', direto: true }] }]] },
+  { nome: 'reels_satisfatorio', organico: true, jogador: { fase: 70, nivel: 66 }, cenas: [
+    ['batalha', { aquece: 5.2, dur: 10.5, legendas: [{ t: 0, texto: 'Isso é satisfatório demais' }, { t: 3.4, texto: '' }, { t: 7.6, texto: 'Qual poder você escolhe?', tag: BIO }], poderes: [{ t: .9, id: 'dmg', direto: true }, { t: 3.8, id: 'rate', direto: true }, { t: 6.6, id: 'dmg', direto: true }] }]] },
+  { nome: 'reels_canhao_comum_mitico', organico: true, cenas: [
+    ['batalha', { jogador: { fase: 30, nivel: 8, tier: 0 }, aquece: 4.3, dur: 3.8, legendas: [{ t: 0, texto: 'Canhão comum' }] }],
+    ['batalha', { jogador: { fase: 30, nivel: 60, tier: 5 }, aquece: 4.3, dur: 7.2, legendas: [{ t: 0, texto: 'Canhão mítico' }, { t: 4.8, texto: 'Vale a pena evoluir?', tag: BIO }], poderes: [{ t: 2.4, id: 'rate', direto: true }] }]] },
+  { nome: 'reels_ilha_antes_depois', organico: true, cenas: [
+    ['roteiro', { jogador: { fase: 5, vila: 1, moedas: 900 }, antes: [{ js: 'VS.S0 = 0; VS.dirty = true' }, { pagina: 'vila' }], passos: [{ leg: 'Minha ilha no começo' }, { zoom: 1.15, dur: 3.2 }] }],
+    ['roteiro', { jogador: { fase: 60, vila: 19, moedas: 48e6 }, antes: [{ js: 'VS.S0 = 0; VS.dirty = true' }, { pagina: 'vila' }], passos: [{ leg: 'Minha ilha agora' }, { zoom: 1.28, dur: 4.4 }, { leg: 'Tudo com as moedas da batalha', tag: BIO }, { zoom: .86, dur: 2.6 }] }]] },
+  { nome: 'reels_chefe', organico: true, jogador: { fase: 50, nivel: 44 }, cenas: [
+    ['batalha', { chefe: true, aquece: 1.5, dur: 10.5, legendas: [{ t: 0, texto: 'Dá pra vencer o chefe sem perder vida?' }, { t: 3.6, texto: '' }, { t: 7.4, texto: 'Comenta até que fase você chega', tag: BIO }], poderes: [{ t: 2.6, id: 'dmg', direto: true }, { t: 5.4, id: 'rate', direto: true }] }]] },
   // imagens paradas (para anúncio de imagem e capa): sai um .jpg em vez de vídeo
   { nome: 'imagens', jogador: { fase: 40, nivel: 24, vila: 9, moedas: 5e8 }, soFotos: true, cenas: [
     ['batalha', { dur: 1.1, foto: { nome: 'img_batalha', titulo: 'Defenda a ponte!', sub: 'Jogo de pirata no navegador' } }],
@@ -199,10 +225,12 @@ const CRIATIVOS = [
   const nav = await chromium.launch();
   for (const c of lista) {
     const page = await abre(nav), partes = [];
-    await jogador(page, c.jogador);
+    await jogador(page, c.jogador || {});
+    if (c.organico) await page.evaluate(() => { AD.org = true; });
     for (const [tipo, op] of c.cenas) {
+      if (op.jogador) await jogador(page, Object.assign({}, c.jogador, op.jogador));
       const rec = await gravador(page);
-      if (tipo === 'batalha') await cenaBatalha(page, rec, Object.assign({ fase: c.jogador.fase }, op));
+      if (tipo === 'batalha') await cenaBatalha(page, rec, op);
       else if (tipo === 'roteiro') await cenaRoteiro(page, rec, op);
       else if (tipo === 'fim') await cenaFim(page, rec, op);
       await rec.desliga(); partes.push(rec.quadros);
