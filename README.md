@@ -9,6 +9,7 @@ Abra o `index.html` no navegador do celular. É um arquivo único, com imagens, 
 ## Conteúdo
 
 - `index.html` — o jogo completo.
+- `api.php` — contas dos jogadores (criar conta, entrar, guardar o progresso). Roda na hospedagem do site; os dados ficam numa pasta fora do site, um arquivo por conta, sem banco de dados. Aberto direto do arquivo ou sem servidor, o jogo funciona sem conta.
 - `sprites/` — imagens da ilha já recortadas (construções, coqueiros, terreno). `sprites/ilha.png` é o terreno pintado da ilha.
 - `ferramentas/sprlib.py` — script que recorta o fundo magenta/azul das imagens geradas e separa os 3 níveis de cada construção.
 
