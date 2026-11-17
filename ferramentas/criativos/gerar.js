@@ -9,6 +9,7 @@
  *        node ferramentas/criativos/gerar.js horda ilha      (só esses)
  *        node ferramentas/criativos/gerar.js --sem-legenda curioso_6_formas   (sem o texto de cima; a etiqueta "link na bio" continua no final)
  *        node ferramentas/criativos/gerar.js --sem-legenda --sem-link curioso_6_formas   (só o jogo, sem nenhum texto por cima)
+ *        node ferramentas/criativos/gerar.js --sem-legenda --sem-chamada historia_1_dia  (sem headline nem legenda; fica só o link no final)
  *        SAIDA=/outra/pasta node ferramentas/criativos/gerar.js
  * Precisa de: Node, Playwright (Chromium) e ffmpeg.
  * Para criar um criativo novo, copie um item da lista CRIATIVOS lá embaixo e troque a chamada e as cenas.
@@ -26,7 +27,8 @@ const espera = (ms) => new Promise((r) => setTimeout(r, ms));
 const FEITOS = [];
 const SEM_LEGENDA = process.argv.includes('--sem-legenda'); // sem a caixa de legenda (o texto de cima) nem o anel de destaque
 const SEM_LINK = process.argv.includes('--sem-link');       // sem a etiqueta "Jogue grátis · link na bio"
-const SUFIXO = SEM_LEGENDA && SEM_LINK ? '_limpo' : SEM_LEGENDA ? '_sem_legenda' : SEM_LINK ? '_sem_link' : '';
+const SEM_CHAMADA = process.argv.includes('--sem-chamada'); // sem a headline grande do começo
+const SUFIXO = (SEM_LEGENDA && SEM_LINK ? '_limpo' : SEM_LEGENDA ? '_sem_legenda' : SEM_LINK ? '_sem_link' : '') + (SEM_CHAMADA ? '_sem_headline' : '');
 
 /* ---------- camada do anúncio (chamada, endereço, tela final, dedo), desenhada por cima do jogo ---------- */
 const CSS_AD = `
@@ -60,7 +62,7 @@ const CSS_AD = `
 @keyframes adpulsa { 50% { transform: scale(1.07); } }
 `;
 async function camada(page) {
-  await page.evaluate(([css, site, semLeg, semLink]) => {
+  await page.evaluate(([css, site, semLeg, semLink, semChamada]) => {
     if (document.getElementById('ad')) return;
     const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
     const ad = document.createElement('div'); ad.id = 'ad';
@@ -80,7 +82,8 @@ async function camada(page) {
     };
     if (semLeg) { window.AD.leg = window.AD.anel = () => {}; }
     if (semLink) { window.AD.tag = () => {}; }
-  }, [CSS_AD, SITE, SEM_LEGENDA, SEM_LINK]);
+    if (semChamada) { window.AD.hook = () => {}; }
+  }, [CSS_AD, SITE, SEM_LEGENDA, SEM_LINK, SEM_CHAMADA]);
 }
 
 /* ---------- gravação: quadros da tela + o instante de cada um ---------- */
@@ -286,6 +289,13 @@ const CRIATIVOS = [
     ['batalha', { aquece: 4.7, dur: 10, vidas: 2, pausaCartas: 2.9, poderes: [{ t: .6, id: 'dmg' }], legendas: [{ t: 0, texto: '2 vidas. Poder carregado.' }, { t: 1.2, texto: 'Qual você pega?' }, { t: 4.6, texto: 'Fui de corrente' }, { t: 7, texto: 'Você pegava qual?', tag: BIO }] }]] },
   { nome: 'curioso_unico_trabalho', organico: true, jogador: { fase: 6, nivel: 2, tier: 0 }, cenas: [
     ['batalha', { aquece: 2.6, miraErrada: true, ateFim: true, dur: 16, depois: 2.2, legendas: [{ t: 0, texto: 'Meu único trabalho era defender a ponte' }, { t: 4.6, texto: 'Calma, tá tudo sob controle' }, { t: 9, texto: 'Não tá.' }], legFim: { texto: 'Demitido.', tag: 'Faz melhor que eu? · link na bio' } }]] },
+  /* ----- História em um vídeo só: a pessoa jogando, a tela inicial, a ilha como era e a ilha um dia depois -----
+     O "um dia depois" segue a conta do próprio jogo (ferramentas/modelo_economia.js): quem chega à fase 20 tem a vila por volta do nível 10 a 12. */
+  { nome: 'historia_1_dia', organico: true, jogador: { fase: 20, nivel: 22, vila: 10, moedas: 18400 }, cenas: [
+    ['batalha', { hook: 'Comecei ontem.', sub: 'Olha minha ilha hoje', hookDur: 3.6, aquece: 4.6, dur: 5.6, poderes: [{ t: 3, id: 'dmg', direto: true }] }],
+    ['roteiro', { antes: [{ js: 'VS.S0 = 0; VS.dirty = true' }, { pagina: 'vila' }, { pagina: 'play' }], passos: [{ espera: 1.5 }, { toca: 'button[data-pg="vila"]', pausa: 120 }] }],
+    ['roteiro', { jogador: { fase: 2, nivel: 2, tier: 0, vila: 1, moedas: 640 }, antes: [{ js: 'VDEF.forEach((d) => { P.vila.b[d.k] = (d.u || 1) <= 2 ? 1 : 0; }); save(); VS.S0 = 0; VS.dirty = true' }, { pagina: 'vila' }], passos: [{ leg: 'Ontem' }, { zoom: 1.12, dur: 2.9 }] }],
+    ['roteiro', { jogador: { fase: 20, nivel: 22, vila: 10, moedas: 18400 }, antes: [{ js: 'VS.S0 = 0; VS.dirty = true' }, { pagina: 'vila' }], passos: [{ leg: 'Hoje. 1 dia depois.' }, { zoom: 1.3, dur: 3.6 }, { tag: BIO }, { zoom: .88, dur: 2.2 }] }]] },
   // imagens paradas (para anúncio de imagem e capa): sai um .jpg em vez de vídeo
   { nome: 'imagens', jogador: { fase: 40, nivel: 24, vila: 9, moedas: 5e8 }, soFotos: true, cenas: [
     ['batalha', { dur: 1.1, foto: { nome: 'img_batalha', titulo: 'Defenda a ponte!', sub: 'Jogo de pirata no navegador' } }],
