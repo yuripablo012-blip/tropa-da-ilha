@@ -48,6 +48,8 @@ const CSS_AD = `
 #ad .leg { position: absolute; left: 22px; right: 22px; top: 18.5%; font-family: "Nunito", system-ui, sans-serif; text-transform: none; font-weight: 900; font-size: 25px; line-height: 1.52; opacity: 0; transform: scale(.75); transition: transform .22s cubic-bezier(.3,1.6,.5,1), opacity .15s; }
 #ad .leg.on { opacity: 1; transform: scale(1); }
 #ad .leg span { background: #fff; color: #111; padding: 5px 13px; border-radius: 9px; -webkit-box-decoration-break: clone; box-decoration-break: clone; box-shadow: 0 4px 10px rgba(0,0,0,.35); }
+#ad .anel { position: absolute; border: 4px solid #ffd84a; border-radius: 20px; box-shadow: 0 0 0 3px rgba(29,34,48,.9), 0 0 16px #ffd84a; display: none; animation: adpulsa .7s ease-in-out infinite; }
+#ad .anel.on { display: block; }
 #ad .tag { position: absolute; left: 50%; top: 61%; transform: translate(-50%, 0) scale(0); transition: transform .3s cubic-bezier(.3,1.7,.5,1); font-size: 21px; white-space: nowrap; padding: 10px 20px 6px; border-radius: 18px; border: 3px solid #1d2230; background: linear-gradient(#7be86f, #36b53a); box-shadow: 0 5px 0 #1d2230, 0 10px 14px rgba(0,0,0,.45); -webkit-text-stroke: 1.1px #1d2230; paint-order: stroke fill; }
 #ad .tag.on { transform: translate(-50%, 0) scale(1); }
 @keyframes adpulsa { 50% { transform: scale(1.07); } }
@@ -57,13 +59,15 @@ async function camada(page) {
     if (document.getElementById('ad')) return;
     const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
     const ad = document.createElement('div'); ad.id = 'ad';
-    ad.innerHTML = '<div class="hook"></div><div class="url">' + site + '</div><div class="leg"><span></span></div><div class="tag"></div><div class="dedo"></div><div class="faixa"><span>JOGUE GRÁTIS</span><small>' + site + '</small></div><div class="fim"><img alt=""><div class="t"></div><div class="b">JOGUE GRÁTIS</div><div class="u">' + site + '</div><div class="s">Direto no navegador, sem instalar nada</div></div>';
+    ad.innerHTML = '<div class="hook"></div><div class="url">' + site + '</div><div class="anel"></div><div class="leg"><span></span></div><div class="tag"></div><div class="dedo"></div><div class="faixa"><span>JOGUE GRÁTIS</span><small>' + site + '</small></div><div class="fim"><img alt=""><div class="t"></div><div class="b">JOGUE GRÁTIS</div><div class="u">' + site + '</div><div class="s">Direto no navegador, sem instalar nada</div></div>';
     document.body.appendChild(ad); ad.querySelector('.fim img').src = document.querySelector('.slogo').src;
     window.AD = {
       hook: (t, sub, seg) => { const h = ad.querySelector('.hook'); clearTimeout(window.__hk); if (t) { h.textContent = t; if (sub) { const b = document.createElement('b'); b.textContent = sub; h.appendChild(b); } } h.classList.toggle('on', !!t); ad.querySelector('.url').classList.toggle('on', !t && !window.AD.org); if (t && seg) window.__hk = setTimeout(() => window.AD.hook(''), seg * 1000); },
       cartaz: (t, sub) => { window.AD.limpa(); window.AD.hook(t, sub); ad.querySelector('.url').classList.remove('on'); ad.querySelector('.faixa').classList.add('on'); },
       url: (on) => ad.querySelector('.url').classList.toggle('on', !!on),
-      leg: (t) => { const l = ad.querySelector('.leg'); l.classList.remove('on'); if (!t) return; l.querySelector('span').textContent = t; void l.offsetWidth; l.classList.add('on'); }, // legenda no estilo do Instagram
+      troca: (t) => String(t).replace('{pegos}', (window.__ouro || { k: 0 }).k).replace('{renda}', window.__renda || '').replace('{moedas}', typeof G !== 'undefined' && G ? fmtN(G.earned) : ''), // valores tirados do jogo na hora
+      leg: (t) => { const l = ad.querySelector('.leg'); l.classList.remove('on'); if (!t) return; l.querySelector('span').textContent = window.AD.troca(t); void l.offsetWidth; l.classList.add('on'); }, // legenda no estilo do Instagram
+      anel: (sel) => { const a = ad.querySelector('.anel'), e = sel && document.querySelector(sel); if (!e) { a.classList.remove('on'); return; } const r = e.getBoundingClientRect(); a.style.left = (r.left - 7) + 'px'; a.style.top = (r.top - 7) + 'px'; a.style.width = (r.width + 6) + 'px'; a.style.height = (r.height + 6) + 'px'; a.classList.add('on'); }, // destaca um pedaço da tela
       tag: (t) => { const g = ad.querySelector('.tag'); g.textContent = t || ''; g.classList.toggle('on', !!t); },
       dedo: (x, y) => { const d = ad.querySelector('.dedo'); if (x == null) { d.classList.remove('on'); return; } d.style.left = x + 'px'; d.style.top = y + 'px'; d.classList.add('on'); },
       fim: (t) => { ad.querySelector('.fim .t').textContent = t || ''; ad.querySelector('.hook').classList.remove('on'); ad.querySelector('.url').classList.remove('on'); ad.querySelector('.dedo').classList.remove('on'); ad.querySelector('.fim').classList.add('on'); },
@@ -110,34 +114,62 @@ async function jogador(page, { fase = 20, nivel, tier, vila, moedas = 0, ela = f
 }
 
 /* ---------- cenas ---------- */
+// mostra uma legenda / etiqueta / destaque (roda dentro da página)
+const MOSTRA = (l) => { if (l.tag != null) AD.tag(l.tag); if (l.texto != null) AD.leg(l.texto); if (l.anel !== undefined) AD.anel(l.anel); };
+// onda de ouro: a onda rara dos 8 piratas dourados entra agora; conta quantos tesouros foram pegos e quantos fugiram
+const ONDA_DE_OURO = () => {
+  window.__ouro = { k: 0, f: 0 };
+  if (!window.__af) { window.__af = addFloat; addFloat = function (x, y, t) { if (/TESOURO!/.test(t)) window.__ouro.k++; else if (/tesouro fugiu/i.test(t)) window.__ouro.f++; return window.__af.apply(this, arguments); }; }
+  const gw = Array.from({ length: 8 }, (_, i) => ({ t: 'enemy', kind: 'gold', delay: .4 + i * .32 })); gw.gold = true; G.waves.splice(G.wi + 1, 0, gw); nextWave();
+};
+// acelerador: roda o jogo n vezes mais rápido (para mostrar uma fase inteira em poucos segundos); mira e usa os poderes sozinho
+async function acelerador(page, n) {
+  await page.evaluate((n) => {
+    window.__ac = n; if (window.__acOn) return; window.__acOn = 1; const ids = ['rate', 'dmg', 'dmg']; let k = 0;
+    (function q() {
+      try {
+        if (window.__ac > 1 && G && G.state === 'run') for (let i = 1; i < window.__ac; i++) {
+          if (G.state !== 'run') break;
+          const en = G.enemies.filter((e) => !e.dead && e.t !== 'barrel').sort((a, b) => b.y - a.y)[0]; if (en) G.tpx = Math.max(50, Math.min(W - 50, en.x));
+          if (G.charge >= 1) { G.charge = 0; const p = POWERS.find((x) => x.id === ids[k++ % 3]); if ((G.pw[p.id] || 0) < p.max) { p.ap(); G.pw[p.id] = (G.pw[p.id] || 0) + 1; } p.cast(); renderPw(); }
+          G.holding = true; tryFire(); update(1 / 60);
+        }
+      } catch (e) {}
+      requestAnimationFrame(q);
+    })();
+  }, n);
+}
 // batalha: o robô segura o dedo na tela e mira no inimigo mais perto; poderes = [{ t: segundos, id: 'rate' | 'dmg' | 'heart' }]
 // Durante o "aquece" (não gravado) o robô não atira, para a ponte encher. Com chefe: true vai direto para a onda do chefe,
 // espera ele entrar e o traz para o meio da ponte, e o robô mira nele.
-async function cenaBatalha(page, rec, { fase = 20, aquece = 4.3, dur = 8, poderes = [], chefe = false, hook, sub, hookDur = 3, foto, legendas = [] } = {}) {
+async function cenaBatalha(page, rec, { fase = 20, aquece = 4.3, dur = 8, poderes = [], chefe = false, hook, sub, hookDur = 3, foto, legendas = [], acelera = 0, ateFim = false, depois = 0, legFim, ouro, vidas, pausaCartas = .95, miraErrada = false } = {}) {
   await page.evaluate((chefe) => { startLevel(); document.getElementById('hint').classList.add('hidden'); if (chefe) { G.waves = [G.waves[G.waves.length - 1]]; G.wi = -1; G.spawnQ = []; G.enemies = []; nextWave(); } }, chefe);
   const Y = TELA.height * .88; await page.mouse.move(TELA.width / 2, Y);
   if (chefe) { await page.waitForFunction(() => G && G.enemies.some((e) => e.boss || e.t === 'boss'), null, { timeout: 15000 }).catch(() => {}); await page.evaluate(() => { const b = G.enemies.find((e) => e.boss || e.t === 'boss'); if (b) b.y = H * .34; }); }
-  const fila = poderes.slice().sort((a, b) => a.t - b.t), legs = legendas.slice().sort((a, b) => a.t - b.t); let t0 = 0, gravando = false, escolha = null;
+  const fila = poderes.slice().sort((a, b) => a.t - b.t), legs = legendas.slice().sort((a, b) => a.t - b.t); let t0 = 0, gravando = false, escolha = null, ouroOn = false, acabou = false;
   const ini = Date.now();
   for (;;) {
     const agora = (Date.now() - ini) / 1000;
-    if (!gravando && agora >= aquece) { gravando = true; t0 = Date.now(); await page.mouse.down(); await page.evaluate(([h, s, d]) => { AD.limpa(); AD.hook(h, s, d); }, [hook || '', sub || '', hookDur]); await rec.liga(); }
+    if (!gravando && agora >= aquece) { gravando = true; t0 = Date.now(); await page.mouse.down(); if (acelera > 1) await acelerador(page, acelera); await page.evaluate(([h, s, d]) => { AD.limpa(); AD.hook(h, s, d); }, [hook || '', sub || '', hookDur]); await rec.liga(); }
     const t = gravando ? (Date.now() - t0) / 1000 : -1;
     if (gravando && t >= dur) break;
-    while (gravando && legs.length && t >= legs[0].t) { const l = legs.shift(); await page.evaluate((l) => { if (l.tag != null) AD.tag(l.tag); if (l.texto != null) AD.leg(l.texto); }, l); }
-    const s = await page.evaluate((chefe) => { if (!G) return { s: 'fim' }; const vivos = G.enemies.filter((e) => !e.dead && e.t !== 'barrel').sort((a, b) => b.y - a.y), perto = vivos[0], bs = chefe && vivos.find((e) => e.boss || e.t === 'boss'), en = bs && !(perto && perto.y > H * .55) ? bs : perto; return { s: G.state, x: en ? en.x / W : null }; }, chefe);
-    if (s.s === 'fim' || s.s === 'end') break;
+    if (gravando && ouro && t >= ouro.t) { ouro = null; ouroOn = true; await page.evaluate(ONDA_DE_OURO); }
+    while (gravando && legs.length && t >= legs[0].t) { const l = legs.shift(); await page.evaluate(MOSTRA, l); }
+    const s = await page.evaluate(([chefe, ouro]) => { if (!G) return { s: 'fim' }; const vivos = G.enemies.filter((e) => !e.dead && e.t !== 'barrel').sort((a, b) => b.y - a.y), perto = vivos[0], bs = chefe && vivos.find((e) => e.boss || e.t === 'boss'), au = ouro && vivos.find((e) => e.kind === 'gold'), en = au || (bs && !(perto && perto.y > H * .55) ? bs : perto); return { s: G.state, x: en ? en.x / W : null }; }, [chefe, ouroOn]);
+    if (s.s === 'fim' || s.s === 'end') { acabou = true; break; }
     if (s.s === 'pick') { // mostra as cartas um instante e escolhe
-      await page.mouse.up(); await page.evaluate(() => { AD.dedo(null); AD.hook(''); }); await espera(950);
+      await page.mouse.up(); await page.evaluate(() => { AD.dedo(null); AD.hook(''); }); await espera(pausaCartas * 1000);
       await page.evaluate((id) => { G.pickT = 0; const c = document.querySelector('#cards [data-pw="' + id + '"]') || document.querySelector('#cards [data-pw]'); if (c) c.click(); }, escolha || 'rate');
       await espera(120); await page.mouse.move(TELA.width / 2, Y); if (gravando) await page.mouse.down(); continue;
     }
     if (gravando && fila.length && t >= fila[0].t && fila[0].direto) { const id = fila.shift().id; await page.evaluate((id) => { const p = POWERS.find((x) => x.id === id); if (!p || !G || G.state !== 'run') return; if ((G.pw[id] || 0) < p.max) { p.ap(); G.pw[id] = (G.pw[id] || 0) + 1; } p.cast(); renderPw(); }, id); continue; } // poder direto, sem abrir as cartas
-    if (gravando && fila.length && t >= fila[0].t) { escolha = fila.shift().id; await page.mouse.up(); await page.evaluate(() => { G.charge = 1; }); await espera(60); const b = await page.evaluate(() => { const r = document.getElementById('spBtn').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; }); await page.evaluate(([x, y]) => AD.dedo(x, y), b); await espera(220); await page.touchscreen.tap(b[0], b[1]); await espera(150); continue; }
-    if (gravando && s.x != null) { const x = Math.max(.14, Math.min(.86, s.x)) * TELA.width; await page.mouse.move(x, Y, { steps: 2 }); await page.evaluate(([x, y]) => AD.dedo(x, y), [x, Y]); }
+    if (gravando && fila.length && t >= fila[0].t) { escolha = fila.shift().id; await page.mouse.up(); await page.evaluate((v) => { G.charge = 1; if (v) G.lives = v; }, vidas || 0); await espera(60); const b = await page.evaluate(() => { const r = document.getElementById('spBtn').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; }); await page.evaluate(([x, y]) => AD.dedo(x, y), b); await espera(220); await page.touchscreen.tap(b[0], b[1]); await espera(150); continue; }
+    if (gravando && acelera > 1) { await espera(70); continue; } // acelerado: quem mira é o acelerador, dentro do jogo
+    if (gravando && s.x != null) { const x = Math.max(.14, Math.min(.86, miraErrada ? 1 - s.x : s.x)) * TELA.width; await page.mouse.move(x, Y, { steps: 2 }); await page.evaluate(([x, y]) => AD.dedo(x, y), [x, Y]); }
     await espera(70);
   }
-  await page.mouse.up();
+  await page.mouse.up(); if (acelera > 1) await page.evaluate(() => { window.__ac = 1; });
+  if (gravando && (acabou || ateFim) && depois) { await page.evaluate(() => AD.dedo(null)); if (legFim) await page.evaluate(MOSTRA, legFim); await espera(depois * 1000); } // mostra a tela de vitória ou derrota
   if (foto) await fotos(page, foto);
 }
 // um passo de roteiro fora da batalha (menu, canhão, ilha)
@@ -152,7 +184,30 @@ async function passo(page, p) {
   }
   if (p.semDedo) await page.evaluate(() => AD.dedo(null));
   if (p.hook != null) await page.evaluate(([h, s, d]) => AD.hook(h, s, d), [p.hook, p.sub || '', p.hookDur || 0]);
+  if (p.renda) await page.evaluate((h) => { V().t = Date.now() - h * 36e5; window.__renda = fmtN(vPend()); vilaHud(); }, p.renda); // a ilha ficou h horas rendendo com o jogo fechado
+  if (p.foco) await page.evaluate(async (k) => { // leva a construção para o meio da tela: mede onde está a etiqueta dela e corrige a câmera
+    const quadro = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const onde = () => { const q = document.querySelector('#vLab .vlab[data-k="' + k + '"]').getBoundingClientRect(); return [q.x + q.width / 2, q.y + q.height / 2]; };
+    for (let i = 0; i < 4; i++) {
+      const a = onde(), dx = innerWidth / 2 - a[0], dy = innerHeight * .36 - a[1]; if (Math.abs(dx) + Math.abs(dy) < 3) break;
+      const px = VS.px, py = VS.py; VS.px = px + dx; VS.py = py + dy; VS.cam = null; await quadro();
+      const b = onde(); if (Math.abs(innerWidth / 2 - b[0]) + Math.abs(innerHeight * .36 - b[1]) > Math.abs(dx) + Math.abs(dy)) { VS.px = px - dx; VS.py = py - dy; VS.cam = null; await quadro(); } // o sinal era o contrário
+    }
+  }, p.foco);
+  if (p.construir) { // melhora a construção direto (sem abrir a ficha), até o nível "ate"; com legForma, a legenda acompanha a forma
+    let forma = await page.evaluate((k) => vStg(vLv(k)), p.construir);
+    for (let i = 0; i < 60; i++) {
+      const r = await page.evaluate((k) => { const e = document.querySelector('#vLab .vlab[data-k="' + k + '"]'), q = e.getBoundingClientRect(); return { lv: vLv(k), x: q.x + q.width / 2, y: q.y + q.height + 44 }; }, p.construir);
+      if (r.lv >= p.ate) break;
+      await page.evaluate(([x, y]) => AD.dedo(x, y), [r.x, r.y]); await espera(120);
+      const f = await page.evaluate((k) => { vBuild(k); return vStg(vLv(k)); }, p.construir);
+      if (p.legForma && f !== forma) { forma = f; await page.evaluate((t) => AD.leg(t), 'Forma ' + f + ' de 6'); await espera(p.pausaForma != null ? p.pausaForma * 1000 : 650); }
+      await espera(p.pausa != null ? p.pausa : 300);
+    }
+    await page.evaluate(() => AD.dedo(null));
+  }
   if (p.leg != null) await page.evaluate((t) => AD.leg(t), p.leg);
+  if (p.anel !== undefined) await page.evaluate((s) => AD.anel(s), p.anel);
   if (p.tag != null) await page.evaluate((t) => AD.tag(t), p.tag);
   if (p.foto) await fotos(page, p.foto);
   if (p.espera) await espera(p.espera * 1000);
@@ -211,6 +266,19 @@ const CRIATIVOS = [
     ['roteiro', { jogador: { fase: 60, vila: 19, moedas: 48e6 }, antes: [{ js: 'VS.S0 = 0; VS.dirty = true' }, { pagina: 'vila' }], passos: [{ leg: 'Minha ilha agora' }, { zoom: 1.28, dur: 4.4 }, { leg: 'Tudo com as moedas da batalha', tag: BIO }, { zoom: .86, dur: 2.6 }] }]] },
   { nome: 'reels_chefe', organico: true, jogador: { fase: 50, nivel: 44 }, cenas: [
     ['batalha', { chefe: true, aquece: 1.5, dur: 10.5, legendas: [{ t: 0, texto: 'Dá pra vencer o chefe sem perder vida?' }, { t: 3.6, texto: '' }, { t: 7.4, texto: 'Comenta até que fase você chega', tag: BIO }], poderes: [{ t: 2.6, id: 'dmg', direto: true }, { t: 5.4, id: 'rate', direto: true }] }]] },
+  /* ----- Reels de curiosidade: cada um em cima de uma coisa que só este jogo tem ----- */
+  { nome: 'curioso_1000_piratas', organico: true, jogador: { fase: 100, nivel: 100, tier: 8 }, cenas: [
+    ['batalha', { aquece: 2.6, acelera: 15, ateFim: true, dur: 19, depois: 2.6, legendas: [{ t: 0, texto: 'Fase 100 = 1.000 piratas. 1 canhão.' }, { t: 2.8, texto: 'Olha o contador lá em cima', anel: '#leftPill' }, { t: 6.2, texto: 'acelerado 15x', anel: null }], legFim: { texto: 'Agora imagina a fase 200', tag: BIO, anel: null } }]] },
+  { nome: 'curioso_onda_de_ouro', organico: true, jogador: { fase: 12, nivel: 18 }, cenas: [
+    ['batalha', { aquece: 2.2, dur: 11.2, ouro: { t: 1.3 }, legendas: [{ t: 0, texto: 'Se essa onda aparecer, não pisca' }, { t: 3.2, texto: 'Cada dourado foge com um tesouro' }, { t: 8.4, texto: 'Peguei {pegos} de 8. E você?', tag: BIO }] }]] },
+  { nome: 'curioso_ilha_dormindo', organico: true, jogador: { fase: 30, vila: 11, moedas: 1250 }, cenas: [
+    ['roteiro', { antes: [{ js: 'VS.S0 = 0; VS.dirty = true' }, { pagina: 'vila' }, { pagina: 'play' }, { renda: 8 }], passos: [{ leg: 'Fechei o jogo ontem à noite' }, { espera: 2.1 }, { leg: 'Abri hoje de manhã' }, { espera: .9 }, { toca: 'button[data-pg="vila"]', pausa: 1100, semDedo: true }, { leg: 'Olha o que a ilha fez sozinha', anel: '.vbubble' }, { espera: 1.7 }, { anel: null, toca: '.vbubble', pausa: 350, semDedo: true }, { leg: '+{renda} moedas sem jogar', tag: BIO, anel: '#menuCoins' }, { espera: 2.8 }] }]] },
+  { nome: 'curioso_6_formas', organico: true, jogador: { fase: 40, vila: 1, moedas: 5e9 }, cenas: [
+    ['roteiro', { antes: [{ js: 'VS.S0 = 0; VS.dirty = true; P.vila.b.tes = 1' }, { pagina: 'vila' }, { zoom: 2.1, dur: .1 }, { espera: .3 }, { foco: 'tes' }, { espera: .3 }], passos: [{ leg: 'Essa casa tem 6 formas' }, { espera: 1.5 }, { construir: 'tes', ate: 13, pausa: 240, legForma: true }, { espera: .8 }, { leg: 'A 6ª eu não vou mostrar', tag: 'Só jogando · link na bio' }, { espera: 2.6 }] }]] },
+  { nome: 'curioso_qual_poder', organico: true, jogador: { fase: 40, nivel: 24 }, cenas: [
+    ['batalha', { aquece: 4.7, dur: 10, vidas: 2, pausaCartas: 2.9, poderes: [{ t: .6, id: 'dmg' }], legendas: [{ t: 0, texto: '2 vidas. Poder carregado.' }, { t: 1.2, texto: 'Qual você pega?' }, { t: 4.6, texto: 'Fui de corrente' }, { t: 7, texto: 'Você pegava qual?', tag: BIO }] }]] },
+  { nome: 'curioso_unico_trabalho', organico: true, jogador: { fase: 6, nivel: 2, tier: 0 }, cenas: [
+    ['batalha', { aquece: 2.6, miraErrada: true, ateFim: true, dur: 16, depois: 2.2, legendas: [{ t: 0, texto: 'Meu único trabalho era defender a ponte' }, { t: 4.6, texto: 'Calma, tá tudo sob controle' }, { t: 9, texto: 'Não tá.' }], legFim: { texto: 'Demitido.', tag: 'Faz melhor que eu? · link na bio' } }]] },
   // imagens paradas (para anúncio de imagem e capa): sai um .jpg em vez de vídeo
   { nome: 'imagens', jogador: { fase: 40, nivel: 24, vila: 9, moedas: 5e8 }, soFotos: true, cenas: [
     ['batalha', { dur: 1.1, foto: { nome: 'img_batalha', titulo: 'Defenda a ponte!', sub: 'Jogo de pirata no navegador' } }],
