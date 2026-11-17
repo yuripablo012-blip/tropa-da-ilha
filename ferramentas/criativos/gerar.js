@@ -7,7 +7,8 @@
  *
  * Uso:   node ferramentas/criativos/gerar.js                 (gera todos)
  *        node ferramentas/criativos/gerar.js horda ilha      (só esses)
- *        node ferramentas/criativos/gerar.js --sem-legenda curioso_6_formas   (sem texto por cima: só o jogo; o arquivo sai com _limpo no nome)
+ *        node ferramentas/criativos/gerar.js --sem-legenda curioso_6_formas   (sem o texto de cima; a etiqueta "link na bio" continua no final)
+ *        node ferramentas/criativos/gerar.js --sem-legenda --sem-link curioso_6_formas   (só o jogo, sem nenhum texto por cima)
  *        SAIDA=/outra/pasta node ferramentas/criativos/gerar.js
  * Precisa de: Node, Playwright (Chromium) e ffmpeg.
  * Para criar um criativo novo, copie um item da lista CRIATIVOS lá embaixo e troque a chamada e as cenas.
@@ -23,7 +24,9 @@ const SITE = 'piratadailha.online';
 const TELA = { width: 360, height: 640 }, ESCALA = 3; // 360x640 x3 = 1080x1920
 const espera = (ms) => new Promise((r) => setTimeout(r, ms));
 const FEITOS = [];
-const SEM_LEGENDA = process.argv.includes('--sem-legenda'); // vídeo limpo: sem legenda, etiqueta nem destaque por cima do jogo
+const SEM_LEGENDA = process.argv.includes('--sem-legenda'); // sem a caixa de legenda (o texto de cima) nem o anel de destaque
+const SEM_LINK = process.argv.includes('--sem-link');       // sem a etiqueta "Jogue grátis · link na bio"
+const SUFIXO = SEM_LEGENDA && SEM_LINK ? '_limpo' : SEM_LEGENDA ? '_sem_legenda' : SEM_LINK ? '_sem_link' : '';
 
 /* ---------- camada do anúncio (chamada, endereço, tela final, dedo), desenhada por cima do jogo ---------- */
 const CSS_AD = `
@@ -57,7 +60,7 @@ const CSS_AD = `
 @keyframes adpulsa { 50% { transform: scale(1.07); } }
 `;
 async function camada(page) {
-  await page.evaluate(([css, site, limpo]) => {
+  await page.evaluate(([css, site, semLeg, semLink]) => {
     if (document.getElementById('ad')) return;
     const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
     const ad = document.createElement('div'); ad.id = 'ad';
@@ -75,8 +78,9 @@ async function camada(page) {
       fim: (t) => { ad.querySelector('.fim .t').textContent = t || ''; ad.querySelector('.hook').classList.remove('on'); ad.querySelector('.url').classList.remove('on'); ad.querySelector('.dedo').classList.remove('on'); ad.querySelector('.fim').classList.add('on'); },
       limpa: () => { ad.querySelectorAll('.on').forEach((e) => e.classList.remove('on')); },
     };
-    if (limpo) { window.AD.leg = window.AD.tag = window.AD.anel = () => {}; }
-  }, [CSS_AD, SITE, SEM_LEGENDA]);
+    if (semLeg) { window.AD.leg = window.AD.anel = () => {}; }
+    if (semLink) { window.AD.tag = () => {}; }
+  }, [CSS_AD, SITE, SEM_LEGENDA, SEM_LINK]);
 }
 
 /* ---------- gravação: quadros da tela + o instante de cada um ---------- */
@@ -307,7 +311,7 @@ const CRIATIVOS = [
       await rec.desliga(); partes.push(rec.quadros);
     }
     if (!c.soFotos) {
-      const arq = path.join(SAIDA, 'tropa_' + c.nome + (SEM_LEGENDA ? '_limpo' : '') + '.mp4'), r = monta(partes, arq); FEITOS.push(arq);
+      const arq = path.join(SAIDA, 'tropa_' + c.nome + SUFIXO + '.mp4'), r = monta(partes, arq); FEITOS.push(arq);
       console.log(c.nome + ': ' + r.segundos.toFixed(1) + ' s, ' + r.quadros + ' quadros (' + r.fps.toFixed(0) + ' por segundo na gravação), ' + (fs.statSync(arq).size / 1e6).toFixed(1) + ' MB');
     }
     if (page.erros.length) console.log('  ERROS no jogo durante ' + c.nome + ': ' + JSON.stringify(page.erros.slice(0, 3)));
