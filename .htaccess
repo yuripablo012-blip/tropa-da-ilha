@@ -5,3 +5,9 @@
     Header set Cache-Control "no-cache, must-revalidate"
   </FilesMatch>
 </IfModule>
+
+# Contas dos jogadores (api.php): os dados ficam numa pasta fora do site. Se a hospedagem não deixar,
+# o api.php usa a pasta reserva "dados_contas" aqui dentro; esta regra impede que alguém a abra pelo navegador.
+<IfModule mod_alias.c>
+  RedirectMatch 404 ^/dados_contas(/|$)
+</IfModule>

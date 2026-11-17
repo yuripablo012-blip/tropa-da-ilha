@@ -700,6 +700,32 @@ button { transition: scale .12s cubic-bezier(.3,1.8,.5,1); }
 .lnav button span.emo { font-size: 30px !important; line-height: 40px; text-align: center; filter: drop-shadow(0 3px 2px rgba(0,0,0,.6)); }
 .lnav button.on span.emo { transform: scale(1.15) rotate(-6deg); }
 .endvila { margin-top: 8px; display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(#5fd2ff, #1f8fd0); border: 3px solid #1d2230; border-radius: 14px; padding: 6px 12px 3px; color: #fff; font-family: "Luckiest Guy", Impact, sans-serif; text-transform: uppercase; font-size: 16px; cursor: pointer; animation: vpulse2 1s ease-in-out infinite; }
+/* ---------- Conta do jogador ---------- */
+#contaOv { z-index: 40; justify-content: flex-start; overflow-y: auto; touch-action: pan-y; gap: 12px; padding: 16px; background: radial-gradient(ellipse at 50% 42%, rgba(4,12,24,.62), rgba(4,12,24,.9)); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+#contaOv > :first-child { margin-top: auto; } #contaOv > :last-child { margin-bottom: auto; } /* centralizado quando cabe; rola quando o teclado do celular abre */
+#contaOv .logo { flex: none; }
+.ctbox { flex: none; gap: 10px; padding: 14px; box-sizing: border-box; width: min(100%, 372px); }
+.ctbox form { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 0; }
+.cttabs { display: flex; gap: 6px; width: 100%; }
+.cttabs button { flex: 1; border: 3px solid #1d2230; border-radius: 12px; padding: 9px 2px 6px; font-family: "Luckiest Guy", Impact, sans-serif; text-transform: uppercase; font-size: 15px; background: #d9dee4; color: #4a5563; cursor: pointer; }
+.cttabs button.on { background: linear-gradient(#8fd8ff, #2f8ff0 55%, #1a5cb8); color: #fff; }
+.ctinfo { color: #1d2230; font-weight: 900; font-size: 13.5px; line-height: 1.3; }
+.ctl { width: 100%; display: flex; flex-direction: column; gap: 4px; text-align: left; color: #1d2230; font-weight: 900; font-size: 13px; }
+.ctl input { width: 100%; min-width: 0; box-sizing: border-box; border: 3px solid #1d2230; border-radius: 12px; padding: 10px 12px; font: 900 17px "Nunito", system-ui, sans-serif; color: #1d2230; background: #fff; -webkit-user-select: text; user-select: text; outline: none; }
+.ctl input:focus { border-color: #2f8ff0; box-shadow: 0 0 0 3px rgba(47,143,240,.3); }
+.ctpw { display: flex; gap: 6px; } .ctpw input { flex: 1; }
+.ctpw button { flex: none; border: 3px solid #1d2230; border-radius: 12px; background: #e8edf2; color: #1d2230; font: 900 12px "Nunito", system-ui, sans-serif; padding: 0 10px; cursor: pointer; }
+.ctdica { font-size: 12px; color: #8a5a00; }
+.cterr { min-height: 18px; color: #c62828; font-weight: 900; font-size: 13.5px; line-height: 1.25; }
+.ctbox .btn.red { background: linear-gradient(#ff8a7a, #d83a3a); }
+.ctlink { background: none; border: 0; color: #1d2230; font: 900 14px "Nunito", system-ui, sans-serif; text-decoration: underline; cursor: pointer; padding: 6px 12px; }
+.ctnota { font-size: 12px; opacity: .85; flex: none; }
+.ctcard { width: 100% !important; flex: none; gap: 6px; }
+.ctnome { font: 900 18px "Nunito", system-ui, sans-serif; color: #1d2230; }
+.ctst { font-size: 12.5px; font-weight: 900; color: #555; text-align: center; line-height: 1.3; }
+.ctrow { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.ctmini { border: 3px solid #1d2230; border-radius: 12px; background: #e8edf2; color: #1d2230; font: 900 13px "Nunito", system-ui, sans-serif; padding: 7px 12px; cursor: pointer; }
+.ctmini.red { color: #c62828; }
 </style>
 
 <div id="app">
@@ -772,6 +798,7 @@ button { transition: scale .12s cubic-bezier(.3,1.8,.5,1); }
         </div>
       </div>
       <div class="gswitch"><button data-g="m" id="gsM">Ele</button><button data-g="f" id="gsF">Ela</button></div>
+      <div class="gbox ctcard" id="ctCard"></div>
       <div style="color:#fff;font-weight:900;font-size:13px;text-align:center">Derrote piratas para ganhar XP. A cada nível, pegue um prêmio!</div>
       <div class="road" id="road"></div>
     </section>
@@ -829,6 +856,22 @@ button { transition: scale .12s cubic-bezier(.3,1.8,.5,1); }
     <div class="co-wrap"><div class="co-rays"></div><div class="co-img pop" id="bemImg"></div></div>
     <div class="co-items" id="bemItems"></div>
     <button class="btn green" id="bemBtn">PEGAR</button>
+  </div>
+  <div class="screen hidden" id="contaOv">
+    <div class="logo" id="ctTitle" style="font-size:clamp(30px, 10vw, 42px)">SUA CONTA</div>
+    <div class="gbox ctbox">
+      <div class="cttabs" id="ctTabs"><button type="button" data-m="criar">Criar conta</button><button type="button" data-m="entrar">Já tenho conta</button></div>
+      <div class="ctinfo" id="ctWait">Conectando…</div>
+      <form id="ctForm" autocomplete="on" novalidate>
+        <div class="ctinfo" id="ctInfo"></div>
+        <label class="ctl" id="ctNomeL">Nome de jogador<input id="ctNome" name="username" type="text" maxlength="16" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="next"></label>
+        <label class="ctl" id="ctSenhaL">Senha<span class="ctpw"><input id="ctSenha" name="password" type="password" maxlength="64" autocomplete="current-password" enterkeyhint="go"><button type="button" id="ctOlho">mostrar</button></span><span class="ctdica" id="ctDica"></span></label>
+        <div class="cterr" id="ctErr" role="alert"></div>
+        <button class="btn green" id="ctBtn" type="submit">CRIAR E JOGAR</button>
+      </form>
+      <button class="ctlink hidden" id="ctVoltar" type="button">Voltar</button>
+    </div>
+    <div class="sub ctnota">Guardamos só o seu nome de jogador e o progresso do jogo.</div>
   </div>
   <div class="screen hidden" id="chestOv">
     <div class="logo" id="coTitle" style="font-size:40px">BAÚ!</div>
@@ -976,7 +1019,71 @@ if (P.tier === undefined) P.tier = 0;
 // jogo salvo com campo estragado (texto no lugar de número, vazio): conserta ao abrir em vez de espalhar NaN
 for (const k of ['level', 'coins', 'dmg', 'rate', 'hp', 'tier', 'xp', 'hlv', 'kills', 'bigs', 'bosses', 'barrels', 'shots', 'wins']) { const v = Number(P[k]); P[k] = Number.isFinite(v) && v >= 0 ? v : (k === 'level' || k === 'hlv' ? 1 : 0); }
 P.level = Math.max(1, Math.floor(P.level)); P.hlv = Math.max(1, Math.floor(P.hlv)); P.tier = Math.floor(P.tier);
-const save = () => { try { localStorage.setItem(SAVE, JSON.stringify(P)); } catch (e) {} };
+/* ---------- Conta do jogador ----------
+   O progresso continua salvo no aparelho, como sempre. Com conta, cada save() também vai para o servidor (api.php),
+   e ao abrir o jogo vale o que está na conta. Sem servidor (arquivo aberto direto, prévia, sem internet na primeira vez) o jogo funciona sem conta.
+   CT (localStorage 'tropa_conta'): nome, token (sessão), rev (versão do save que este aparelho conhece), sujo (há mudança ainda não enviada), ap (identificação deste aparelho). */
+const CONTA_K = 'tropa_conta', API = 'api.php';
+let CT = {}; try { const c = JSON.parse(localStorage.getItem(CONTA_K) || '{}'); if (c && typeof c === 'object' && !Array.isArray(c)) CT = c; } catch (e) {}
+if (!/^[0-9a-z]{6,24}$/.test(CT.ap || '')) CT.ap = ('a' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36)).slice(0, 20);
+const ctGrava = () => { try { localStorage.setItem(CONTA_K, JSON.stringify(CT)); } catch (e) {} };
+const ctTem = () => !!(CT.token && CT.nome);
+const ctNet = /^https?:$/.test(location.protocol);
+let ctSrv = ctNet ? 'talvez' : 'nao'; // o servidor das contas responde? 'sim', 'nao' ou 'talvez' (ainda perguntando)
+let ctT = 0, ctSeq = 0, ctBusy = false, ctFalhas = 0, ctPend = null, ctEst = '', ctCongela = false, ctPingT = 0;
+const save = () => { if (ctCongela) return; try { localStorage.setItem(SAVE, JSON.stringify(P)); } catch (e) {} contaSuja(); };
+// pedido ao servidor. Devolve a resposta ({ok: true/false, ...}) ou null quando não há conexão ou servidor
+async function ctCall(a, body, keep, ms) {
+  if (!ctNet) return null;
+  let tm = 0;
+  try {
+    const ctl = window.AbortController ? new AbortController() : null; if (ctl) tm = setTimeout(() => ctl.abort(), ms || 12000);
+    const r = await fetch(API + '?a=' + a, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ ap: CT.ap }, body || {})), cache: 'no-store', keepalive: !!keep, signal: ctl ? ctl.signal : undefined });
+    const j = JSON.parse(await r.text()); clearTimeout(tm);
+    return j && typeof j.ok === 'boolean' ? j : null;
+  } catch (e) { clearTimeout(tm); return null; }
+}
+function ctSt(e) { if (ctEst === e) return; ctEst = e; contaCard(); }
+// save() avisa aqui: marca que há mudança e manda para a conta dali a 3 s (várias mudanças seguidas vão juntas)
+function contaSuja() { if (!ctTem() || ctPend) return; ctSeq++; if (!CT.sujo) { CT.sujo = 1; ctGrava(); } if (ctEst !== 'offline') ctSt('salvando'); if (!ctT) ctT = setTimeout(ctEnvia, 3000); }
+async function ctEnvia(keep) {
+  keep = keep === true; clearTimeout(ctT); ctT = 0;
+  if (!ctTem() || !CT.sujo || ctPend || ctCongela) return false;
+  if (ctBusy && !keep) { ctT = setTimeout(ctEnvia, 1500); return false; }
+  const seq = ctSeq, tok = CT.token; ctBusy = true;
+  const r = await ctCall('salvar', { token: tok, rev: CT.rev || 0, save: JSON.stringify(P) }, keep);
+  ctBusy = false;
+  if (CT.token !== tok || ctCongela) return false;
+  if (!r) { ctFalhas++; ctSt('offline'); if (!ctT) ctT = setTimeout(ctEnvia, Math.min(60000, 4000 * ctFalhas)); return false; } // sem internet: fica no aparelho e tenta de novo
+  ctFalhas = 0;
+  if (r.ok) { CT.rev = r.rev; if (ctSeq === seq) CT.sujo = 0; ctGrava(); if (CT.sujo) { if (!ctT) ctT = setTimeout(ctEnvia, 3000); } else ctSt('salvo'); return !CT.sujo; }
+  if (r.erro === 'conflito') { ctTroca(r.save, r.rev); return false; } // a conta foi usada em outro aparelho depois deste: vale o que está na conta
+  if (r.erro === 'sessao') { ctEsquece(); return false; }
+  ctSt('offline'); if (!ctT) ctT = setTimeout(ctEnvia, 60000); return false;
+}
+// troca o jogo deste aparelho pelo que está na conta e reabre o jogo. No meio de uma batalha, espera voltar ao menu
+function ctTroca(s, rev) { let o = null; try { o = JSON.parse(s); } catch (e) {} if (!o || typeof o !== 'object' || Array.isArray(o)) return; ctPend = { s, rev }; ctAplica(); }
+function ctAplica(agora) {
+  if (!ctPend || (G && !agora)) return;
+  try { const antes = localStorage.getItem(SAVE); if (antes) localStorage.setItem(SAVE + '_antes', antes); localStorage.setItem(SAVE, ctPend.s); } catch (e) { ctPend = null; return; }
+  CT.rev = ctPend.rev; CT.sujo = 0; ctGrava(); ctCongela = true; location.reload();
+}
+function ctEsquece() { CT = { ap: CT.ap }; ctGrava(); ctEst = ''; contaCard(); contaPorta(); } // a sessão não vale mais: pede para entrar de novo (o jogo do aparelho fica)
+// ao abrir o jogo: com conta, confere o que está no servidor; sem conta, pergunta se o servidor das contas existe
+async function ctInicio() {
+  if (!ctNet) return;
+  ctPingT = Date.now();
+  if (ctTem()) {
+    const tok = CT.token, r = await ctCall('carregar', { token: tok });
+    if (CT.token !== tok || ctCongela) return;
+    if (!r) { ctSrv = 'nao'; ctSt('offline'); return; }
+    ctSrv = 'sim';
+    if (!r.ok) { if (r.erro === 'sessao') ctEsquece(); return; }
+    if (r.nome) CT.nome = r.nome;
+    if (r.rev === CT.rev || r.ap === CT.ap) { CT.rev = r.rev; ctGrava(); if (CT.sujo) ctEnvia(); else ctSt('salvo'); } // a última gravação é deste aparelho (ou nada mudou): manda o que faltar
+    else ctTroca(r.save, r.rev); // outro aparelho jogou depois: pega o da conta
+  } else { const r = await ctCall('ping', null, false, 6000); if (ctTem()) return; ctSrv = r && r.ok ? 'sim' : 'nao'; contaPronta(); }
+}
 const upCostL = (l) => Math.floor((l <= 25 ? 30 * Math.pow(1.24, l) : 30 * Math.pow(1.24, 25) * Math.pow(l / 25, 2.6)) + l * 8); // até o nível 25 como sempre foi; depois sobe como potência, não dispara
 const upCost = (k) => upCostL(P[k]);
 const RAR = { c: ['COMUM', '#8c97a6', '#d9dee4', '#7d8796'], r: ['RARO', '#2f8ff0', '#8fd3ff', '#1f5fae'], e: ['ÉPICO', '#9b4dff', '#d7b0ff', '#5b2aa8'], l: ['LENDÁRIO', '#f29a12', '#ffe08a', '#b35a07'] };
@@ -1085,7 +1192,7 @@ const CANNON = () => ({ x: G ? G.px : W / 2, y: H - 100 });
 const DEF = () => H - 205;
 const HITY = () => DEF() + 36; // onde o inimigo alcança o pirata e ataca (antes era na linha de defesa, um corpo de distância)
 const SHOW_FENCE = false;                  // linha que os piratas não podem passar
-const BUILD = 'Versão 65 · 15/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
+const BUILD = 'Versão 66 · 17/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
 const GANHO = 6; // multiplicador geral das moedas de batalha
 const coinMul = () => (1 + fireBonus()) * (1 + (P.vila ? VB().c : 0)) * (1 + canCoin()) * .7 * GANHO; // bônus de sequência, da vila e do canhão
 const ecoVal = () => { const n = P.level || 1; return (60 + 40 * n + .5 * n * n) * coinMul(); }; // quanto vale hoje, em moedas, um bom pedaço de fase (cerca de 1/4 do que uma fase paga)
@@ -1285,8 +1392,97 @@ const vLv = (k) => V().b[k] || 0;
 const vTot = (k) => vLv(k) / 3; // bônus igual ao de antes no nível cheio; cada passo vale um terço
 const VTEST1 = false; // modo teste (tudo custa 1 moeda e 100 mil de brinde): desligado. Para testar, toque 7 vezes seguidas nas moedas do lobby.
 const PRESENTE = 20000; // presente de boas-vindas: 20 mil moedas, UMA vez por aparelho, numa janela que aparece assim que a pessoa entra no jogo (0 = sem presente). Quem já recebeu um presente antes não recebe de novo
-function bemVindo() { if (!PRESENTE || P.presente || window.bemShown || !$('splash').classList.contains('hidden')) return; window.bemShown = true; $('bemImg').innerHTML = ii('chest', ''); $('bemItems').innerHTML = `<div class="co-it" style="--c1:#e8a316;--c2:#fff2a0">${ii('coin', '')}<b>+${PRESENTE.toLocaleString('pt-BR')}</b><small>moedas</small></div>`; $('bemOv').classList.remove('hidden'); sfx('power'); }
+function bemVindo() { if (!PRESENTE || P.presente || window.bemShown || !$('splash').classList.contains('hidden') || contaAberta()) return; window.bemShown = true; $('bemImg').innerHTML = ii('chest', ''); $('bemItems').innerHTML = `<div class="co-it" style="--c1:#e8a316;--c2:#fff2a0">${ii('coin', '')}<b>+${PRESENTE.toLocaleString('pt-BR')}</b><small>moedas</small></div>`; $('bemOv').classList.remove('hidden'); sfx('power'); }
 $('bemBtn').addEventListener('click', () => { if (P.presente) { $('bemOv').classList.add('hidden'); return; } P.coins = (Number(P.coins) || 0) + PRESENTE; P.presente = PRESENTE; save(); $('bemOv').classList.add('hidden'); sfx('big'); [784, 988, 1318].forEach((f, j) => setTimeout(() => beep(f, .12, 'triangle', .06), j * 90)); renderLobby(); });
+/* ---------- Conta do jogador: tela ---------- */
+let ctModo = 'criar', ctManual = false, ctOcupado = false, ctFalhou = false;
+const contaAberta = () => !$('contaOv').classList.contains('hidden');
+const ctProg = () => (P.wins || 0) > 0 || (P.level || 1) > 1; // este aparelho já tem jogo
+function contaAbre(modo, manual) { ctModo = modo || 'criar'; ctManual = !!manual; ctFalhou = false; $('ctErr').textContent = ''; $('ctSenha').value = ''; $('ctSenha').type = 'password'; $('ctOlho').textContent = 'mostrar'; ctPinta(); $('contaOv').classList.remove('hidden'); $('contaOv').scrollTop = 0; }
+function contaFecha() { $('contaOv').classList.add('hidden'); const a = document.activeElement; if (a && a.blur) a.blur(); }
+function ctPinta() {
+  const m = ctModo, form = m === 'criar' || m === 'entrar', esp = form && (ctSrv !== 'sim'), nm = CT.nome || '';
+  $('ctWait').classList.toggle('hidden', !esp); $('ctWait').textContent = ctFalhou ? 'Sem conexão com o servidor das contas. Confira a internet e tente de novo mais tarde.' : 'Conectando…';
+  $('ctForm').classList.toggle('hidden', esp); $('ctTabs').classList.toggle('hidden', !form || esp);
+  document.querySelectorAll('#ctTabs button').forEach((b) => b.classList.toggle('on', b.dataset.m === m));
+  $('ctNomeL').classList.toggle('hidden', !form); $('ctSenhaL').classList.toggle('hidden', m === 'sair');
+  $('ctSenha').autocomplete = m === 'criar' ? 'new-password' : 'current-password';
+  $('ctTitle').textContent = m === 'sair' ? 'SAIR DA CONTA' : m === 'apagar' ? 'APAGAR CONTA' : 'SUA CONTA';
+  $('ctInfo').textContent = m === 'criar' ? 'Crie sua conta para o seu progresso ficar salvo e você poder jogar em qualquer aparelho.' + (ctProg() ? ' O progresso deste aparelho (Fase ' + (P.level || 1) + ') vai para a conta nova.' : '')
+    : m === 'entrar' ? 'Entre com o nome e a senha da sua conta.' + (ctProg() ? ' O jogo deste aparelho será trocado pelo que está salvo na conta.' : '')
+    : m === 'sair' ? 'Seu progresso fica guardado na conta ' + nm + '. Para voltar a jogar, entre com seu nome e sua senha.'
+    : 'Isso apaga a conta ' + nm + ' e todo o progresso dela, para sempre. Digite sua senha para confirmar.';
+  $('ctDica').textContent = m === 'criar' ? 'Anote sua senha. Sem ela não dá para recuperar a conta.' : '';
+  const b = $('ctBtn'); b.textContent = ctOcupado ? 'AGUARDE…' : m === 'criar' ? 'CRIAR E JOGAR' : m === 'entrar' ? 'ENTRAR' : m === 'sair' ? 'SAIR' : 'APAGAR'; b.disabled = ctOcupado;
+  b.classList.toggle('green', form); b.classList.toggle('red', m === 'apagar');
+  $('ctVoltar').classList.toggle('hidden', form && !(ctManual && ctFalhou));
+}
+// chamada quando o menu aparece: sem conta e com servidor, a pessoa cria a conta (ou entra) antes de jogar
+function contaPorta() {
+  if (!$('splash').classList.contains('hidden') || G) return;
+  if (ctPend) { ctAplica(); return; }
+  if (ctTem() || contaAberta()) return;
+  if (ctSrv === 'nao') { if (ctNet && Date.now() - ctPingT > 30000) ctInicio(); return; } // sem servidor agora: joga sem conta e tenta de novo depois
+  contaAbre('criar');
+}
+function contaPronta() { // o servidor respondeu (ou não) à primeira pergunta
+  if (contaAberta() && (ctModo === 'criar' || ctModo === 'entrar')) {
+    if (ctSrv === 'sim') { ctFalhou = false; ctPinta(); }
+    else if (ctManual) { ctFalhou = true; ctPinta(); }
+    else { contaFecha(); if (!G) showMenu(); }
+  } else if (ctSrv === 'sim') contaPorta();
+}
+async function ctSubmete() {
+  if (ctOcupado) return;
+  const m = ctModo, nome = $('ctNome').value.replace(/\s+/g, ' ').trim(), senha = $('ctSenha').value, E = (t) => { $('ctErr').textContent = t; }, SEM = 'Sem conexão. Confira a internet e tente de novo.';
+  E('');
+  if (m === 'criar' || m === 'entrar') { let okN = nome.length >= 3 && nome.length <= 16; try { okN = new RegExp('^[\\p{L}\\p{N}][\\p{L}\\p{N} ._\\-]{2,15}$', 'u').test(nome); } catch (e) {} if (!okN) return E('O nome precisa ter de 3 a 16 letras ou números.'); }
+  if (m === 'criar' && senha.length < 6) return E('A senha precisa ter pelo menos 6 letras ou números.');
+  if ((m === 'entrar' || m === 'apagar') && !senha) return E('Digite sua senha.');
+  ctOcupado = true; ctPinta();
+  const fim = (t) => { ctOcupado = false; ctPinta(); E(t || ''); };
+  const limpa = () => { CT = { ap: CT.ap }; ctGrava(); try { localStorage.removeItem(SAVE); localStorage.removeItem(SAVE + '_antes'); } catch (e) {} ctCongela = true; location.reload(); }; // sai deste aparelho: o jogo fica só na conta
+  if (m === 'criar') {
+    const r = await ctCall('criar', { nome, senha, save: JSON.stringify(P) });
+    if (!r) return fim(SEM); if (!r.ok) return fim(r.msg || 'Não deu certo. Tente de novo.');
+    CT.token = r.token; CT.nome = r.nome; CT.rev = r.rev; CT.sujo = 0; ctGrava(); ctSrv = 'sim'; ctOcupado = false; ctEst = ''; ctSt('salvo'); contaFecha(); sfx('big'); contaSuja();
+    if (!G) showMenu();
+  } else if (m === 'entrar') {
+    const r = await ctCall('entrar', { nome, senha });
+    if (!r) return fim(SEM); if (!r.ok) return fim(r.msg || 'Não deu certo. Tente de novo.');
+    let o = null; try { o = JSON.parse(r.save); } catch (e) {}
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return fim('O jogo salvo dessa conta está com defeito.');
+    CT.token = r.token; CT.nome = r.nome; ctGrava(); ctSrv = 'sim'; ctPend = { s: r.save, rev: r.rev }; ctAplica(true); // troca o jogo do aparelho pelo da conta e reabre
+    if (!ctCongela) fim('Não deu para guardar o jogo neste aparelho.');
+  } else if (m === 'sair') {
+    if (CT.sujo && !(await ctEnvia(true))) { if (!ctCongela) fim('Sem conexão: não deu para guardar seu progresso na conta. Tente de novo daqui a pouco.'); return; }
+    await ctCall('sair', { token: CT.token }, false, 6000);
+    limpa();
+  } else {
+    const r = await ctCall('apagar', { token: CT.token, senha });
+    if (!r) return fim(SEM); if (!r.ok && r.erro !== 'sessao') return fim(r.msg || 'Não deu certo. Tente de novo.');
+    limpa();
+  }
+}
+function contaCard() {
+  const el = $('ctCard'); if (!el) return;
+  if (ctTem()) {
+    el.innerHTML = '<div class="gtitle">Conta</div><div class="ctnome"></div><div class="ctst"></div><div class="ctrow"><button class="ctmini" data-ct="sair">Sair da conta</button><button class="ctmini red" data-ct="apagar">Apagar conta</button></div>';
+    el.querySelector('.ctnome').textContent = CT.nome;
+    el.querySelector('.ctst').textContent = ctEst === 'offline' ? 'Sem internet. O progresso está guardado neste aparelho e vai para a conta quando a internet voltar.' : ctEst === 'salvando' || CT.sujo ? 'Salvando na conta…' : ctEst === 'salvo' ? 'Progresso salvo na conta.' : 'Conectando…';
+  } else el.innerHTML = '<div class="gtitle">Conta</div><div class="ctst">Você está jogando sem conta. O progresso fica só neste aparelho.</div><button class="btn green" data-ct="criar">CRIAR CONTA</button>';
+}
+$('ctForm').addEventListener('submit', (e) => { e.preventDefault(); ctSubmete(); });
+document.querySelectorAll('#ctTabs button').forEach((b) => b.addEventListener('click', () => { if (ctOcupado) return; ctModo = b.dataset.m; $('ctErr').textContent = ''; ctPinta(); }));
+$('ctOlho').addEventListener('click', () => { const s = $('ctSenha'), v = s.type === 'password'; s.type = v ? 'text' : 'password'; $('ctOlho').textContent = v ? 'ocultar' : 'mostrar'; });
+$('ctVoltar').addEventListener('click', () => { if (!ctOcupado) contaFecha(); });
+$('ctCard').addEventListener('click', (e) => { const b = e.target.closest('[data-ct]'); if (!b) return; const a = b.dataset.ct; beep(520, .05, 'triangle', .05);
+  if (a === 'criar') { if (ctSrv !== 'sim') { ctSrv = ctNet ? 'talvez' : 'nao'; } contaAbre('criar', true); if (ctSrv === 'talvez') ctInicio(); else if (ctSrv === 'nao') { ctFalhou = true; ctPinta(); } }
+  else contaAbre(a, true); });
+addEventListener('online', () => { if (ctTem()) { if (CT.sujo) ctEnvia(); } else if (ctSrv === 'nao') ctInicio(); });
+addEventListener('pagehide', () => { if (ctTem() && CT.sujo) ctEnvia(true); }); // fechando o jogo: manda o que faltou
+document.addEventListener('visibilitychange', () => { if (document.hidden && ctTem() && CT.sujo) ctEnvia(true); });
+contaCard(); ctInicio();
 if (VTEST1 && !P.t100k) { P.coins = Math.max(P.coins || 0, 100000); P.t100k = 1; save(); } // modo teste: 100 mil moedas, uma vez por save
 const vCost = (k) => { if (VTEST1) return 1; const d = VDEF.find((x) => x.k === k), l = vLv(k); return Math.round(d.c * [.6, 1, 1.6, 2.4, 3.5, 5, 7, 10, 14][l % 9] * Math.pow(2.4, Math.floor(l / 9)) / 5) * 5; };
 const vRate = (t) => ecoN(12 * t);
@@ -2442,8 +2638,9 @@ function showMenu() {
   if (BG.src) $('menu').style.backgroundImage = 'url(' + BG.src + ')';
   showPage('play'); shopHud(); setTimeout(shopOffer, 700);
   document.querySelectorAll('.gswitch button').forEach((b) => b.classList.toggle('on', b.dataset.g === GEN()));
+  contaPorta(); // primeiro a conta; o presente e a escolha do pirata vêm depois
   bemVindo();
-  if (!window.genAsked && !P.gender && $('splash').classList.contains('hidden')) { window.genAsked = true; document.querySelectorAll('.gen').forEach((b) => b.classList.toggle('sel', b.dataset.g === P.gender)); $('genOv').classList.remove('hidden'); }
+  if (!window.genAsked && !P.gender && $('splash').classList.contains('hidden') && !contaAberta()) { window.genAsked = true; document.querySelectorAll('.gen').forEach((b) => b.classList.toggle('sel', b.dataset.g === P.gender)); $('genOv').classList.remove('hidden'); }
 }
 document.querySelectorAll('.lnav button[data-pg]').forEach((b) => b.addEventListener('click', () => { beep(520, .05, 'triangle', .05); showPage(b.dataset.pg); }));
 $('ups').addEventListener('click', (e) => {
