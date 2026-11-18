@@ -77,6 +77,8 @@ tr:last-child td { border-bottom: 0; }
 #tDias tr.sel td { font-weight: 650; background: color-mix(in srgb, var(--series-1) 12%, transparent); }
 td.nome { font-variant-numeric: normal; font-weight: 600; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
 .vazio { color: var(--text-secondary); font-size: 14px; padding: 10px 0; }
+.mais { margin-top: 14px; }
+.mais summary { cursor: pointer; color: var(--text-secondary); font-size: 14px; padding: 8px 2px; width: fit-content; }
 .nota { color: var(--muted); font-size: 12.5px; margin-top: 16px; line-height: 1.5; }
 @media (min-width: 620px) { .blocos { grid-template-columns: repeat(4, 1fr); } .cal button { min-height: 54px; } }
 </style>
@@ -142,6 +144,9 @@ td.nome { font-variant-numeric: normal; font-weight: 600; max-width: 150px; over
       <div class="grafico" id="grafico"></div>
     </div>
 
+    <!-- o painel termina no gráfico; a tabela dos dias e a lista de jogadores ficam guardadas aqui, fechadas -->
+    <details class="mais">
+    <summary>Ver a tabela dos dias e os jogadores</summary>
     <div class="card">
       <h2>Dia a dia</h2>
       <div class="sub" id="tSub"></div>
@@ -156,6 +161,7 @@ td.nome { font-variant-numeric: normal; font-weight: 600; max-width: 150px; over
     </div>
 
     <p class="nota" id="pNota"></p>
+    </details>
   </section>
 </main>
 
