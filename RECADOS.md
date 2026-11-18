@@ -10,6 +10,7 @@ Ninguém no momento (livre).
 
 ## Recados
 
+- 2026-11-18 — `claude/hopeful-galileo-t00naw` — `painel.html`, a pedido do dono: **todos** os blocos que diziam "Abriram o jogo" (o do dia, em qualquer dia escolhido, e o do mês) passam a dizer **"Com o jogo aberto agora"** e mostram `online`. Quantas pessoas abriram o jogo em cada dia continua no número pequeno do calendário; o total do mês de quem abriu (`mes_totais.pessoas`) segue vindo do servidor, só não é mais mostrado.
 - 2026-11-18 — `claude/hopeful-galileo-t00naw` — `painel.html`, a pedido do dono: no bloco de **Hoje**, o quarto número deixa de ser "Abriram o jogo" e passa a ser **"Com o jogo aberto agora"** (`online`). Quando o dono escolhe um dia que já passou, esse bloco volta a mostrar "Abriram o jogo" daquele dia. O bloco do mês e os números pequenos do calendário continuam mostrando quem abriu o jogo.
 - 2026-11-18 — `claude/hopeful-galileo-t00naw` — `painel.html`, a pedido do dono: o primeiro bloco de "Desde o começo" passa a dizer só **"Criaram conta"** (número igual: `total_contas`, contas já criadas).
 - 2026-11-18 — `claude/hopeful-galileo-t00naw` — `painel.html`, a pedido do dono: o bloco de "Desde o começo" que dizia "Pessoas que criaram conta" passa a dizer **"Criaram conta e estão jogando"**. O número é o mesmo de antes (`total_contas`, contas já criadas); só o texto mudou.
