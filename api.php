@@ -152,7 +152,50 @@ function chave_do_token($token) { return is_string($token) && preg_match('/^([0-
 /* ---------- Números para o painel ----------
    Um arquivo por dia (stats/d_AAAA-MM-DD.php) com contadores e dois conjuntos: "ap" (aparelhos diferentes que abriram o jogo)
    e "ativos" (contas que salvaram progresso no dia). Nada de endereço de internet nem dado pessoal: só identificações embaralhadas. */
-function dia_arq($dia) { return subpasta('stats') . '/d_' . $dia . '.php'; }
+/* Pasta dos números. O aparelho de teste (AP_TESTE) usa uma pasta à parte, "stats_teste": os sinais dele passam exatamente pelos mesmos
+   passos e pela mesma soma do painel, sem tocar nos números de verdade. É o autoteste que confere a contagem no site no ar. */
+function pst() { return subpasta(isset($GLOBALS['st']) ? $GLOBALS['st'] : 'stats'); }
+/* Versão do jogo que está publicada (o número do BUILD dentro do index.html), para o jogo aberto numa versão velha se atualizar sozinho.
+   Ler o index.html inteiro custa, então o resultado fica guardado até o arquivo mudar. */
+function jogo_versao() {
+  $f = __DIR__ . '/index.html'; $m = (int) @filemtime($f); if (!$m) return 0;
+  $arq = subpasta('stats') . '/jogo_versao.php'; $c = le($arq);
+  if ($c && isset($c['m']) && (int) $c['m'] === $m) return (int) $c['v'];
+  $v = 0; $h = @fopen($f, 'r');
+  if ($h) { $resto = ''; while (!feof($h)) { $bloco = $resto . fread($h, 1048576); if (preg_match("/const BUILD = 'Vers[^0-9']*(\\d+)/", $bloco, $mm)) { $v = (int) $mm[1]; break; } $resto = substr($bloco, -200); } fclose($h); }
+  grava($arq, array('m' => $m, 'v' => $v));
+  return $v;
+}
+/* A soma que o painel mostra: um mês dia por dia, os totais do mês (cada aparelho uma vez), desde o começo e quem está com o jogo aberto agora.
+   $fora = identificação que não entra na conta (o aparelho de teste, nos números de verdade). */
+function numeros($mesPedido, $fora) {
+  @ini_set('memory_limit', '512M'); // somar um mês com centenas de milhares de aparelhos pede memória
+  $hoje = date('Y-m-d');
+  $mes = is_string($mesPedido) && preg_match('/^20\d\d-(0[1-9]|1[0-2])\z/', $mesPedido) ? $mesPedido : substr($hoje, 0, 7);
+  $nd = (int) date('t', strtotime($mes . '-01'));
+  $dias = array(); $uAp = array(); $uApc = array(); $uJg = array(); $uJc = array(); $contas = 0;
+  for ($n = 1; $n <= $nd; $n++) {
+    $dia = sprintf('%s-%02d', $mes, $n);
+    if ($dia > $hoje) break; // dias que ainda não chegaram não entram
+    $d = le(dia_arq($dia));
+    $cj = function ($k) use ($d, $fora) { $x = $d && isset($d[$k]) && is_array($d[$k]) ? $d[$k] : array(); unset($x[$fora]); return $x; };
+    $aps = $cj('ap'); $apc = array_intersect_key($cj('apc'), $aps); $jg = $cj('jg'); $jc = array_intersect_key($cj('jc'), $jg);
+    $dias[] = array('dia' => $dia, 'pessoas' => count($aps), 'sem_cadastro' => count($aps) - count($apc), 'aberturas' => $d && isset($d['aberturas']) ? (int) $d['aberturas'] : 0, 'contas' => $d && isset($d['contas']) ? (int) $d['contas'] : 0,
+      'jogaram' => count($jg), 'jogaram_com' => count($jc), 'jogaram_sem' => count($jg) - count($jc), 'salvaram' => count($cj('ativos')), 'entradas' => $d && isset($d['entradas']) ? (int) $d['entradas'] : 0);
+    $uAp += $aps; $uApc += $apc; $uJg += $jg; $uJc += $jc; $contas += $d && isset($d['contas']) ? (int) $d['contas'] : 0;
+  }
+  $uJc = array_intersect_key($uJc, $uJg); $uApc = array_intersect_key($uApc, $uAp);
+  // no mês cada pessoa conta uma vez só, mesmo que tenha vindo em vários dias
+  $totais = array('pessoas' => count($uAp), 'sem_cadastro' => count($uAp) - count($uApc), 'jogaram' => count($uJg), 'jogaram_com' => count($uJc), 'jogaram_sem' => count($uJg) - count($uJc), 'contas' => $contas);
+  $arqs = (array) @glob(pst() . '/d_*.php'); sort($arqs);
+  $primeiro = $arqs && preg_match('/d_(\d{4}-\d{2}-\d{2})\.php$/', $arqs[0], $m) ? $m[1] : $hoje; // primeiro dia com contagem
+  $ag = le(pst() . '/agora.php'); $online = 0; if ($ag) { unset($ag[$fora]); foreach ($ag as $v) if ($v >= time() - 300) $online++; } // sinal nos últimos 5 minutos
+  $sp = sempre_le(); if (!$sp) $sp = sempre_monta(); unset($sp['jg'][$fora], $sp['jc'][$fora]); // desde o começo
+  $spc = count(array_intersect_key($sp['jc'], $sp['jg']));
+  $sempre = array('jogaram' => count($sp['jg']), 'jogaram_com' => $spc, 'jogaram_sem' => count($sp['jg']) - $spc);
+  return array('agora' => time(), 'hoje' => $hoje, 'mes' => $mes, 'primeiro' => $primeiro, 'dias' => $dias, 'mes_totais' => $totais, 'sempre' => $sempre, 'online' => $online);
+}
+function dia_arq($dia) { return pst() . '/d_' . $dia . '.php'; }
 function conta_stat($campo, $conj = null, $id = null) { // $conj pode ser um nome (com $id) ou uma lista nome => id
   $conjs = is_array($conj) ? $conj : ($conj && $id !== null ? array($conj => $id) : array());
   $t = trava('stats');
@@ -167,7 +210,7 @@ function conta_stat($campo, $conj = null, $id = null) { // $conj pode ser um nom
 /* Sinais recusados por passar do limite do endereço: contados num arquivo pequeno por dia (stats/cortados_AAAA-MM-DD.php), para não pesar. */
 function conta_cortado() {
   $t = trava('cortados');
-  $arq = subpasta('stats') . '/cortados_' . date('Y-m-d') . '.php';
+  $arq = pst() . '/cortados_' . date('Y-m-d') . '.php';
   $d = le($arq);
   grava($arq, array('n' => ($d && isset($d['n']) ? (int) $d['n'] : 0) + 1));
   solta($t);
@@ -176,7 +219,7 @@ function ap_id($ap) { return 'a' . substr(hash('sha256', 'ap|' . $ap), 0, 14); }
 /* Quem está com o jogo aberto agora: cada aparelho e a hora do último sinal. Sinais com mais de 15 minutos são esquecidos. */
 function marca_agora($id) { // devolve a hora do sinal anterior deste aparelho (0 se não havia)
   $t = trava('stats');
-  $arq = subpasta('stats') . '/agora.php';
+  $arq = pst() . '/agora.php';
   $d = le($arq);
   if (!$d) $d = array();
   $ag = time();
@@ -191,17 +234,17 @@ function marca_agora($id) { // devolve a hora do sinal anterior deste aparelho (
    "Jogaram sem conta desde o começo" = jogaram e nunca jogaram com conta. Na primeira vez o arquivo nasce da soma de todos os dias guardados. */
 function sempre_monta() {
   $jg = array(); $jc = array();
-  foreach ((array) @glob(subpasta('stats') . '/d_*.php') as $f) { $x = le($f); if (!$x) continue; if (isset($x['jg']) && is_array($x['jg'])) $jg += $x['jg']; if (isset($x['jc']) && is_array($x['jc'])) $jc += $x['jc']; }
+  foreach ((array) @glob(pst() . '/d_*.php') as $f) { $x = le($f); if (!$x) continue; if (isset($x['jg']) && is_array($x['jg'])) $jg += $x['jg']; if (isset($x['jc']) && is_array($x['jc'])) $jc += $x['jc']; }
   return array('jg' => $jg, 'jc' => $jc);
 }
-function sempre_le() { $d = le(subpasta('stats') . '/sempre.php'); if (!$d || !isset($d['jg']) || !is_array($d['jg']) || !isset($d['jc']) || !is_array($d['jc'])) return null; return $d; }
+function sempre_le() { $d = le(pst() . '/sempre.php'); if (!$d || !isset($d['jg']) || !is_array($d['jg']) || !isset($d['jc']) || !is_array($d['jc'])) return null; return $d; }
 function sempre_marca($id, $c) { // chamada a cada batalha avisada; só grava quando o aparelho é novo na lista
   $t = trava('stats');
   $d = sempre_le(); $mudou = false;
   if (!$d) { $d = sempre_monta(); $mudou = true; }
   if (!isset($d['jg'][$id]) && count($d['jg']) < 500000) { $d['jg'][$id] = 1; $mudou = true; }
   if ($c && !isset($d['jc'][$id]) && count($d['jc']) < 500000) { $d['jc'][$id] = 1; $mudou = true; }
-  if ($mudou) grava(subpasta('stats') . '/sempre.php', $d);
+  if ($mudou) grava(pst() . '/sempre.php', $d);
   solta($t);
 }
 /* Total de contas que existem agora. Conta os arquivos na hora, sem guardar o resultado, para nunca ficar atrasado. */
@@ -209,7 +252,7 @@ function total_contas() { return count((array) @glob(pasta_dados() . '/contas/*/
 /* Quantas contas já foram criadas desde o começo. Diferente do total acima, não diminui quando um jogador apaga a conta.
    O contador nasce com o número de contas que existem na primeira vez que é usado. */
 function contas_criadas($somar) {
-  $arq = subpasta('stats') . '/total.php';
+  $arq = pst() . '/total.php';
   $t = trava('stats');
   $d = le($arq);
   if (!$d || !isset($d['criadas'])) { $d = array('criadas' => total_contas()); grava($arq, $d); } // nasce já gravado, para uma conta apagada depois não fazer o número cair; a conta recém-criada já está entre as que existem
@@ -255,24 +298,29 @@ faxina();
 /* Sinais do jogo para o painel. Em todos vem "ap" (identificação anônima do aparelho) e "c" (1 = o aparelho está numa conta).
    visita = o jogo foi aberto · jogou = começou uma batalha · pulso = o jogo continua aberto (a cada 2 minutos). */
 if ($acao === 'visita' || $acao === 'jogou' || $acao === 'pulso') {
+  $teste = $ap === AP_TESTE;
+  if ($teste) { // autoteste: mesmos passos, na pasta à parte; "limpa" começa do zero
+    $GLOBALS['st'] = 'stats_teste';
+    if (!empty($B['limpa'])) foreach ((array) @glob(pst() . '/*.php') as $f) @unlink($f);
+  }
   // limites por endereço, um para cada tipo de sinal (o pulso é o mais frequente e não pode gastar a cota dos outros);
   // são folgados porque uma operadora de celular ou um wi-fi de escola põe muita gente atrás do mesmo endereço
   $tl = trava('limites');
   $livre = limite(subpasta('limites') . '/ip_' . ip_chave() . '.php', $acao, $acao === 'pulso' ? LIM_PULSO_IP : LIM_VISITA_IP, true);
   solta($tl);
-  // passou do limite: o sinal não é contado e o jogo fica sabendo (ok: false), para mandar de novo mais tarde; o dia guarda quantos foram cortados
+  // passou do limite: o sinal não é contado e o jogo fica sabendo (ok: false), para mandar de novo mais tarde
   if (!$livre) { conta_cortado(); sai(array('ok' => false, 'erro' => 'muitas', 'dia' => date('Y-m-d'))); }
-  if ($ap !== AP_TESTE) {
-    $id = $ap !== '' ? ap_id($ap) : null; $c = !empty($B['c']);
-    if ($acao === 'visita') conta_stat('aberturas', $id ? ($c ? array('ap' => $id, 'apc' => $id) : array('ap' => $id)) : array());
-    if ($acao === 'jogou' && $id) { conta_stat('partidas', $c ? array('ap' => $id, 'apc' => $id, 'jg' => $id, 'jc' => $id) : array('ap' => $id, 'jg' => $id)); sempre_marca($id, $c); }
-    if ($id) {
-      $antes = marca_agora($id);
-      // jogo aberto desde ontem: no primeiro pulso depois da meia-noite a pessoa entra nos que abriram hoje
-      if ($acao === 'pulso' && $antes > 0 && date('Y-m-d', $antes) !== date('Y-m-d')) conta_stat(null, $c ? array('ap' => $id, 'apc' => $id) : array('ap' => $id)); // um aparelho nunca visto só entra nos números com "visita" ou "jogou"
-    }
+  $id = $ap !== '' ? ap_id($ap) : null; $c = !empty($B['c']);
+  if ($acao === 'visita') conta_stat('aberturas', $id ? ($c ? array('ap' => $id, 'apc' => $id) : array('ap' => $id)) : array());
+  if ($acao === 'jogou' && $id) { conta_stat('partidas', $c ? array('ap' => $id, 'apc' => $id, 'jg' => $id, 'jc' => $id) : array('ap' => $id, 'jg' => $id)); sempre_marca($id, $c); }
+  if ($id) {
+    $antes = marca_agora($id);
+    // jogo aberto desde ontem: no primeiro pulso depois da meia-noite a pessoa entra nos que abriram hoje
+    if ($acao === 'pulso' && $antes > 0 && date('Y-m-d', $antes) !== date('Y-m-d')) conta_stat(null, $c ? array('ap' => $id, 'apc' => $id) : array('ap' => $id)); // um aparelho nunca visto só entra nos números com "visita" ou "jogou"
   }
-  sai(array('ok' => true, 'dia' => date('Y-m-d'))); // o dia do servidor: o jogo usa para saber quando virou o dia
+  $r = array('ok' => true, 'dia' => date('Y-m-d'), 'v' => jogo_versao()); // o dia do servidor (para o jogo saber quando virou o dia) e a versão publicada do jogo
+  if ($teste) { $n = numeros(null, ''); $r['teste'] = array('hoje' => end($n['dias']), 'mes' => $n['mes_totais'], 'sempre' => $n['sempre'], 'online' => $n['online']); } // o que o painel mostraria para a pasta do autoteste
+  sai($r);
 }
 
 /* ---------- Painel do dono ---------- */
@@ -332,31 +380,10 @@ if ($acao === 'painel_dados') { // números de um mês (o atual, ou o pedido em 
   $t = trava('painel'); $adm = null; $si = painel_sessao($adm, isset($B['token']) ? $B['token'] : null);
   if (time() - $adm['sessoes'][$si]['t'] > 86400) { $adm['sessoes'][$si]['t'] = time(); grava(painel_arq(), $adm); } // usar o painel mantém a sessão viva
   solta($t);
-  @ini_set('memory_limit', '512M'); // somar um mês com centenas de milhares de aparelhos pede memória
-  $hoje = date('Y-m-d');
-  $mes = isset($B['mes']) && is_string($B['mes']) && preg_match('/^20\d\d-(0[1-9]|1[0-2])\z/', $B['mes']) ? $B['mes'] : substr($hoje, 0, 7);
-  $nd = (int) date('t', strtotime($mes . '-01'));
-  $dias = array(); $uAp = array(); $uApc = array(); $uJg = array(); $uJc = array(); $contas = 0; $fora = ap_id(AP_TESTE);
-  for ($n = 1; $n <= $nd; $n++) {
-    $dia = sprintf('%s-%02d', $mes, $n);
-    if ($dia > $hoje) break; // dias que ainda não chegaram não entram
-    $d = le(dia_arq($dia));
-    $cj = function ($k) use ($d, $fora) { $x = $d && isset($d[$k]) && is_array($d[$k]) ? $d[$k] : array(); unset($x[$fora]); return $x; }; // o aparelho de teste nunca conta
-    $aps = $cj('ap'); $apc = array_intersect_key($cj('apc'), $aps); $jg = $cj('jg'); $jc = array_intersect_key($cj('jc'), $jg);
-    $dias[] = array('dia' => $dia, 'pessoas' => count($aps), 'sem_cadastro' => count($aps) - count($apc), 'aberturas' => $d && isset($d['aberturas']) ? (int) $d['aberturas'] : 0, 'contas' => $d && isset($d['contas']) ? (int) $d['contas'] : 0,
-      'jogaram' => count($jg), 'jogaram_com' => count($jc), 'jogaram_sem' => count($jg) - count($jc), 'salvaram' => count($cj('ativos')), 'entradas' => $d && isset($d['entradas']) ? (int) $d['entradas'] : 0);
-    $uAp += $aps; $uApc += $apc; $uJg += $jg; $uJc += $jc; $contas += $d && isset($d['contas']) ? (int) $d['contas'] : 0;
-  }
-  $uJc = array_intersect_key($uJc, $uJg); $uApc = array_intersect_key($uApc, $uAp);
-  // no mês cada pessoa conta uma vez só, mesmo que tenha vindo em vários dias
-  $totais = array('pessoas' => count($uAp), 'sem_cadastro' => count($uAp) - count($uApc), 'jogaram' => count($uJg), 'jogaram_com' => count($uJc), 'jogaram_sem' => count($uJg) - count($uJc), 'contas' => $contas);
-  $arqs = (array) @glob(subpasta('stats') . '/d_*.php'); sort($arqs);
-  $primeiro = $arqs && preg_match('/d_(\d{4}-\d{2}-\d{2})\.php$/', $arqs[0], $m) ? $m[1] : $hoje; // primeiro dia com contagem
-  $ag = le(subpasta('stats') . '/agora.php'); $online = 0; if ($ag) { unset($ag[$fora]); foreach ($ag as $v) if ($v >= time() - 300) $online++; } // sinal nos últimos 5 minutos
-  $sp = sempre_le(); if (!$sp) $sp = sempre_monta(); unset($sp['jg'][$fora], $sp['jc'][$fora]); // desde o começo, sem o aparelho de teste
-  $spc = count(array_intersect_key($sp['jc'], $sp['jg']));
-  $sempre = array('jogaram' => count($sp['jg']), 'jogaram_com' => $spc, 'jogaram_sem' => count($sp['jg']) - $spc);
-  sai(array('ok' => true, 'agora' => time(), 'hoje' => $hoje, 'mes' => $mes, 'primeiro' => $primeiro, 'dias' => $dias, 'mes_totais' => $totais, 'sempre' => $sempre, 'online' => $online, 'total_contas' => contas_criadas(false)));
+  $n = numeros(isset($B['mes']) ? $B['mes'] : null, ap_id(AP_TESTE)); // o aparelho de teste nunca conta nos números de verdade
+  $n['ok'] = true; $n['total_contas'] = contas_criadas(false);
+  $n['versao'] = (int) @filemtime(__DIR__ . '/painel.html'); // quando a página do painel mudou no servidor: uma página aberta numa versão velha se recarrega sozinha
+  sai($n);
 }
 
 if ($acao === 'criar') {

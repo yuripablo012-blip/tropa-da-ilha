@@ -172,6 +172,14 @@ $('fEntrar').addEventListener('submit', async (e) => {
 });
 
 /* ---------- painel ---------- */
+// O servidor diz quando a página do painel foi alterada pela última vez. Se esta página aberta é mais velha que isso
+// (ficou aberta numa aba, ou o navegador guardou uma cópia), ela se recarrega sozinha, uma vez por versão.
+function velha(versao) {
+  const minha = Date.parse(document.lastModified) / 1000; // data do arquivo que o navegador carregou
+  if (!versao || !minha || versao <= minha + 5) return false;
+  try { if (sessionStorage.getItem('painel_rv') === String(versao)) return false; sessionStorage.setItem('painel_rv', String(versao)); } catch (e) { return false; }
+  location.replace(location.pathname + '?v=' + versao); return true;
+}
 let pedido = 0, trocando = null; // só a resposta do pedido mais novo vale; "trocando" guarda o mês pedido enquanto a resposta não chega
 async function carrega(mes) { // mes: 'AAAA-MM' para trocar de mês, '' para o mês de hoje, nada para atualizar o que está na tela
   if (typeof mes === 'string') trocando = mes;
@@ -186,6 +194,7 @@ async function carrega(mes) { // mes: 'AAAA-MM' para trocar de mês, '' para o m
     return false;
   }
   if (!r.ok) { token = ''; try { localStorage.removeItem(CHAVE); } catch (e) {} dados = null; mostraEntrada(''); return false; } // a sessão acabou: pede a senha de novo
+  if (velha(r.versao)) return false; // esta página é de uma versão antiga do painel: recarrega sozinha
   if (!dados || r.mes !== dados.mes) diaSel = ''; // mês novo na tela
   dados = r; mesSel = r.mes;
   if (!diaSel || diaSel.slice(0, 7) !== r.mes) { // fica no dia de hoje, ou no último dia do mês que tem número

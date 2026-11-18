@@ -1080,10 +1080,21 @@ function ctEsquece() { CT = { ap: CT.ap }; ctGrava(); ctEst = ''; contaCard(); c
 let ctSinDia = '', ctVisOk = false, ctJogOk = -1, ctJogPend = -1, ctSinBusy = false, ctPulsoT = 0, ctSinOn = false;
 const ctSinC = () => (ctTem() ? 1 : 0), ctSinB = (c) => ({ c });
 let ctSinT = 0, ctJogT = 0; // quando o servidor confirmou pela última vez o dia atual, e quando começou a última batalha
+// Versão nova do jogo publicada: os sinais trazem o número da versão que está no site. Um jogo aberto numa versão velha (aba esquecida aberta)
+// se recarrega sozinho quando não atrapalha: no menu, fora de batalha, sem nada sendo digitado, e uma vez só por versão.
+let ctNovaV = 0;
+function ctVersao(r) { if (r && r.v > (parseInt((BUILD.match(/\d+/) || [0])[0], 10) || 0)) { ctNovaV = r.v; ctAtualiza(); } }
+function ctAtualiza() {
+  if (!ctNovaV || G || ctCongela || !$('splash').classList.contains('hidden')) return;
+  if (contaAberta() && ($('ctNome').value || $('ctSenha').value)) return;
+  try { if (sessionStorage.getItem('tropa_rv') === String(ctNovaV)) return; sessionStorage.setItem('tropa_rv', String(ctNovaV)); } catch (e) { return; }
+  const vai = () => { ctCongela = true; location.replace(location.pathname + '?v=' + ctNovaV); };
+  if (ctTem() && CT.sujo) ctEnvia(true).then(vai, vai); else vai(); // antes de recarregar, manda o que faltava salvar na conta
+}
 async function ctSinais() {
   if (!ctNet || ctSinBusy) return; ctSinBusy = true; let falhou = true;
   try {
-    if (!ctVisOk) { const r = await ctCall('visita', ctSinB(ctSinC()), false, 8000); if (!r || !r.ok) return; ctVisOk = true; if (r.dia) { ctSinDia = r.dia; ctSinT = Date.now(); } }
+    if (!ctVisOk) { const r = await ctCall('visita', ctSinB(ctSinC()), false, 8000); if (!r || !r.ok) return; ctVisOk = true; if (r.dia) { ctSinDia = r.dia; ctSinT = Date.now(); } ctVersao(r); }
     if (ctJogPend > ctJogOk) { const c = ctJogPend, r = await ctCall('jogou', ctSinB(c), false, 8000); if (!r || !r.ok) return; ctJogOk = c; if (ctJogPend <= c) ctJogPend = -1; if (r.dia) { ctSinDia = r.dia; ctSinT = Date.now(); } } // c = como a batalha foi jogada (0 sem conta, 1 com conta), mesmo que a conta tenha sido criada depois
     falhou = false;
   } finally { ctSinBusy = false; if (!falhou && ctJogPend > ctJogOk) setTimeout(ctSinais, 0); } // chegou uma batalha nova enquanto este envio estava no ar
@@ -1093,6 +1104,7 @@ async function ctPulso() {
   await ctSinais();
   const r = await ctCall('pulso', ctSinB(ctSinC()), false, 8000);
   if (!r || !r.ok || !r.dia) return;
+  ctVersao(r);
   if (ctSinDia && r.dia !== ctSinDia) { // virou o dia com o jogo aberto: a pessoa volta a contar no dia novo
     const jogouDepois = (G && G.state !== 'end') || ctJogT > ctSinT; // batalha em andamento, ou começada depois da última vez em que o servidor ainda dizia o dia antigo
     ctSinDia = r.dia; ctSinT = Date.now(); ctVisOk = false; ctJogOk = -1; if (jogouDepois) ctJogPend = Math.max(ctJogPend, ctSinC()); ctSinais();
@@ -1223,7 +1235,7 @@ const CANNON = () => ({ x: G ? G.px : W / 2, y: H - 100 });
 const DEF = () => H - 205;
 const HITY = () => DEF() + 36; // onde o inimigo alcança o pirata e ataca (antes era na linha de defesa, um corpo de distância)
 const SHOW_FENCE = false;                  // linha que os piratas não podem passar
-const BUILD = 'Versão 70 · 18/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
+const BUILD = 'Versão 71 · 18/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
 const GANHO = 6; // multiplicador geral das moedas de batalha
 const coinMul = () => (1 + fireBonus()) * (1 + (P.vila ? VB().c : 0)) * (1 + canCoin()) * .7 * GANHO; // bônus de sequência, da vila e do canhão
 const ecoVal = () => { const n = P.level || 1; return (60 + 40 * n + .5 * n * n) * coinMul(); }; // quanto vale hoje, em moedas, um bom pedaço de fase (cerca de 1/4 do que uma fase paga)
@@ -2670,6 +2682,7 @@ function showMenu() {
   if (BG.src) $('menu').style.backgroundImage = 'url(' + BG.src + ')';
   showPage('play'); shopHud(); setTimeout(shopOffer, 700);
   document.querySelectorAll('.gswitch button').forEach((b) => b.classList.toggle('on', b.dataset.g === GEN()));
+  ctAtualiza(); // se saiu versão nova do jogo, este é um bom momento para recarregar
   contaPorta(); // primeiro a conta; o presente e a escolha do pirata vêm depois
   bemVindo();
   if (!window.genAsked && !P.gender && $('splash').classList.contains('hidden') && !contaAberta()) { window.genAsked = true; document.querySelectorAll('.gen').forEach((b) => b.classList.toggle('sel', b.dataset.g === P.gender)); $('genOv').classList.remove('hidden'); }
