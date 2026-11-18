@@ -873,7 +873,7 @@ button { transition: scale .12s cubic-bezier(.3,1.8,.5,1); }
       </form>
       <button class="ctlink hidden" id="ctVoltar" type="button">Voltar</button>
     </div>
-    <div class="sub ctnota">Guardamos só o seu nome de jogador e o progresso do jogo.</div>
+    <div class="sub ctnota">Guardamos só o seu nome de jogador e o progresso do jogo. As visitas são contadas sem identificar ninguém.</div>
   </div>
   <div class="screen hidden" id="chestOv">
     <div class="logo" id="coTitle" style="font-size:40px">BAÚ!</div>
@@ -1027,8 +1027,9 @@ P.level = Math.max(1, Math.floor(P.level)); P.hlv = Math.max(1, Math.floor(P.hlv
    CT (localStorage 'tropa_conta'): nome, token (sessão), rev (versão do save que este aparelho conhece), sujo (há mudança ainda não enviada), ap (identificação deste aparelho). */
 const CONTA_K = 'tropa_conta', API = 'api.php';
 let CT = {}; try { const c = JSON.parse(localStorage.getItem(CONTA_K) || '{}'); if (c && typeof c === 'object' && !Array.isArray(c)) CT = c; } catch (e) {}
-if (!/^[0-9a-z]{6,24}$/.test(CT.ap || '')) CT.ap = ('a' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36)).slice(0, 20);
+const ctApNovo = !/^[0-9a-z]{6,24}$/.test(CT.ap || ''); if (ctApNovo) CT.ap = ('a' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36)).slice(0, 20);
 const ctGrava = () => { try { localStorage.setItem(CONTA_K, JSON.stringify(CT)); } catch (e) {} };
+if (ctApNovo) ctGrava(); // guarda já a identificação do aparelho, para o painel contar a mesma pessoa uma vez só por dia
 const ctTem = () => !!(CT.token && CT.nome);
 const ctNet = /^https?:$/.test(location.protocol);
 let ctSrv = ctNet ? 'talvez' : 'nao'; // o servidor das contas responde? 'sim', 'nao' ou 'talvez' (ainda perguntando)
@@ -1072,8 +1073,10 @@ function ctAplica(agora) {
 }
 function ctEsquece() { CT = { ap: CT.ap }; ctGrava(); ctEst = ''; contaCard(); contaPorta(); } // a sessão não vale mais: pede para entrar de novo (o jogo do aparelho fica)
 // ao abrir o jogo: com conta, confere o que está no servidor; sem conta, pergunta se o servidor das contas existe
+let ctVisita = false;
 async function ctInicio() {
   if (!ctNet) return;
+  if (!ctVisita) { ctVisita = true; ctCall('visita', null, false, 8000); } // avisa o servidor que o jogo foi aberto (painel do dono); só a identificação anônima do aparelho vai junto
   ctPingT = Date.now();
   if (ctTem()) {
     const tok = CT.token, r = await ctCall('carregar', { token: tok });
@@ -1194,7 +1197,7 @@ const CANNON = () => ({ x: G ? G.px : W / 2, y: H - 100 });
 const DEF = () => H - 205;
 const HITY = () => DEF() + 36; // onde o inimigo alcança o pirata e ataca (antes era na linha de defesa, um corpo de distância)
 const SHOW_FENCE = false;                  // linha que os piratas não podem passar
-const BUILD = 'Versão 67 · 17/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
+const BUILD = 'Versão 68 · 18/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
 const GANHO = 6; // multiplicador geral das moedas de batalha
 const coinMul = () => (1 + fireBonus()) * (1 + (P.vila ? VB().c : 0)) * (1 + canCoin()) * .7 * GANHO; // bônus de sequência, da vila e do canhão
 const ecoVal = () => { const n = P.level || 1; return (60 + 40 * n + .5 * n * n) * coinMul(); }; // quanto vale hoje, em moedas, um bom pedaço de fase (cerca de 1/4 do que uma fase paga)
