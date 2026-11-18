@@ -1030,6 +1030,7 @@ let CT = {}; try { const c = JSON.parse(localStorage.getItem(CONTA_K) || '{}'); 
 const ctApNovo = !/^[0-9a-z]{6,24}$/.test(CT.ap || ''); if (ctApNovo) CT.ap = ('a' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36)).slice(0, 20);
 const ctGrava = () => { try { localStorage.setItem(CONTA_K, JSON.stringify(CT)); } catch (e) {} };
 if (ctApNovo) ctGrava(); // guarda já a identificação do aparelho, para o painel contar a mesma pessoa uma vez só por dia
+let ctApOk = true; try { ctApOk = JSON.parse(localStorage.getItem(CONTA_K) || '{}').ap === CT.ap; } catch (e) { ctApOk = false; } // navegador que não deixa guardar nada: os sinais vão sem identificação, senão cada abertura viraria uma pessoa nova
 const ctTem = () => !!(CT.token && CT.nome);
 const ctNet = /^https?:$/.test(location.protocol);
 let ctSrv = ctNet ? 'talvez' : 'nao'; // o servidor das contas responde? 'sim', 'nao' ou 'talvez' (ainda perguntando)
@@ -1073,11 +1074,30 @@ function ctAplica(agora) {
 }
 function ctEsquece() { CT = { ap: CT.ap }; ctGrava(); ctEst = ''; contaCard(); contaPorta(); } // a sessão não vale mais: pede para entrar de novo (o jogo do aparelho fica)
 // ao abrir o jogo: com conta, confere o que está no servidor; sem conta, pergunta se o servidor das contas existe
-let ctVisita = false, ctJogouC = -1;
-function ctJogou() { const c = ctTem() ? 1 : 0; if (!ctNet || ctJogouC === c) return; ctJogouC = c; ctCall('jogou', { c }, false, 8000); } // começou uma batalha: o painel conta quem jogou, com conta ou sem (uma vez por abertura do jogo)
+/* Sinais para o painel do dono: visita (abriu o jogo), jogou (começou uma batalha) e pulso (continua aberto, a cada 2 minutos).
+   Um sinal só vale quando o servidor confirma; se falhar (internet ruim, servidor fora), fica pendente e vai de novo na próxima chance.
+   A resposta traz o dia do servidor: com o jogo aberto na virada do dia, a pessoa volta a contar no dia novo. */
+let ctSinDia = '', ctVisOk = false, ctJogOk = -1, ctJogPend = -1, ctSinBusy = false, ctPulsoT = 0, ctSinOn = false;
+const ctSinC = () => (ctTem() ? 1 : 0), ctSinB = (c) => (ctApOk ? { c } : { c, ap: '' });
+async function ctSinais() {
+  if (!ctNet || ctSinBusy) return; ctSinBusy = true; let falhou = true;
+  try {
+    if (!ctVisOk) { const r = await ctCall('visita', ctSinB(ctSinC()), false, 8000); if (!r || !r.ok) return; ctVisOk = true; if (r.dia) ctSinDia = r.dia; }
+    if (ctJogPend > ctJogOk) { const c = ctJogPend, r = await ctCall('jogou', ctSinB(c), false, 8000); if (!r || !r.ok) return; ctJogOk = c; if (ctJogPend <= c) ctJogPend = -1; if (r.dia) ctSinDia = r.dia; } // c = como a batalha foi jogada (0 sem conta, 1 com conta), mesmo que a conta tenha sido criada depois
+    falhou = false;
+  } finally { ctSinBusy = false; if (!falhou && ctJogPend > ctJogOk) setTimeout(ctSinais, 0); } // chegou uma batalha nova enquanto este envio estava no ar
+}
+async function ctPulso() {
+  if (!ctNet || document.hidden) return; ctPulsoT = Date.now();
+  await ctSinais();
+  const r = await ctCall('pulso', ctSinB(ctSinC()), false, 8000);
+  if (r && r.ok && r.dia && ctSinDia && r.dia !== ctSinDia) { ctSinDia = r.dia; ctVisOk = false; ctJogOk = -1; if (G && G.state !== 'end') ctJogPend = Math.max(ctJogPend, ctSinC()); ctSinais(); } // virou o dia com o jogo aberto
+}
+function ctJogou() { if (!ctNet) return; const c = ctSinC(); if (c > ctJogOk) ctJogPend = Math.max(ctJogPend, c); if (Date.now() - ctPulsoT > 60000) ctPulso(); else ctSinais(); } // começou uma batalha
 async function ctInicio() {
   if (!ctNet) return;
-  if (!ctVisita) { ctVisita = true; ctCall('visita', { c: ctTem() ? 1 : 0 }, false, 8000); setInterval(() => { if (!document.hidden) ctCall('pulso', { c: ctTem() ? 1 : 0 }, false, 8000); }, 120000); } // avisa o servidor que o jogo foi aberto e, a cada 2 minutos, que continua aberto (painel do dono); só a identificação anônima do aparelho vai junto
+  if (!ctSinOn) { ctSinOn = true; setInterval(ctPulso, 120000); document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - ctPulsoT > 60000) ctPulso(); }); addEventListener('online', () => ctSinais()); }
+  ctSinais(); // avisa a abertura; se já avisou, só manda o que tiver ficado pendente
   ctPingT = Date.now();
   if (ctTem()) {
     const tok = CT.token, r = await ctCall('carregar', { token: tok });
@@ -1198,7 +1218,7 @@ const CANNON = () => ({ x: G ? G.px : W / 2, y: H - 100 });
 const DEF = () => H - 205;
 const HITY = () => DEF() + 36; // onde o inimigo alcança o pirata e ataca (antes era na linha de defesa, um corpo de distância)
 const SHOW_FENCE = false;                  // linha que os piratas não podem passar
-const BUILD = 'Versão 69 · 18/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
+const BUILD = 'Versão 70 · 18/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
 const GANHO = 6; // multiplicador geral das moedas de batalha
 const coinMul = () => (1 + fireBonus()) * (1 + (P.vila ? VB().c : 0)) * (1 + canCoin()) * .7 * GANHO; // bônus de sequência, da vila e do canhão
 const ecoVal = () => { const n = P.level || 1; return (60 + 40 * n + .5 * n * n) * coinMul(); }; // quanto vale hoje, em moedas, um bom pedaço de fase (cerca de 1/4 do que uma fase paga)

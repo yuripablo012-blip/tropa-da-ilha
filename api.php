@@ -15,6 +15,7 @@ header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
 
 const SAVE_MAX = 60000;      // tamanho máximo do jogo salvo, em bytes
+const SAVE_NOVO_MAX = 20000; // tamanho máximo do jogo salvo ao criar a conta (um jogo de verdade tem poucos KB)
 const CORPO_MAX = 80000;     // tamanho máximo de um pedido
 const SENHA_MIN = 6;
 const SESSOES_MAX = 8;       // aparelhos ligados na mesma conta
@@ -24,12 +25,18 @@ const LIM_CRIAR_GERAL = 600; // contas novas por hora, no site todo
 const LIM_FALHA_IP = 60;     // senhas erradas por hora, por endereço
 const LIM_FALHA_CONTA = 10;  // senhas erradas em 15 minutos, por conta
 const PAINEL_CODIGO = '1b61bee8367877089c14dda2c3ed6e9e628108f4a4ecb63290de9bafc8155531'; // impressão digital (SHA-256) do código de primeiro acesso do painel; o código em si não está em lugar nenhum do projeto
-const PAINEL_DIAS = 30;      // sessão do painel
+const PAINEL_DIAS = 30;      // sessão do painel sem uso por esse tempo é esquecida
+const LIM_PAINEL_IP = 8;     // senhas erradas do painel por hora, por endereço
+const LIM_PAINEL_GERAL = 40; // senhas erradas do painel em 15 minutos, somando todos os endereços
 const AP_TESTE = 'testedoclaude1'; // aparelho usado para conferir o site no ar: os sinais dele são aceitos mas nunca entram nos números do painel
-const LIM_VISITA_IP = 400;   // aberturas do jogo contadas por hora, por endereço
+const LIM_VISITA_IP = 1500;  // sinais de abertura (e, à parte, de batalha) por hora, por endereço
+const LIM_PULSO_IP = 30000;  // sinais de "continua aberto" por hora, por endereço (30 por hora por jogador)
 const GUARDA = "<?php http_response_code(404); exit; ?>\n"; // primeira linha de cada arquivo de dados: se alguém abrir pelo navegador, não mostra nada
 
-function sai($dados) { echo json_encode($dados, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); exit; }
+function sai($dados) { // nunca responde vazio: um valor que o JSON não aceita (número infinito, texto quebrado) vira nulo em vez de derrubar a resposta
+  $j = json_encode($dados, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PARTIAL_OUTPUT_ON_ERROR);
+  echo $j === false ? '{"ok":false,"erro":"servidor","msg":"Erro no servidor. Tente de novo."}' : $j; exit;
+}
 function erro($cod, $msg) { sai(array('ok' => false, 'erro' => $cod, 'msg' => $msg)); }
 
 /* Pasta dos dados: de preferência fora da pasta pública do site; se a hospedagem não deixar, dentro, trancada. */
@@ -65,7 +72,9 @@ function le($arq) {
 }
 function grava($arq, $dados) {
   $tmp = $arq . '.' . bin2hex(random_bytes(4)) . '.tmp';
-  $txt = GUARDA . json_encode($dados, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+  $j = json_encode($dados, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+  if ($j === false) erro('servidor', 'O servidor não conseguiu guardar os dados. Tente mais tarde.'); // nunca grava um arquivo só com a linha de guarda
+  $txt = GUARDA . $j;
   if (@file_put_contents($tmp, $txt, LOCK_EX) !== strlen($txt) || !@rename($tmp, $arq)) { @unlink($tmp); erro('servidor', 'O servidor não conseguiu guardar os dados. Tente mais tarde.'); }
 }
 /* Trava: um pedido de cada vez por grupo de contas, para dois aparelhos não gravarem um por cima do outro. */
@@ -93,7 +102,7 @@ function nome_chave($n) {
 }
 function arq_conta($chave) { return subpasta('contas/' . substr($chave, 0, 2)) . '/c_' . $chave . '.php'; }
 
-function senha_ok($s) { return is_string($s) && strlen($s) >= SENHA_MIN && strlen($s) <= 64; }
+function senha_ok($s) { return is_string($s) && strlen($s) >= SENHA_MIN && strlen($s) <= 64 && strpos($s, "\0") === false; }
 /* O jogo salvo vem como texto JSON e é guardado como veio (sem passar pelo PHP, que trocaria {} por []). */
 function save_ok($s) {
   if (!is_string($s) || strlen($s) < 2 || strlen($s) > SAVE_MAX || $s[0] !== '{') return false;
@@ -128,7 +137,7 @@ function nova_sessao(&$conta, $chave) {
 }
 /* Confere a sessão. Devolve [chave, índice da sessão] ou encerra com erro. Chamar com a trava da conta já fechada. */
 function abre_sessao($token, &$conta) {
-  if (!is_string($token) || !preg_match('/^([0-9a-f]{32})\.([0-9a-f]{48})$/', $token, $m)) erro('sessao', 'Entre na sua conta de novo.');
+  if (!is_string($token) || !preg_match('/^([0-9a-f]{32})\.([0-9a-f]{48})\z/', $token, $m)) erro('sessao', 'Entre na sua conta de novo.');
   $conta = le(arq_conta($m[1]));
   if (!$conta) erro('sessao', 'Entre na sua conta de novo.');
   $h = hash('sha256', $m[2]);
@@ -151,46 +160,43 @@ function conta_stat($campo, $conj = null, $id = null) { // $conj pode ser um nom
   $d = le($arq);
   if (!$d) $d = array();
   if ($campo) $d[$campo] = (isset($d[$campo]) ? (int) $d[$campo] : 0) + 1;
-  foreach ($conjs as $nome => $x) { if (!isset($d[$nome]) || !is_array($d[$nome])) $d[$nome] = array(); if (count($d[$nome]) < 200000) $d[$nome][$x] = 1; }
+  foreach ($conjs as $nome => $x) { if (!isset($d[$nome]) || !is_array($d[$nome])) $d[$nome] = array(); if (count($d[$nome]) < 100000) $d[$nome][$x] = 1; }
   grava($arq, $d);
   solta($t);
 }
 function ap_id($ap) { return 'a' . substr(hash('sha256', 'ap|' . $ap), 0, 14); } // identificação embaralhada do aparelho
 /* Quem está com o jogo aberto agora: cada aparelho e a hora do último sinal. Sinais com mais de 15 minutos são esquecidos. */
-function marca_agora($id) {
+function marca_agora($id) { // devolve a hora do sinal anterior deste aparelho (0 se não havia)
   $t = trava('stats');
   $arq = subpasta('stats') . '/agora.php';
   $d = le($arq);
   if (!$d) $d = array();
   $ag = time();
+  $antes = isset($d[$id]) ? (int) $d[$id] : 0;
   foreach ($d as $k => $v) if ($v < $ag - 900) unset($d[$k]);
   if (count($d) < 50000) $d[$id] = $ag;
   grava($arq, $d);
   solta($t);
+  return $antes;
 }
-/* Lista das contas para o painel (nome, fase, moedas, datas). Ler todas as contas custa; o resultado vale por 60 segundos, ou até alguém criar ou apagar uma conta. */
-function lista_contas() {
-  $cache = subpasta('stats') . '/contas_cache.php';
-  $c = le($cache);
-  if ($c && isset($c['t']) && time() - $c['t'] < 60) return $c;
-  $arqs = (array) @glob(pasta_dados() . '/contas/*/c_*.php');
-  $lista = array();
-  foreach (array_slice($arqs, 0, 20000) as $f) {
-    $a = le($f);
-    if (!$a || !isset($a['nome'])) continue;
-    $sv = isset($a['save']) ? json_decode($a['save'], true) : null;
-    $lista[] = array('nome' => $a['nome'], 'criada' => isset($a['criada']) ? (int) $a['criada'] : 0, 'visto' => isset($a['salvo']) ? (int) $a['salvo'] : (isset($a['criada']) ? (int) $a['criada'] : 0),
-      'fase' => is_array($sv) && isset($sv['level']) ? (int) $sv['level'] : 1, 'moedas' => is_array($sv) && isset($sv['coins']) ? (float) $sv['coins'] : 0);
-  }
-  usort($lista, function ($x, $y) { return $y['visto'] - $x['visto']; });
-  $c = array('t' => time(), 'total' => count($arqs), 'lista' => array_slice($lista, 0, 100));
-  grava($cache, $c);
-  return $c;
+/* Total de contas que existem agora. Conta os arquivos na hora, sem guardar o resultado, para nunca ficar atrasado. */
+function total_contas() { return count((array) @glob(pasta_dados() . '/contas/*/c_*.php')); }
+/* Quantas contas já foram criadas desde o começo. Diferente do total acima, não diminui quando um jogador apaga a conta.
+   O contador nasce com o número de contas que existem na primeira vez que é usado. */
+function contas_criadas($somar) {
+  $arq = subpasta('stats') . '/total.php';
+  $t = trava('stats');
+  $d = le($arq);
+  if (!$d || !isset($d['criadas'])) { $d = array('criadas' => total_contas()); if ($somar) grava($arq, $d); } // a conta recém-criada já está entre as que existem
+  elseif ($somar) { $d['criadas'] = (int) $d['criadas'] + 1; grava($arq, $d); }
+  solta($t);
+  return max((int) $d['criadas'], $somar ? 0 : total_contas());
 }
 /* Painel: uma senha só, guardada embaralhada em painel.php na pasta de dados. O primeiro acesso exige o código cuja impressão digital é PAINEL_CODIGO. */
 function painel_arq() { return pasta_dados() . '/painel.php'; }
+function painel_usados() { $u = le(pasta_dados() . '/painel_usados.php'); return $u && isset($u['h']) && is_array($u['h']) ? $u['h'] : array(); } // impressões digitais dos códigos já gastos, guardadas fora do painel.php
 function painel_sessao(&$adm, $token) {
-  if (!is_string($token) || !preg_match('/^[0-9a-f]{48}$/', $token)) erro('sessao', 'Entre no painel de novo.');
+  if (!is_string($token) || !preg_match('/^[0-9a-f]{48}\z/', $token)) erro('sessao', 'Entre no painel de novo.');
   $adm = le(painel_arq());
   if (!$adm) erro('sessao', 'Entre no painel de novo.');
   $h = hash('sha256', $token);
@@ -207,28 +213,45 @@ function painel_nova_sessao(&$adm) {
 
 /* ---------- Pedido ---------- */
 $acao = isset($_GET['a']) ? (string) $_GET['a'] : '';
-if ($acao === 'ping') { pasta_dados(); sai(array('ok' => true, 'dados' => $GLOBALS['onde_dados'])); }
+if ($acao === 'ping') { // também diz se o endereço que o PHP enxerga é o do visitante ('igual') ou o de um intermediário ('outro'), sem mostrar endereço nenhum: os limites por endereço dependem disso
+  pasta_dados();
+  $ra = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : ''; $xf = isset($_SERVER['HTTP_X_FORWARDED_FOR']) ? trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0]) : '';
+  sai(array('ok' => true, 'dados' => $GLOBALS['onde_dados'], 'endereco' => $xf === '' ? 'sem_cabecalho' : ($xf === $ra ? 'igual' : 'outro')));
+}
 if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST') erro('pedido', 'Pedido inválido.');
+// Só o jogo e o painel, abertos neste mesmo site, falam com a api. Outro site não consegue mandar JSON nem se passar pela mesma origem,
+// então não dá para inflar os números nem travar senhas a partir das visitas de outra página.
+if (strpos(strtolower(isset($_SERVER['CONTENT_TYPE']) ? $_SERVER['CONTENT_TYPE'] : ''), 'application/json') !== 0) erro('pedido', 'Pedido inválido.');
+$sfs = isset($_SERVER['HTTP_SEC_FETCH_SITE']) ? $_SERVER['HTTP_SEC_FETCH_SITE'] : '';
+if ($sfs !== '' && $sfs !== 'same-origin' && $sfs !== 'none') erro('pedido', 'Pedido inválido.');
 $bruto = file_get_contents('php://input', false, null, 0, CORPO_MAX + 1);
 if ($bruto === false || strlen($bruto) > CORPO_MAX) erro('pedido', 'Pedido grande demais.');
 $B = json_decode($bruto, true);
 if (!is_array($B)) erro('pedido', 'Pedido inválido.');
-$ap = isset($B['ap']) && is_string($B['ap']) && preg_match('/^[0-9a-z]{6,24}$/', $B['ap']) ? $B['ap'] : ''; // identificação do aparelho que está gravando
+$ap = isset($B['ap']) && is_string($B['ap']) && preg_match('/^[0-9a-z]{6,24}\z/', $B['ap']) ? $B['ap'] : ''; // identificação do aparelho que está gravando
 faxina();
 
 /* Sinais do jogo para o painel. Em todos vem "ap" (identificação anônima do aparelho) e "c" (1 = o aparelho está numa conta).
    visita = o jogo foi aberto · jogou = começou uma batalha · pulso = o jogo continua aberto (a cada 2 minutos). */
 if ($acao === 'visita' || $acao === 'jogou' || $acao === 'pulso') {
+  // limites por endereço, um para cada tipo de sinal (o pulso é o mais frequente e não pode gastar a cota dos outros);
+  // são folgados porque uma operadora de celular ou um wi-fi de escola põe muita gente atrás do mesmo endereço
   $tl = trava('limites');
-  $livre = limite(subpasta('limites') . '/ip_' . ip_chave() . '.php', 'visita', LIM_VISITA_IP, true);
+  $livre = limite(subpasta('limites') . '/ip_' . ip_chave() . '.php', $acao, $acao === 'pulso' ? LIM_PULSO_IP : LIM_VISITA_IP, true);
   solta($tl);
-  if ($livre && $ap !== AP_TESTE) {
+  // passou do limite: o sinal não é contado e o jogo fica sabendo (ok: false), para mandar de novo mais tarde; o dia guarda quantos foram cortados
+  if (!$livre) { conta_stat('cortados'); sai(array('ok' => false, 'erro' => 'muitas', 'dia' => date('Y-m-d'))); }
+  if ($ap !== AP_TESTE) {
     $id = $ap !== '' ? ap_id($ap) : null; $c = !empty($B['c']);
     if ($acao === 'visita') conta_stat('aberturas', $id ? ($c ? array('ap' => $id, 'apc' => $id) : array('ap' => $id)) : array());
     if ($acao === 'jogou' && $id) conta_stat('partidas', $c ? array('ap' => $id, 'apc' => $id, 'jg' => $id, 'jc' => $id) : array('ap' => $id, 'jg' => $id));
-    if ($id) marca_agora($id);
+    if ($id) {
+      $antes = marca_agora($id);
+      // jogo aberto desde ontem (ou versão antiga do jogo que só manda pulso): no primeiro sinal do dia a pessoa entra nos que abriram hoje
+      if ($acao === 'pulso' && date('Y-m-d', $antes) !== date('Y-m-d')) conta_stat(null, $c ? array('ap' => $id, 'apc' => $id) : array('ap' => $id));
+    }
   }
-  sai(array('ok' => true));
+  sai(array('ok' => true, 'dia' => date('Y-m-d'))); // o dia do servidor: o jogo usa para saber quando virou o dia
 }
 
 /* ---------- Painel do dono ---------- */
@@ -244,7 +267,9 @@ if ($acao === 'painel_criar') { // primeiro acesso (ou troca de senha com um có
   if (!is_string($senha) || strlen($senha) < 8 || strlen($senha) > 64) erro('senha', 'A senha do painel precisa ter pelo menos 8 letras ou números.');
   $t = trava('painel');
   $adm = le(painel_arq());
-  if ($adm && isset($adm['codigo']) && $adm['codigo'] === PAINEL_CODIGO) { solta($t); erro('ja', 'O painel já tem senha. Entre com ela.'); } // cada código vale uma vez só
+  $usados = painel_usados();
+  if (($adm && isset($adm['codigo']) && $adm['codigo'] === PAINEL_CODIGO) || in_array(PAINEL_CODIGO, $usados, true)) { solta($t); erro('ja', $adm ? 'O painel já tem senha. Entre com ela.' : 'Esse código já foi usado. Peça um código novo.'); } // cada código vale uma vez só, mesmo que o arquivo da senha se perca ou o código antigo volte
+  $usados[] = PAINEL_CODIGO; grava(pasta_dados() . '/painel_usados.php', array('h' => $usados));
   $adm = array('senha' => password_hash($senha, PASSWORD_DEFAULT), 'codigo' => PAINEL_CODIGO, 'criado' => time(), 'sessoes' => array());
   $token = painel_nova_sessao($adm);
   grava(painel_arq(), $adm);
@@ -254,15 +279,22 @@ if ($acao === 'painel_criar') { // primeiro acesso (ou troca de senha com um có
 
 if ($acao === 'painel_entrar') {
   $senha = isset($B['senha']) && is_string($B['senha']) ? substr($B['senha'], 0, 64) : '';
+  // quem erra a senha é barrado pelo próprio endereço (8 erros por hora); assim um estranho errando de propósito não tranca o dono para fora
+  $lim = subpasta('limites') . '/ip_' . ip_chave() . '.php';
+  $tl = trava('limites'); $livre = limite($lim, 'painel', LIM_PAINEL_IP, false); solta($tl);
+  if (!$livre) erro('muitas', 'Muitas tentativas. Espere um pouco e tente de novo.');
   $t = trava('painel');
   $adm = le(painel_arq());
   if (!$adm) { solta($t); erro('sem_senha', 'O painel ainda não tem senha. Use o código de primeiro acesso.'); }
   $f = isset($adm['falhas']) ? $adm['falhas'] : array('n' => 0, 't' => 0);
   if (time() - $f['t'] > 900) $f = array('n' => 0, 't' => time());
-  if ($f['n'] >= 8) { solta($t); erro('muitas', 'Muitas tentativas. Espere 15 minutos e tente de novo.'); }
-  if ($senha === '' || !password_verify($senha, $adm['senha'])) { $f['n']++; $adm['falhas'] = $f; grava(painel_arq(), $adm); solta($t); erro('login', 'Senha errada.'); }
-  unset($adm['falhas']);
-  $token = painel_nova_sessao($adm);
+  if ($f['n'] >= LIM_PAINEL_GERAL) { solta($t); erro('muitas', 'Muitas tentativas. Espere 15 minutos e tente de novo.'); } // freio geral, para ninguém chutar senha de muitos endereços
+  if ($senha === '' || strpos($senha, "\0") !== false || !password_verify($senha, $adm['senha'])) {
+    $f['n']++; $adm['falhas'] = $f; grava(painel_arq(), $adm); solta($t);
+    $tl = trava('limites'); limite($lim, 'painel', LIM_PAINEL_IP, true); solta($tl);
+    erro('login', 'Senha errada.');
+  }
+  $token = painel_nova_sessao($adm); // a senha certa não zera a contagem de erros dos outros: ela só expira com o tempo
   grava(painel_arq(), $adm);
   solta($t);
   sai(array('ok' => true, 'token' => $token));
@@ -275,9 +307,12 @@ if ($acao === 'painel_sair') {
 }
 
 if ($acao === 'painel_dados') { // números de um mês (o atual, ou o pedido em "mes": AAAA-MM), dia por dia, mais os totais do mês
-  $adm = null; painel_sessao($adm, isset($B['token']) ? $B['token'] : null);
+  $t = trava('painel'); $adm = null; $si = painel_sessao($adm, isset($B['token']) ? $B['token'] : null);
+  if (time() - $adm['sessoes'][$si]['t'] > 86400) { $adm['sessoes'][$si]['t'] = time(); grava(painel_arq(), $adm); } // usar o painel mantém a sessão viva
+  solta($t);
+  @ini_set('memory_limit', '512M'); // somar um mês com centenas de milhares de aparelhos pede memória
   $hoje = date('Y-m-d');
-  $mes = isset($B['mes']) && is_string($B['mes']) && preg_match('/^20\d\d-(0[1-9]|1[0-2])$/', $B['mes']) ? $B['mes'] : substr($hoje, 0, 7);
+  $mes = isset($B['mes']) && is_string($B['mes']) && preg_match('/^20\d\d-(0[1-9]|1[0-2])\z/', $B['mes']) ? $B['mes'] : substr($hoje, 0, 7);
   $nd = (int) date('t', strtotime($mes . '-01'));
   $dias = array(); $uAp = array(); $uApc = array(); $uJg = array(); $uJc = array(); $contas = 0; $fora = ap_id(AP_TESTE);
   for ($n = 1; $n <= $nd; $n++) {
@@ -295,9 +330,8 @@ if ($acao === 'painel_dados') { // números de um mês (o atual, ou o pedido em 
   $totais = array('pessoas' => count($uAp), 'sem_cadastro' => count($uAp) - count($uApc), 'jogaram' => count($uJg), 'jogaram_com' => count($uJc), 'jogaram_sem' => count($uJg) - count($uJc), 'contas' => $contas);
   $arqs = (array) @glob(subpasta('stats') . '/d_*.php'); sort($arqs);
   $primeiro = $arqs && preg_match('/d_(\d{4}-\d{2}-\d{2})\.php$/', $arqs[0], $m) ? $m[1] : $hoje; // primeiro dia com contagem
-  $c = lista_contas();
   $ag = le(subpasta('stats') . '/agora.php'); $online = 0; if ($ag) { unset($ag[$fora]); foreach ($ag as $v) if ($v >= time() - 300) $online++; } // sinal nos últimos 5 minutos
-  sai(array('ok' => true, 'agora' => time(), 'hoje' => $hoje, 'mes' => $mes, 'primeiro' => $primeiro, 'dias' => $dias, 'mes_totais' => $totais, 'online' => $online, 'total_contas' => (int) $c['total'], 'jogadores' => $c['lista']));
+  sai(array('ok' => true, 'agora' => time(), 'hoje' => $hoje, 'mes' => $mes, 'primeiro' => $primeiro, 'dias' => $dias, 'mes_totais' => $totais, 'online' => $online, 'total_contas' => contas_criadas(false)));
 }
 
 if ($acao === 'criar') {
@@ -305,7 +339,7 @@ if ($acao === 'criar') {
   if ($nome === null) erro('nome', 'O nome precisa ter de 3 a 16 letras ou números.');
   if (!senha_ok(isset($B['senha']) ? $B['senha'] : null)) erro('senha', 'A senha precisa ter pelo menos ' . SENHA_MIN . ' letras ou números.');
   $save = isset($B['save']) ? $B['save'] : '{}';
-  if (!save_ok($save)) erro('save', 'O jogo salvo veio com defeito.');
+  if (!save_ok($save) || strlen($save) > SAVE_NOVO_MAX) erro('save', 'O jogo salvo veio com defeito.');
   $chave = nome_chave($nome);
   $tl = trava('limites');
   $lim = subpasta('limites');
@@ -320,7 +354,7 @@ if ($acao === 'criar') {
   limite($lim . '/ip_' . ip_chave() . '.php', 'criar', LIM_CRIAR_IP, true);
   limite($lim . '/geral.php', 'criar', LIM_CRIAR_GERAL, true);
   solta($tl);
-  conta_stat('contas', $ap !== '' ? array('ap' => ap_id($ap), 'apc' => ap_id($ap)) : array()); @unlink(subpasta('stats') . '/contas_cache.php');
+  conta_stat('contas', $ap !== '' ? array('ap' => ap_id($ap), 'apc' => ap_id($ap)) : array()); contas_criadas(true);
   sai(array('ok' => true, 'token' => $token, 'nome' => $nome, 'rev' => 1));
 }
 
@@ -403,7 +437,6 @@ if ($acao === 'apagar') {
   if (!password_verify($senha, $conta['senha'])) { $f['n']++; $conta['falhas'] = $f; grava($arq, $conta); solta($t); erro('login', 'Senha errada.'); }
   @unlink($arq);
   solta($t);
-  @unlink(subpasta('stats') . '/contas_cache.php');
   sai(array('ok' => true));
 }
 

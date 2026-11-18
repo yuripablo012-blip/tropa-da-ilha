@@ -34,7 +34,7 @@ input:focus-visible, button:focus-visible, .alvo:focus-visible { outline: 2px so
 .mesnav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .mesnav h2 { font-size: 18px; }
 .mesnav .btn { min-width: 44px; min-height: 40px; font-size: 18px; padding: 4px 12px; }
-.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 12px; }
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin-top: 12px; }
 .cal .sem { text-align: center; font-size: 11.5px; color: var(--muted); padding: 2px 0 4px; }
 .cal button { border: 1px solid var(--border); background: var(--surface-1); border-radius: 10px; min-height: 48px; padding: 4px 0 3px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; line-height: 1.15; }
 .cal button b { font-size: 15px; font-weight: 600; }
@@ -46,13 +46,13 @@ input:focus-visible, button:focus-visible, .alvo:focus-visible { outline: 2px so
 .calpe { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
 /* número principal e blocos */
 .heroi .rotulo { color: var(--text-secondary); font-size: 15px; }
-.heroi .valor { font-size: 60px; line-height: 1.05; font-weight: 650; letter-spacing: -1px; margin-top: 4px; }
+.heroi .valor { font-size: clamp(38px, 15vw, 60px); line-height: 1.05; font-weight: 650; letter-spacing: -1px; margin-top: 4px; overflow-wrap: anywhere; }
 .secao { margin: 22px 2px 0; font-size: 14px; color: var(--text-secondary); font-weight: 600; }
-.blocos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+.blocos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 10px; }
 .bloco { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
 .bloco .rotulo { color: var(--text-secondary); font-size: 13.5px; line-height: 1.3; }
-.bloco .valor { font-size: 28px; font-weight: 650; margin-top: 4px; }
-@media (min-width: 620px) { .blocos { grid-template-columns: repeat(4, 1fr); } .cal button { min-height: 54px; } }
+.bloco .valor { font-size: clamp(20px, 6.6vw, 28px); font-weight: 650; margin-top: 4px; overflow-wrap: anywhere; }
+@media (min-width: 620px) { .blocos { grid-template-columns: repeat(4, minmax(0, 1fr)); } .cal button { min-height: 54px; } }
 </style>
 </head>
 <body>
@@ -79,6 +79,7 @@ input:focus-visible, button:focus-visible, .alvo:focus-visible { outline: 2px so
       <div class="acoes"><button class="btn" id="pAtualiza" type="button">Atualizar</button><button class="btn" id="pSair" type="button">Sair</button></div>
     </div>
 
+    <div id="pCorpo" class="hidden">
     <!-- escolha do mês e do dia -->
     <div class="card">
       <div class="mesnav"><button class="btn" id="mAntes" type="button" aria-label="Mês anterior">‹</button><h2 id="mNome"></h2><button class="btn" id="mDepois" type="button" aria-label="Mês seguinte">›</button></div>
@@ -107,9 +108,9 @@ input:focus-visible, button:focus-visible, .alvo:focus-visible { outline: 2px so
     <h2 class="secao">Desde o começo</h2>
     <div class="blocos">
       <div class="bloco"><div class="rotulo">Pessoas que criaram conta</div><div class="valor" id="nTotal">0</div></div>
-      <div class="bloco"><div class="rotulo">Jogando agora</div><div class="valor" id="nAgora">0</div></div>
+      <div class="bloco"><div class="rotulo">Com o jogo aberto agora</div><div class="valor" id="nAgora">0</div></div>
     </div>
-
+    </div>
   </section>
 </main>
 
@@ -129,6 +130,7 @@ const data = (d) => { const p = d.split('-'); return new Date(+p[0], +p[1] - 1, 
 const diaTxt = (d, semana) => { const p = d.split('-'); return (semana ? SEM[data(d).getDay()] + ' ' : '') + p[2] + '/' + p[1]; };
 const mesTxt = (m) => MESES[+m.slice(5, 7) - 1] + ' de ' + m.slice(0, 4);
 const somaMes = (m, n) => { const d = new Date(+m.slice(0, 4), +m.slice(5, 7) - 1 + n, 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); };
+const breve = (n) => (n < 10000 ? num(n) : n < 1e6 ? Math.floor(n / 1000) + ' mil' : (Math.floor(n / 1e5) / 10).toLocaleString('pt-BR') + ' mi'); // número pequeno do calendário: 12 mil, 1,2 mi
 const quando = (t) => { if (!t) return '—'; const d = new Date(t * 1000), z = (x) => String(x).padStart(2, '0'); return z(d.getDate()) + '/' + z(d.getMonth() + 1) + ' ' + z(d.getHours()) + ':' + z(d.getMinutes()); };
 
 /* ---------- entrada ---------- */
@@ -144,14 +146,15 @@ function pintaEntrada() {
   $('eTroca').classList.toggle('hidden', !temSenha);
 }
 async function mostraEntrada(msg) {
-  clearInterval(timer); $('vPainel').classList.add('hidden'); $('vEntrar').classList.remove('hidden'); $('eErro').textContent = msg || '';
+  clearInterval(timer); $('vPainel').classList.add('hidden'); $('vEntrar').classList.remove('hidden'); $('eErro').textContent = msg || ''; $('fEntrar').classList.add('hidden');
   const r = await chama('painel_estado'); if (r) temSenha = !!r.tem_senha; else $('eErro').textContent = 'Sem conexão com o servidor. Confira a internet.';
-  pintaEntrada();
+  pintaEntrada(); $('fEntrar').classList.remove('hidden');
 }
 $('eTroca').addEventListener('click', () => { modoCodigo = !modoCodigo; $('eErro').textContent = ''; pintaEntrada(); });
 $('fEntrar').addEventListener('submit', async (e) => {
   e.preventDefault(); const cod = modoCodigo || !temSenha, senha = $('eSenha').value;
   if (cod && senha.length < 8) { $('eErro').textContent = 'A senha precisa ter pelo menos 8 letras ou números.'; return; }
+  if (cod && new TextEncoder().encode(senha).length > 64) { $('eErro').textContent = 'A senha ficou comprida demais. Use até 64 letras ou números.'; return; }
   if (!senha) { $('eErro').textContent = 'Digite a senha.'; return; }
   $('eBtn').disabled = true; $('eErro').textContent = '';
   const r = cod ? await chama('painel_criar', { codigo: $('eCod').value, senha }) : await chama('painel_entrar', { senha });
@@ -163,36 +166,52 @@ $('fEntrar').addEventListener('submit', async (e) => {
 });
 
 /* ---------- painel ---------- */
-async function carrega() {
+let pedido = 0; // só a resposta do pedido mais novo vale: uma resposta atrasada não puxa a tela de volta
+async function carrega(mes) { // mes: 'AAAA-MM' para trocar de mês, '' para o mês de hoje, nada para atualizar o que está na tela
+  const meu = ++pedido, alvo = typeof mes === 'string' ? mes : mesSel;
   $('pAtualiza').disabled = true;
-  const r = await chama('painel_dados', mesSel ? { token, mes: mesSel } : { token });
+  const r = await chama('painel_dados', alvo ? { token, mes: alvo } : { token });
+  if (meu !== pedido) return false;
   $('pAtualiza').disabled = false;
-  if (!r) { $('pQuando').textContent = 'Sem conexão. Mostrando os últimos números carregados.'; return !!dados; }
-  if (!r.ok) { token = ''; try { localStorage.removeItem(CHAVE); } catch (e) {} mostraEntrada(r.erro === 'sessao' ? '' : (r.msg || '')); return false; }
+  if (!r || (!r.ok && r.erro !== 'sessao')) { // sem conexão ou erro passageiro do servidor: fica onde está (mês e dia não mudam) e continua dentro do painel
+    $('pQuando').textContent = dados ? 'Sem conexão. Mostrando os últimos números carregados.' : 'Sem conexão. Os números ainda não foram carregados. Toque em Atualizar.';
+    return false;
+  }
+  if (!r.ok) { token = ''; try { localStorage.removeItem(CHAVE); } catch (e) {} dados = null; mostraEntrada(''); return false; } // a sessão acabou: pede a senha de novo
+  if (!dados || r.mes !== dados.mes) diaSel = ''; // mês novo na tela
   dados = r; mesSel = r.mes;
-  if (!diaSel || diaSel.slice(0, 7) !== r.mes) { // mês novo: fica no dia de hoje, ou no último dia do mês que tem número
+  if (!diaSel || diaSel.slice(0, 7) !== r.mes) { // fica no dia de hoje, ou no último dia do mês que tem número
     const comDado = r.dias.filter((x) => x.pessoas || x.contas || x.jogaram);
     diaSel = r.mes === r.hoje.slice(0, 7) ? r.hoje : (comDado.length ? comDado[comDado.length - 1].dia : (r.dias.length ? r.dias[r.dias.length - 1].dia : r.mes + '-01'));
   }
   pinta(); return true;
 }
 function escolhe(dia) { diaSel = dia; pinta(); }
-async function mudaMes(n) { const m = n === 0 ? '' : somaMes(mesSel, n); mesSel = m; diaSel = ''; await carrega(); }
+async function mudaMes(n) { // parte sempre do mês que está na tela e não passa do primeiro mês com contagem nem do mês de hoje
+  if (!dados) return carrega('');
+  const m = n === 0 ? '' : somaMes(dados.mes, n);
+  if (m && (m < dados.primeiro.slice(0, 7) || m > dados.hoje.slice(0, 7))) return;
+  if (n === 0 && dados.mes === dados.hoje.slice(0, 7)) { escolhe(dados.hoje); return; } // já está no mês de hoje: só volta para o dia de hoje
+  await carrega(m);
+}
 function pinta() {
   const d = dados, zero = { pessoas: 0, contas: 0, jogaram: 0, jogaram_com: 0, jogaram_sem: 0, sem_cadastro: 0 }, x = d.dias.find((q) => q.dia === diaSel) || zero, eHoje = diaSel === d.hoje, t = d.mes_totais;
   $('pQuando').textContent = 'Atualizado em ' + quando(d.agora);
   // calendário
   $('mNome').textContent = mesTxt(d.mes).replace(/^./, (c) => c.toUpperCase()); $('mAntes').disabled = d.mes <= d.primeiro.slice(0, 7); $('mDepois').disabled = d.mes >= d.hoje.slice(0, 7); $('mHoje').disabled = eHoje;
+  $('pCorpo').classList.remove('hidden');
+  const foco = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.dia : ''; // quem escolhe o dia pelo teclado continua no mesmo botão
   const cal = $('cal'); cal.textContent = '';
   for (const s of SEM) { const e = document.createElement('div'); e.className = 'sem'; e.textContent = s; cal.appendChild(e); }
   const nd = new Date(+d.mes.slice(0, 4), +d.mes.slice(5, 7), 0).getDate(), vazios = data(d.mes + '-01').getDay();
   for (let i = 0; i < vazios; i++) cal.appendChild(document.createElement('div'));
   for (let n = 1; n <= nd; n++) {
     const dia = d.mes + '-' + String(n).padStart(2, '0'), q = d.dias.find((z) => z.dia === dia), b = document.createElement('button'), nb = document.createElement('b'), sm = document.createElement('small');
-    b.type = 'button'; nb.textContent = n; sm.textContent = q && q.pessoas ? num(q.pessoas) : ''; b.appendChild(nb); b.appendChild(sm);
+    b.type = 'button'; b.dataset.dia = dia; nb.textContent = n; sm.textContent = q && q.pessoas ? breve(q.pessoas) : ''; b.appendChild(nb); b.appendChild(sm);
     b.disabled = dia > d.hoje; if (dia === d.hoje) b.classList.add('hoje'); if (dia === diaSel) { b.classList.add('sel'); b.setAttribute('aria-pressed', 'true'); }
     b.setAttribute('aria-label', diaTxt(dia, true) + (q ? ': ' + num(q.pessoas) + ' pessoas abriram o jogo' : ''));
     b.addEventListener('click', () => escolhe(dia)); cal.appendChild(b);
+    if (dia === foco) b.focus();
   }
   // números do dia escolhido
   const nomeDia = eHoje ? 'hoje' : 'em ' + diaTxt(diaSel, true);
@@ -207,9 +226,11 @@ function pinta() {
 }
 async function abre() {
   $('vEntrar').classList.add('hidden'); $('vPainel').classList.remove('hidden');
-  if (await carrega()) { clearInterval(timer); timer = setInterval(() => { if (!document.hidden) carrega(); }, 60000); }
+  if (!dados) { $('pCorpo').classList.add('hidden'); $('pQuando').textContent = 'Carregando os números…'; }
+  clearInterval(timer); timer = setInterval(() => { if (!document.hidden && token) carrega(); }, 60000); // atualiza sozinho a cada minuto, mesmo que a primeira tentativa tenha falhado
+  await carrega();
 }
-$('pAtualiza').addEventListener('click', carrega);
+$('pAtualiza').addEventListener('click', () => carrega());
 $('mAntes').addEventListener('click', () => mudaMes(-1)); $('mDepois').addEventListener('click', () => mudaMes(1)); $('mHoje').addEventListener('click', () => mudaMes(0));
 $('pSair').addEventListener('click', async () => { const t = token; token = ''; try { localStorage.removeItem(CHAVE); } catch (e) {} dados = null; mesSel = ''; diaSel = ''; await chama('painel_sair', { token: t }); mostraEntrada(); });
 if (token) abre(); else mostraEntrada();
