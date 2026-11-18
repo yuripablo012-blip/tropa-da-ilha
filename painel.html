@@ -94,7 +94,7 @@ input:focus-visible, button:focus-visible, .alvo:focus-visible { outline: 2px so
       <div class="bloco"><div class="rotulo">Criaram conta</div><div class="valor" id="nContas">0</div></div>
       <div class="bloco"><div class="rotulo">Jogaram sem conta</div><div class="valor" id="nSem">0</div></div>
       <div class="bloco"><div class="rotulo">Jogaram com conta</div><div class="valor" id="nCom">0</div></div>
-      <div class="bloco"><div class="rotulo" id="rAbriram">Com o jogo aberto agora</div><div class="valor" id="nAbriram">0</div></div>
+      <div class="bloco"><div class="rotulo">Com o jogo aberto agora</div><div class="valor" id="nAbriram">0</div></div>
     </div>
 
     <h2 class="secao" id="sMes">No mês</h2>
@@ -102,7 +102,7 @@ input:focus-visible, button:focus-visible, .alvo:focus-visible { outline: 2px so
       <div class="bloco"><div class="rotulo">Criaram conta</div><div class="valor" id="mContas">0</div></div>
       <div class="bloco"><div class="rotulo">Jogaram sem conta</div><div class="valor" id="mSem">0</div></div>
       <div class="bloco"><div class="rotulo">Jogaram, no total</div><div class="valor" id="mJog">0</div></div>
-      <div class="bloco"><div class="rotulo">Abriram o jogo</div><div class="valor" id="mAbr">0</div></div>
+      <div class="bloco"><div class="rotulo">Com o jogo aberto agora</div><div class="valor" id="mAbr">0</div></div>
     </div>
 
     <h2 class="secao">Desde o começo</h2>
@@ -224,11 +224,10 @@ function pinta() {
   $('nJogaram').textContent = num(x.jogaram); $('nJogaramSub').textContent = num(x.jogaram_com) + ' com conta e ' + num(x.jogaram_sem) + ' sem conta';
   $('sDia').textContent = eHoje ? 'Hoje' : 'No dia ' + diaTxt(diaSel, true);
   $('nContas').textContent = num(x.contas); $('nSem').textContent = num(x.jogaram_sem); $('nCom').textContent = num(x.jogaram_com);
-  // quarto bloco do dia: hoje mostra quem está com o jogo aberto agora; num dia que já passou, "agora" não existe, então mostra quem abriu o jogo naquele dia
-  $('rAbriram').textContent = eHoje ? 'Com o jogo aberto agora' : 'Abriram o jogo'; $('nAbriram').textContent = num(eHoje ? d.online : x.pessoas);
+  $('nAbriram').textContent = num(d.online); // quarto bloco: quem está com o jogo aberto agora (a pedido do dono, em todos os blocos, no lugar de "abriram o jogo")
   // mês e total
   $('sMes').textContent = 'No mês de ' + mesTxt(d.mes);
-  $('mContas').textContent = num(t.contas); $('mSem').textContent = num(t.jogaram_sem); $('mJog').textContent = num(t.jogaram); $('mAbr').textContent = num(t.pessoas);
+  $('mContas').textContent = num(t.contas); $('mSem').textContent = num(t.jogaram_sem); $('mJog').textContent = num(t.jogaram); $('mAbr').textContent = num(d.online);
   const sp = d.sempre || { jogaram: 0, jogaram_sem: 0 };
   $('nTotal').textContent = num(d.total_contas); $('sSem').textContent = num(sp.jogaram_sem); $('sJog').textContent = num(sp.jogaram); $('nAgora').textContent = num(d.online);
 }
