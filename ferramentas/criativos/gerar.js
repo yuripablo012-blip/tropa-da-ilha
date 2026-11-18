@@ -324,6 +324,9 @@ const CRIATIVOS = [
     ['roteiro', { antes: [{ js: 'VS.S0 = 0; VS.dirty = true; /* a aba Capitão mostra a conta como no site (aqui o jogo roda sem servidor) */ CT.nome = "CapitaoDaIlha"; CT.token = "video"; CT.sujo = 0; ctEst = "salvo"; contaCard()' }, { pagina: 'vila' }, { pagina: 'play' }], passos: [{ espera: 3.6 },
       { toca: 'button[data-pg="cannon"]', pausa: 1700 }, { toca: 'button[data-pg="hero"]', pausa: 1700 }, { toca: 'button[data-pg="vila"]', pausa: 2300 }, { toca: 'button[data-pg="troph"]', pausa: 1700 },
       { toca: 'button[data-pg="play"]', pausa: 1900 }, { toca: '#play', pausa: 200, semDedo: true }, { espera: 2.4 }] }]] },
+  /* ----- Sem texto nenhum por cima: 5 segundos da ilha com todas as construções no nível 10 (nível 10 já é a 2ª categoria da vila) ----- */
+  { nome: 'ilha_nivel10', organico: true, jogador: { fase: 100, nivel: 100, tier: 8, vila: 10, moedas: 5e6 }, cenas: [
+    ['roteiro', { antes: [{ js: 'VDEF.forEach((d) => { P.vila.b[d.k] = 10; }); P.vila.i = 1; save(); VS.S0 = 0; VS.dirty = true' }, { pagina: 'vila' }, { espera: .6 }], passos: [{ espera: 5 }] }]] },
   // imagens paradas (para anúncio de imagem e capa): sai um .jpg em vez de vídeo
   { nome: 'imagens', jogador: { fase: 40, nivel: 24, vila: 9, moedas: 5e8 }, soFotos: true, cenas: [
     ['batalha', { dur: 1.1, foto: { nome: 'img_batalha', titulo: 'Defenda a ponte!', sub: 'Jogo de pirata no navegador' } }],
