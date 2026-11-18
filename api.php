@@ -143,13 +143,27 @@ function chave_do_token($token) { return is_string($token) && preg_match('/^([0-
    Um arquivo por dia (stats/d_AAAA-MM-DD.php) com contadores e dois conjuntos: "ap" (aparelhos diferentes que abriram o jogo)
    e "ativos" (contas que salvaram progresso no dia). Nada de endereço de internet nem dado pessoal: só identificações embaralhadas. */
 function dia_arq($dia) { return subpasta('stats') . '/d_' . $dia . '.php'; }
-function conta_stat($campo, $conj = null, $id = null) {
+function conta_stat($campo, $conj = null, $id = null) { // $conj pode ser um nome (com $id) ou uma lista nome => id
+  $conjs = is_array($conj) ? $conj : ($conj && $id !== null ? array($conj => $id) : array());
   $t = trava('stats');
   $arq = dia_arq(date('Y-m-d'));
   $d = le($arq);
   if (!$d) $d = array();
   if ($campo) $d[$campo] = (isset($d[$campo]) ? (int) $d[$campo] : 0) + 1;
-  if ($conj && $id !== null) { if (!isset($d[$conj]) || !is_array($d[$conj])) $d[$conj] = array(); if (count($d[$conj]) < 200000) $d[$conj][$id] = 1; }
+  foreach ($conjs as $nome => $x) { if (!isset($d[$nome]) || !is_array($d[$nome])) $d[$nome] = array(); if (count($d[$nome]) < 200000) $d[$nome][$x] = 1; }
+  grava($arq, $d);
+  solta($t);
+}
+function ap_id($ap) { return 'a' . substr(hash('sha256', 'ap|' . $ap), 0, 14); } // identificação embaralhada do aparelho
+/* Quem está com o jogo aberto agora: cada aparelho e a hora do último sinal. Sinais com mais de 15 minutos são esquecidos. */
+function marca_agora($id) {
+  $t = trava('stats');
+  $arq = subpasta('stats') . '/agora.php';
+  $d = le($arq);
+  if (!$d) $d = array();
+  $ag = time();
+  foreach ($d as $k => $v) if ($v < $ag - 900) unset($d[$k]);
+  if (count($d) < 50000) $d[$id] = $ag;
   grava($arq, $d);
   solta($t);
 }
@@ -201,12 +215,18 @@ if (!is_array($B)) erro('pedido', 'Pedido inválido.');
 $ap = isset($B['ap']) && is_string($B['ap']) && preg_match('/^[0-9a-z]{6,24}$/', $B['ap']) ? $B['ap'] : ''; // identificação do aparelho que está gravando
 faxina();
 
-/* Abertura do jogo: o jogo avisa uma vez cada vez que é aberto. Conta a abertura e, se veio a identificação do aparelho, a pessoa do dia. */
-if ($acao === 'visita') {
+/* Sinais do jogo para o painel. Em todos vem "ap" (identificação anônima do aparelho) e "c" (1 = o aparelho está numa conta).
+   visita = o jogo foi aberto · jogou = começou uma batalha · pulso = o jogo continua aberto (a cada 2 minutos). */
+if ($acao === 'visita' || $acao === 'jogou' || $acao === 'pulso') {
   $tl = trava('limites');
   $livre = limite(subpasta('limites') . '/ip_' . ip_chave() . '.php', 'visita', LIM_VISITA_IP, true);
   solta($tl);
-  if ($livre) conta_stat('aberturas', $ap !== '' ? 'ap' : null, $ap !== '' ? 'a' . substr(hash('sha256', 'ap|' . $ap), 0, 14) : null);
+  if ($livre) {
+    $id = $ap !== '' ? ap_id($ap) : null; $c = !empty($B['c']);
+    if ($acao === 'visita') conta_stat('aberturas', $id ? ($c ? array('ap' => $id, 'apc' => $id) : array('ap' => $id)) : array());
+    if ($acao === 'jogou' && $id) conta_stat('partidas', $c ? array('ap' => $id, 'apc' => $id, 'jg' => $id, 'jc' => $id) : array('ap' => $id, 'jg' => $id));
+    if ($id) marca_agora($id);
+  }
   sai(array('ok' => true));
 }
 
@@ -253,21 +273,30 @@ if ($acao === 'painel_sair') {
   sai(array('ok' => true));
 }
 
-if ($acao === 'painel_dados') {
+if ($acao === 'painel_dados') { // números de um mês (o atual, ou o pedido em "mes": AAAA-MM), dia por dia, mais os totais do mês
   $adm = null; painel_sessao($adm, isset($B['token']) ? $B['token'] : null);
-  $dias = array(); $u7 = array(); $u30 = array(); $inicio = null;
-  for ($i = 0; $i < 30; $i++) {
-    $dia = date('Y-m-d', time() - $i * 86400);
+  $hoje = date('Y-m-d');
+  $mes = isset($B['mes']) && is_string($B['mes']) && preg_match('/^20\d\d-(0[1-9]|1[0-2])$/', $B['mes']) ? $B['mes'] : substr($hoje, 0, 7);
+  $nd = (int) date('t', strtotime($mes . '-01'));
+  $dias = array(); $uAp = array(); $uApc = array(); $uJg = array(); $uJc = array(); $contas = 0;
+  for ($n = 1; $n <= $nd; $n++) {
+    $dia = sprintf('%s-%02d', $mes, $n);
+    if ($dia > $hoje) break; // dias que ainda não chegaram não entram
     $d = le(dia_arq($dia));
-    $aps = $d && isset($d['ap']) && is_array($d['ap']) ? $d['ap'] : array();
-    $dias[] = array('dia' => $dia, 'pessoas' => count($aps), 'aberturas' => $d && isset($d['aberturas']) ? (int) $d['aberturas'] : 0, 'contas' => $d && isset($d['contas']) ? (int) $d['contas'] : 0,
-      'jogaram' => $d && isset($d['ativos']) && is_array($d['ativos']) ? count($d['ativos']) : 0, 'entradas' => $d && isset($d['entradas']) ? (int) $d['entradas'] : 0);
-    if ($d) $inicio = $dia;
-    if ($i < 7) $u7 += $aps;
-    $u30 += $aps;
+    $cj = function ($k) use ($d) { return $d && isset($d[$k]) && is_array($d[$k]) ? $d[$k] : array(); };
+    $aps = $cj('ap'); $apc = array_intersect_key($cj('apc'), $aps); $jg = $cj('jg'); $jc = array_intersect_key($cj('jc'), $jg);
+    $dias[] = array('dia' => $dia, 'pessoas' => count($aps), 'sem_cadastro' => count($aps) - count($apc), 'aberturas' => $d && isset($d['aberturas']) ? (int) $d['aberturas'] : 0, 'contas' => $d && isset($d['contas']) ? (int) $d['contas'] : 0,
+      'jogaram' => count($jg), 'jogaram_com' => count($jc), 'jogaram_sem' => count($jg) - count($jc), 'salvaram' => count($cj('ativos')), 'entradas' => $d && isset($d['entradas']) ? (int) $d['entradas'] : 0);
+    $uAp += $aps; $uApc += $apc; $uJg += $jg; $uJc += $jc; $contas += $d && isset($d['contas']) ? (int) $d['contas'] : 0;
   }
+  $uJc = array_intersect_key($uJc, $uJg); $uApc = array_intersect_key($uApc, $uAp);
+  // no mês cada pessoa conta uma vez só, mesmo que tenha vindo em vários dias
+  $totais = array('pessoas' => count($uAp), 'sem_cadastro' => count($uAp) - count($uApc), 'jogaram' => count($uJg), 'jogaram_com' => count($uJc), 'jogaram_sem' => count($uJg) - count($uJc), 'contas' => $contas);
+  $arqs = (array) @glob(subpasta('stats') . '/d_*.php'); sort($arqs);
+  $primeiro = $arqs && preg_match('/d_(\d{4}-\d{2}-\d{2})\.php$/', $arqs[0], $m) ? $m[1] : $hoje; // primeiro dia com contagem
   $c = lista_contas();
-  sai(array('ok' => true, 'agora' => time(), 'hoje' => date('Y-m-d'), 'inicio' => $inicio, 'pessoas7' => count($u7), 'pessoas30' => count($u30), 'total_contas' => (int) $c['total'], 'dias' => $dias, 'jogadores' => $c['lista']));
+  $ag = le(subpasta('stats') . '/agora.php'); $online = 0; if ($ag) foreach ($ag as $v) if ($v >= time() - 300) $online++; // sinal nos últimos 5 minutos
+  sai(array('ok' => true, 'agora' => time(), 'hoje' => $hoje, 'mes' => $mes, 'primeiro' => $primeiro, 'dias' => $dias, 'mes_totais' => $totais, 'online' => $online, 'total_contas' => (int) $c['total'], 'jogadores' => $c['lista']));
 }
 
 if ($acao === 'criar') {
@@ -290,7 +319,7 @@ if ($acao === 'criar') {
   limite($lim . '/ip_' . ip_chave() . '.php', 'criar', LIM_CRIAR_IP, true);
   limite($lim . '/geral.php', 'criar', LIM_CRIAR_GERAL, true);
   solta($tl);
-  conta_stat('contas'); @unlink(subpasta('stats') . '/contas_cache.php');
+  conta_stat('contas', $ap !== '' ? array('ap' => ap_id($ap), 'apc' => ap_id($ap)) : array()); @unlink(subpasta('stats') . '/contas_cache.php');
   sai(array('ok' => true, 'token' => $token, 'nome' => $nome, 'rev' => 1));
 }
 
@@ -325,7 +354,7 @@ if ($acao === 'entrar') {
   $token = nova_sessao($conta, $chave);
   grava($arq, $conta);
   solta($t);
-  conta_stat('entradas');
+  conta_stat('entradas', $ap !== '' ? array('ap' => ap_id($ap), 'apc' => ap_id($ap)) : array());
   sai(array('ok' => true, 'token' => $token, 'nome' => $conta['nome'], 'rev' => (int) $conta['rev'], 'save' => $conta['save']));
 }
 

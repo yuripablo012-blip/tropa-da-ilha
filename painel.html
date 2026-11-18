@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Painel · Tropa da Ilha</title>
-<!-- Painel do dono do jogo: quantas pessoas abriram o jogo, contas criadas e quem jogou, por dia.
-     Fala com o api.php (ações painel_*). Só abre com a senha do painel. -->
+<!-- Painel do dono do jogo: quantas pessoas criaram conta, quantas jogaram (com e sem conta) e quantas abriram o jogo,
+     por dia e por mês. O dono escolhe o mês e toca no dia que quer ver. Fala com o api.php (ações painel_*). Só abre com a senha do painel. -->
 <style>
 :root { color-scheme: light; --page: #f3f2ee; --surface-1: #fcfcfb; --text-primary: #0b0b0b; --text-secondary: #52514e; --muted: #7a7872; --rule: #c3c2b7; --border: #e2e0d9; --series-1: #2a78d6; --danger: #b3261e; --btn: #0b0b0b; --btn-text: #fcfcfb; }
 @media (prefers-color-scheme: dark) { :root { color-scheme: dark; --page: #101010; --surface-1: #1a1a19; --text-primary: #f0efec; --text-secondary: #c3c2b7; --muted: #898781; --rule: #383835; --border: #2b2b29; --series-1: #3987e5; --danger: #e66767; --btn: #f0efec; --btn-text: #101010; } }
@@ -21,19 +21,34 @@ h2 { font-size: 16px; margin: 0; font-weight: 650; }
 .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-top: 12px; }
 .topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .topo .acoes { display: flex; gap: 8px; }
-button, input { font: inherit; }
+button, input { font: inherit; color: inherit; }
 .btn { border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); border-radius: 10px; padding: 8px 14px; cursor: pointer; font-weight: 600; font-size: 14px; }
 .btn.forte { background: var(--btn); color: var(--btn-text); border-color: var(--btn); padding: 12px 18px; font-size: 16px; width: 100%; }
-.btn:disabled { opacity: .55; cursor: default; }
+.btn:disabled { opacity: .45; cursor: default; }
 .link { background: none; border: 0; color: var(--text-secondary); text-decoration: underline; cursor: pointer; padding: 8px 0; font-size: 14px; }
 label { display: block; font-weight: 600; font-size: 14px; margin-top: 14px; }
 input { width: 100%; margin-top: 6px; padding: 12px; border-radius: 10px; border: 1px solid var(--rule); background: var(--surface-1); color: var(--text-primary); }
-input:focus-visible, .btn:focus-visible, .link:focus-visible, .alvo:focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; }
+input:focus-visible, button:focus-visible, .alvo:focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; }
 .erro { color: var(--danger); font-weight: 600; font-size: 14px; min-height: 20px; margin-top: 10px; }
+/* calendário: escolhe o mês e o dia */
+.mesnav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.mesnav h2 { font-size: 18px; }
+.mesnav .btn { min-width: 44px; min-height: 40px; font-size: 18px; padding: 4px 12px; }
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 12px; }
+.cal .sem { text-align: center; font-size: 11.5px; color: var(--muted); padding: 2px 0 4px; }
+.cal button { border: 1px solid var(--border); background: var(--surface-1); border-radius: 10px; min-height: 48px; padding: 4px 0 3px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; line-height: 1.15; }
+.cal button b { font-size: 15px; font-weight: 600; }
+.cal button small { font-size: 11px; color: var(--text-secondary); font-variant-numeric: tabular-nums; min-height: 13px; }
+.cal button.hoje { border-color: var(--text-primary); }
+.cal button.sel { background: var(--btn); border-color: var(--btn); color: var(--btn-text); }
+.cal button.sel small { color: var(--btn-text); opacity: .85; }
+.cal button:disabled { opacity: .35; cursor: default; }
+.calpe { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
 /* número principal e blocos */
 .heroi .rotulo { color: var(--text-secondary); font-size: 15px; }
 .heroi .valor { font-size: 60px; line-height: 1.05; font-weight: 650; letter-spacing: -1px; margin-top: 4px; }
-.blocos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+.secao { margin: 22px 2px 0; font-size: 14px; color: var(--text-secondary); font-weight: 600; }
+.blocos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
 .bloco { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
 .bloco .rotulo { color: var(--text-secondary); font-size: 13.5px; line-height: 1.3; }
 .bloco .valor { font-size: 28px; font-weight: 650; margin-top: 4px; }
@@ -44,22 +59,26 @@ input:focus-visible, .btn:focus-visible, .link:focus-visible, .alvo:focus-visibl
 .grafico .base { stroke: var(--rule); stroke-width: 1; }
 .grafico text { fill: var(--muted); font-size: 11.5px; font-variant-numeric: tabular-nums; }
 .grafico text.val { fill: var(--text-primary); font-weight: 650; font-size: 12.5px; }
+.grafico text.selx { fill: var(--text-primary); font-weight: 650; }
 .grafico .barra { fill: var(--series-1); }
-.grafico .alvo { fill: transparent; cursor: default; outline: none; }
+.grafico .marca { fill: var(--text-primary); }
+.grafico .alvo { fill: transparent; cursor: pointer; outline: none; }
 .grafico g.dia:hover .barra, .grafico g.dia:focus-within .barra { fill-opacity: .72; }
 .dica { position: absolute; pointer-events: none; background: var(--text-primary); color: var(--page); border-radius: 8px; padding: 6px 10px; font-size: 13px; line-height: 1.3; white-space: nowrap; transform: translate(-50%, -100%); z-index: 2; }
 .dica b { display: block; font-size: 15px; }
 /* tabelas */
 .rola { overflow-x: auto; margin-top: 10px; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
-th, td { text-align: right; padding: 8px 6px; border-bottom: 1px solid var(--border); white-space: nowrap; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 8px 5px; border-bottom: 1px solid var(--border); white-space: nowrap; font-variant-numeric: tabular-nums; }
 th { color: var(--text-secondary); font-weight: 600; font-size: 12.5px; }
 th:first-child, td:first-child { text-align: left; }
 tr:last-child td { border-bottom: 0; }
+#tDias tr { cursor: pointer; }
+#tDias tr.sel td { font-weight: 650; background: color-mix(in srgb, var(--series-1) 12%, transparent); }
 td.nome { font-variant-numeric: normal; font-weight: 600; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
 .vazio { color: var(--text-secondary); font-size: 14px; padding: 10px 0; }
 .nota { color: var(--muted); font-size: 12.5px; margin-top: 16px; line-height: 1.5; }
-@media (min-width: 620px) { .blocos { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 620px) { .blocos { grid-template-columns: repeat(4, 1fr); } .cal button { min-height: 54px; } }
 </style>
 </head>
 <body>
@@ -86,25 +105,47 @@ td.nome { font-variant-numeric: normal; font-weight: 600; max-width: 150px; over
       <div class="acoes"><button class="btn" id="pAtualiza" type="button">Atualizar</button><button class="btn" id="pSair" type="button">Sair</button></div>
     </div>
 
-    <div class="card heroi"><div class="rotulo">Pessoas que abriram o jogo hoje</div><div class="valor" id="nHoje">0</div></div>
+    <!-- escolha do mês e do dia -->
+    <div class="card">
+      <div class="mesnav"><button class="btn" id="mAntes" type="button" aria-label="Mês anterior">‹</button><h2 id="mNome"></h2><button class="btn" id="mDepois" type="button" aria-label="Mês seguinte">›</button></div>
+      <div class="cal" id="cal"></div>
+      <div class="calpe"><span class="sub">Toque num dia para ver os números dele. O número pequeno é quantas pessoas abriram o jogo.</span><button class="btn" id="mHoje" type="button">Hoje</button></div>
+    </div>
 
+    <div class="card heroi"><div class="rotulo" id="hRot">Pessoas que jogaram hoje, no total</div><div class="valor" id="nJogaram">0</div><div class="sub" id="nJogaramSub"></div></div>
+
+    <h2 class="secao" id="sDia">Hoje</h2>
     <div class="blocos">
-      <div class="bloco"><div class="rotulo">Pessoas nos últimos 7 dias</div><div class="valor" id="n7">0</div></div>
-      <div class="bloco"><div class="rotulo">Contas criadas hoje</div><div class="valor" id="nContasHoje">0</div></div>
-      <div class="bloco"><div class="rotulo">Jogaram hoje, com conta</div><div class="valor" id="nJogaram">0</div></div>
-      <div class="bloco"><div class="rotulo">Total de contas</div><div class="valor" id="nTotal">0</div></div>
+      <div class="bloco"><div class="rotulo">Criaram conta</div><div class="valor" id="nContas">0</div></div>
+      <div class="bloco"><div class="rotulo">Jogaram sem conta</div><div class="valor" id="nSem">0</div></div>
+      <div class="bloco"><div class="rotulo">Jogaram com conta</div><div class="valor" id="nCom">0</div></div>
+      <div class="bloco"><div class="rotulo">Abriram o jogo</div><div class="valor" id="nAbriram">0</div></div>
+    </div>
+
+    <h2 class="secao" id="sMes">No mês</h2>
+    <div class="blocos">
+      <div class="bloco"><div class="rotulo">Criaram conta</div><div class="valor" id="mContas">0</div></div>
+      <div class="bloco"><div class="rotulo">Jogaram sem conta</div><div class="valor" id="mSem">0</div></div>
+      <div class="bloco"><div class="rotulo">Jogaram, no total</div><div class="valor" id="mJog">0</div></div>
+      <div class="bloco"><div class="rotulo">Abriram o jogo</div><div class="valor" id="mAbr">0</div></div>
+    </div>
+
+    <h2 class="secao">Desde o começo</h2>
+    <div class="blocos">
+      <div class="bloco"><div class="rotulo">Pessoas que criaram conta</div><div class="valor" id="nTotal">0</div></div>
+      <div class="bloco"><div class="rotulo">Jogando agora</div><div class="valor" id="nAgora">0</div></div>
     </div>
 
     <div class="card">
       <h2>Pessoas que abriram o jogo por dia</h2>
-      <div class="sub">Últimos 14 dias</div>
+      <div class="sub" id="gSub"></div>
       <div class="grafico" id="grafico"></div>
     </div>
 
     <div class="card">
       <h2>Dia a dia</h2>
-      <div class="sub">Últimos 30 dias</div>
-      <div class="rola"><table><thead><tr><th>Dia</th><th>Pessoas</th><th>Contas novas</th><th>Jogaram</th></tr></thead><tbody id="tDias"></tbody></table></div>
+      <div class="sub" id="tSub"></div>
+      <div class="rola"><table><thead><tr><th>Dia</th><th>Abriram</th><th>Jogaram</th><th>Sem conta</th><th>Contas</th></tr></thead><tbody id="tDias"></tbody></table></div>
     </div>
 
     <div class="card">
@@ -123,14 +164,18 @@ const $ = (id) => document.getElementById(id);
 const API = 'api.php', CHAVE = 'tropa_painel';
 let token = ''; try { token = localStorage.getItem(CHAVE) || ''; } catch (e) {}
 let temSenha = true, modoCodigo = false, dados = null, timer = 0;
+let mesSel = '', diaSel = ''; // mês (AAAA-MM) e dia (AAAA-MM-DD) escolhidos; vazio = o de hoje
 
 async function chama(a, corpo) {
   try { const r = await fetch(API + '?a=' + a, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo || {}), cache: 'no-store' }); const j = JSON.parse(await r.text()); return j && typeof j.ok === 'boolean' ? j : null; } catch (e) { return null; }
 }
 const num = (n) => Number(n || 0).toLocaleString('pt-BR');
 const curto = (n) => { n = Number(n || 0); return n < 10000 ? num(Math.round(n)) : new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 }).format(n); };
-const SEM = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
-const diaTxt = (d, semana) => { const p = d.split('-'), dt = new Date(+p[0], +p[1] - 1, +p[2]); return (semana ? SEM[dt.getDay()] + ' ' : '') + p[2] + '/' + p[1]; };
+const SEM = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'], MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+const data = (d) => { const p = d.split('-'); return new Date(+p[0], +p[1] - 1, +p[2] || 1); };
+const diaTxt = (d, semana) => { const p = d.split('-'); return (semana ? SEM[data(d).getDay()] + ' ' : '') + p[2] + '/' + p[1]; };
+const mesTxt = (m) => MESES[+m.slice(5, 7) - 1] + ' de ' + m.slice(0, 4);
+const somaMes = (m, n) => { const d = new Date(+m.slice(0, 4), +m.slice(5, 7) - 1 + n, 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); };
 const quando = (t) => { if (!t) return '—'; const d = new Date(t * 1000), z = (x) => String(x).padStart(2, '0'); return z(d.getDate()) + '/' + z(d.getMonth() + 1) + ' ' + z(d.getHours()) + ':' + z(d.getMinutes()); };
 
 /* ---------- entrada ---------- */
@@ -167,47 +212,79 @@ $('fEntrar').addEventListener('submit', async (e) => {
 /* ---------- painel ---------- */
 async function carrega() {
   $('pAtualiza').disabled = true;
-  const r = await chama('painel_dados', { token });
+  const r = await chama('painel_dados', mesSel ? { token, mes: mesSel } : { token });
   $('pAtualiza').disabled = false;
   if (!r) { $('pQuando').textContent = 'Sem conexão. Mostrando os últimos números carregados.'; return !!dados; }
   if (!r.ok) { token = ''; try { localStorage.removeItem(CHAVE); } catch (e) {} mostraEntrada(r.erro === 'sessao' ? '' : (r.msg || '')); return false; }
-  dados = r; pinta(); return true;
+  dados = r; mesSel = r.mes;
+  if (!diaSel || diaSel.slice(0, 7) !== r.mes) { // mês novo: fica no dia de hoje, ou no último dia do mês que tem número
+    const comDado = r.dias.filter((x) => x.pessoas || x.contas || x.jogaram);
+    diaSel = r.mes === r.hoje.slice(0, 7) ? r.hoje : (comDado.length ? comDado[comDado.length - 1].dia : (r.dias.length ? r.dias[r.dias.length - 1].dia : r.mes + '-01'));
+  }
+  pinta(); return true;
 }
+function escolhe(dia) { diaSel = dia; pinta(); }
+async function mudaMes(n) { const m = n === 0 ? '' : somaMes(mesSel, n); mesSel = m; diaSel = ''; await carrega(); }
 function pinta() {
-  const d = dados, hoje = d.dias[0] || { pessoas: 0, contas: 0, jogaram: 0 };
+  const d = dados, zero = { pessoas: 0, contas: 0, jogaram: 0, jogaram_com: 0, jogaram_sem: 0, sem_cadastro: 0 }, x = d.dias.find((q) => q.dia === diaSel) || zero, eHoje = diaSel === d.hoje, t = d.mes_totais;
   $('pQuando').textContent = 'Atualizado em ' + quando(d.agora);
-  $('nHoje').textContent = num(hoje.pessoas); $('n7').textContent = num(d.pessoas7); $('nContasHoje').textContent = num(hoje.contas); $('nJogaram').textContent = num(hoje.jogaram); $('nTotal').textContent = num(d.total_contas);
-  // dia a dia
-  const tb = $('tDias'); tb.textContent = '';
-  for (const x of d.dias) { if (d.inicio && x.dia < d.inicio) break; const tr = document.createElement('tr'); for (const v of [diaTxt(x.dia, true), num(x.pessoas), num(x.contas), num(x.jogaram)]) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); } tb.appendChild(tr); }
-  if (!tb.children.length) { const tr = document.createElement('tr'), td = document.createElement('td'); td.colSpan = 4; td.className = 'vazio'; td.style.textAlign = 'left'; td.textContent = 'Ainda ninguém abriu o jogo desde que a contagem começou.'; tr.appendChild(td); tb.appendChild(tr); }
+  // calendário
+  $('mNome').textContent = mesTxt(d.mes).replace(/^./, (c) => c.toUpperCase()); $('mAntes').disabled = d.mes <= d.primeiro.slice(0, 7); $('mDepois').disabled = d.mes >= d.hoje.slice(0, 7); $('mHoje').disabled = eHoje;
+  const cal = $('cal'); cal.textContent = '';
+  for (const s of SEM) { const e = document.createElement('div'); e.className = 'sem'; e.textContent = s; cal.appendChild(e); }
+  const nd = new Date(+d.mes.slice(0, 4), +d.mes.slice(5, 7), 0).getDate(), vazios = data(d.mes + '-01').getDay();
+  for (let i = 0; i < vazios; i++) cal.appendChild(document.createElement('div'));
+  for (let n = 1; n <= nd; n++) {
+    const dia = d.mes + '-' + String(n).padStart(2, '0'), q = d.dias.find((z) => z.dia === dia), b = document.createElement('button'), nb = document.createElement('b'), sm = document.createElement('small');
+    b.type = 'button'; nb.textContent = n; sm.textContent = q && q.pessoas ? num(q.pessoas) : ''; b.appendChild(nb); b.appendChild(sm);
+    b.disabled = dia > d.hoje; if (dia === d.hoje) b.classList.add('hoje'); if (dia === diaSel) { b.classList.add('sel'); b.setAttribute('aria-pressed', 'true'); }
+    b.setAttribute('aria-label', diaTxt(dia, true) + (q ? ': ' + num(q.pessoas) + ' pessoas abriram o jogo' : ''));
+    b.addEventListener('click', () => escolhe(dia)); cal.appendChild(b);
+  }
+  // números do dia escolhido
+  const nomeDia = eHoje ? 'hoje' : 'em ' + diaTxt(diaSel, true);
+  $('hRot').textContent = 'Pessoas que jogaram ' + nomeDia + ', no total';
+  $('nJogaram').textContent = num(x.jogaram); $('nJogaramSub').textContent = num(x.jogaram_com) + ' com conta e ' + num(x.jogaram_sem) + ' sem conta';
+  $('sDia').textContent = eHoje ? 'Hoje' : 'No dia ' + diaTxt(diaSel, true);
+  $('nContas').textContent = num(x.contas); $('nSem').textContent = num(x.jogaram_sem); $('nCom').textContent = num(x.jogaram_com); $('nAbriram').textContent = num(x.pessoas);
+  // mês e total
+  $('sMes').textContent = 'No mês de ' + mesTxt(d.mes);
+  $('mContas').textContent = num(t.contas); $('mSem').textContent = num(t.jogaram_sem); $('mJog').textContent = num(t.jogaram); $('mAbr').textContent = num(t.pessoas);
+  $('nTotal').textContent = num(d.total_contas); $('nAgora').textContent = num(d.online);
+  // dia a dia do mês (do mais novo para o mais velho); tocar na linha escolhe o dia
+  const tb = $('tDias'); tb.textContent = ''; $('tSub').textContent = mesTxt(d.mes); $('gSub').textContent = mesTxt(d.mes) + '. Toque numa barra para escolher o dia.';
+  for (const q of d.dias.slice().reverse()) { const tr = document.createElement('tr'); if (q.dia === diaSel) tr.className = 'sel'; for (const v of [diaTxt(q.dia, true), num(q.pessoas), num(q.jogaram), num(q.jogaram_sem), num(q.contas)]) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); } tr.addEventListener('click', () => escolhe(q.dia)); tb.appendChild(tr); }
+  if (!tb.children.length) { const tr = document.createElement('tr'), td = document.createElement('td'); td.colSpan = 5; td.className = 'vazio'; td.style.textAlign = 'left'; td.textContent = 'Sem números neste mês.'; tr.appendChild(td); tb.appendChild(tr); }
   // jogadores (nomes vêm dos jogadores: sempre como texto)
   const tj = $('tJog'); tj.textContent = '';
   for (const j of d.jogadores) { const tr = document.createElement('tr'); [[j.nome, 'nome'], [num(j.fase)], [curto(j.moedas)], [quando(j.criada)], [quando(j.visto)]].forEach(([v, c]) => { const td = document.createElement('td'); td.textContent = v; if (c) { td.className = c; td.title = v; } tr.appendChild(td); }); tj.appendChild(tr); }
   $('jogVazio').classList.toggle('hidden', d.jogadores.length > 0);
-  $('pNota').textContent = '"Pessoas" são aparelhos diferentes que abriram o jogo: a mesma pessoa em dois aparelhos conta duas vezes, e quem limpa os dados do navegador conta de novo. "Jogaram" são contas que salvaram progresso no dia. Os dias viram à meia-noite de Brasília.' + (d.inicio ? ' A contagem começou em ' + diaTxt(d.inicio) + '.' : '');
+  $('pNota').textContent = 'Cada pessoa é um aparelho diferente: a mesma pessoa no celular e no computador conta duas vezes, e quem limpa os dados do navegador conta de novo. "Jogaram" é quem começou pelo menos uma batalha no dia. No mês, cada pessoa conta uma vez só, mesmo que tenha vindo em vários dias. "Jogando agora" é quem estava com o jogo aberto nos últimos 5 minutos. "Sem conta" só acontece quando o servidor das contas não respondeu e a pessoa escolheu jogar assim mesmo, porque o jogo pede a conta antes de jogar. Os dias viram à meia-noite de Brasília. A contagem começou em ' + diaTxt(d.primeiro) + '/' + d.primeiro.slice(0, 4) + '.';
   grafico();
 }
 function grafico() {
-  const box = $('grafico'), d = dados.dias.slice(0, 14).reverse(), NS = 'http://www.w3.org/2000/svg';
-  const W = Math.max(280, box.clientWidth), H = 220, mL = 34, mR = 8, mT = 22, mB = 26, pw = W - mL - mR, ph = H - mT - mB;
-  const max = Math.max(1, ...d.map((x) => x.pessoas)), passo = max <= 4 ? 1 : max <= 10 ? 2 : Math.pow(10, Math.floor(Math.log10(max))) * (max / Math.pow(10, Math.floor(Math.log10(max))) <= 2 ? .5 : max / Math.pow(10, Math.floor(Math.log10(max))) <= 5 ? 1 : 2), topo = Math.max(passo * 2, Math.ceil(max / passo) * passo);
-  const y = (v) => mT + ph - v / topo * ph, faixa = pw / d.length, bw = Math.min(24, Math.max(4, faixa - 6));
-  box.textContent = '';
-  const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Pessoas que abriram o jogo por dia, últimos 14 dias. A tabela abaixo tem os mesmos números.');
+  const box = $('grafico'), d = dados.dias, NS = 'http://www.w3.org/2000/svg'; box.textContent = '';
+  if (!d.length) { const v = document.createElement('div'); v.className = 'vazio'; v.textContent = 'Sem números neste mês.'; box.appendChild(v); return; }
+  const nd = new Date(+dados.mes.slice(0, 4), +dados.mes.slice(5, 7), 0).getDate();
+  const W = Math.max(280, box.clientWidth), H = 220, mL = 34, mR = 8, mT = 22, mB = 30, pw = W - mL - mR, ph = H - mT - mB;
+  const max = Math.max(1, ...d.map((x) => x.pessoas)), p10 = Math.pow(10, Math.floor(Math.log10(max))), passo = max <= 4 ? 1 : max <= 10 ? 2 : p10 * (max / p10 <= 2 ? .5 : max / p10 <= 5 ? 1 : 2), topo = Math.max(passo * 2, Math.ceil(max / passo) * passo);
+  const y = (v) => mT + ph - v / topo * ph, faixa = pw / nd, bw = Math.min(24, Math.max(3, faixa - 2)); // o mês inteiro tem lugar no eixo; os dias que ainda não chegaram ficam vazios
+  const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Pessoas que abriram o jogo por dia em ' + mesTxt(dados.mes) + '. A tabela abaixo tem os mesmos números.');
   const el = (n, a, pai) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); (pai || svg).appendChild(e); return e; };
   for (let v = 0; v <= topo + 1e-9; v += topo / 2) { el('line', { x1: mL, x2: W - mR, y1: y(v), y2: y(v), class: v === 0 ? 'base' : 'grade' }); const t = el('text', { x: mL - 8, y: y(v) + 4, 'text-anchor': 'end' }); t.textContent = num(Math.round(v)); }
-  const iMax = d.reduce((m, x, i) => (x.pessoas > d[m].pessoas ? i : m), 0), cada = d.length * 46 > pw ? (d.length * 23 > pw ? 4 : 2) : 1;
+  const iMax = d.reduce((m, x, i) => (x.pessoas > d[m].pessoas ? i : m), 0);
   const dica = document.createElement('div'); dica.className = 'dica hidden'; box.appendChild(svg); box.appendChild(dica);
+  for (let n = 1; n <= nd; n++) if (n === 1 || n % 5 === 0) { const dia = dados.mes + '-' + String(n).padStart(2, '0'); if (dia === diaSel) continue; const t = el('text', { x: mL + faixa * (n - 1) + faixa / 2, y: H - 10, 'text-anchor': 'middle' }); t.textContent = n; }
   d.forEach((x, i) => {
-    const g = el('g', { class: 'dia' }), cx = mL + faixa * i + faixa / 2, h = x.pessoas / topo * ph, x0 = cx - bw / 2, yb = mT + ph, r = Math.min(4, h, bw / 2);
+    const n = +x.dia.slice(8), g = el('g', { class: 'dia' }), cx = mL + faixa * (n - 1) + faixa / 2, h = x.pessoas / topo * ph, x0 = cx - bw / 2, yb = mT + ph, r = Math.min(4, h, bw / 2), sel = x.dia === diaSel;
     if (h > 0) el('path', { class: 'barra', d: 'M' + x0 + ',' + yb + ' V' + (yb - h + r) + ' Q' + x0 + ',' + (yb - h) + ' ' + (x0 + r) + ',' + (yb - h) + ' H' + (x0 + bw - r) + ' Q' + (x0 + bw) + ',' + (yb - h) + ' ' + (x0 + bw) + ',' + (yb - h + r) + ' V' + yb + ' Z' }, g);
-    if ((i === d.length - 1 || i === iMax) && x.pessoas > 0) { const t = el('text', { class: 'val', x: cx, y: yb - h - 6, 'text-anchor': 'middle' }, g); t.textContent = num(x.pessoas); } // só o dia de hoje e o maior levam o número; os outros estão no toque e na tabela
-    if ((d.length - 1 - i) % cada === 0) { const t = el('text', { x: cx, y: H - 8, 'text-anchor': 'middle' }, g); t.textContent = diaTxt(x.dia); }
-    const alvo = el('rect', { class: 'alvo', x: cx - faixa / 2, y: mT, width: faixa, height: ph + mB, tabindex: 0, role: 'img', 'aria-label': diaTxt(x.dia, true) + ': ' + num(x.pessoas) + ' pessoas' }, g);
-    const mostra = () => { dica.textContent = ''; const b = document.createElement('b'); b.textContent = num(x.pessoas) + (x.pessoas === 1 ? ' pessoa' : ' pessoas'); dica.appendChild(b); dica.appendChild(document.createTextNode(diaTxt(x.dia, true))); dica.classList.remove('hidden'); const esc = box.clientWidth / W; dica.style.left = Math.max(60, Math.min(box.clientWidth - 60, cx * esc)) + 'px'; dica.style.top = (Math.max(mT, yb - h) * (220 / H) - 8) + 'px'; };
+    if ((sel || i === iMax) && x.pessoas > 0) { const t = el('text', { class: 'val', x: cx, y: yb - h - 6, 'text-anchor': 'middle' }, g); t.textContent = num(x.pessoas); } // só o dia escolhido e o maior levam o número; os outros estão no toque e na tabela
+    if (sel) { const t = el('text', { class: 'selx', x: cx, y: H - 10, 'text-anchor': 'middle' }, g); t.textContent = n; el('rect', { class: 'marca', x: cx - Math.max(bw, 10) / 2, y: yb + 3, width: Math.max(bw, 10), height: 2, rx: 1 }, g); } // o dia escolhido: número do dia em destaque e um traço embaixo
+    const alvo = el('rect', { class: 'alvo', x: cx - faixa / 2, y: mT, width: faixa, height: ph + mB, tabindex: 0, role: 'button', 'aria-label': diaTxt(x.dia, true) + ': ' + num(x.pessoas) + ' pessoas. Toque para ver esse dia.' }, g);
+    const mostra = () => { dica.textContent = ''; const b = document.createElement('b'); b.textContent = num(x.pessoas) + (x.pessoas === 1 ? ' pessoa' : ' pessoas'); dica.appendChild(b); dica.appendChild(document.createTextNode(diaTxt(x.dia, true))); dica.classList.remove('hidden'); const esc = box.clientWidth / W; dica.style.left = Math.max(60, Math.min(box.clientWidth - 60, cx * esc)) + 'px'; dica.style.top = (Math.max(mT, yb - h) - 8) + 'px'; };
     const some = () => dica.classList.add('hidden');
-    alvo.addEventListener('pointerenter', mostra); alvo.addEventListener('pointerleave', some); alvo.addEventListener('focus', mostra); alvo.addEventListener('blur', some); alvo.addEventListener('click', mostra);
+    alvo.addEventListener('pointerenter', mostra); alvo.addEventListener('pointerleave', some); alvo.addEventListener('focus', mostra); alvo.addEventListener('blur', some);
+    alvo.addEventListener('click', () => escolhe(x.dia)); alvo.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); escolhe(x.dia); } });
   });
 }
 async function abre() {
@@ -215,7 +292,8 @@ async function abre() {
   if (await carrega()) { clearInterval(timer); timer = setInterval(() => { if (!document.hidden) carrega(); }, 60000); }
 }
 $('pAtualiza').addEventListener('click', carrega);
-$('pSair').addEventListener('click', async () => { const t = token; token = ''; try { localStorage.removeItem(CHAVE); } catch (e) {} dados = null; await chama('painel_sair', { token: t }); mostraEntrada(); });
+$('mAntes').addEventListener('click', () => mudaMes(-1)); $('mDepois').addEventListener('click', () => mudaMes(1)); $('mHoje').addEventListener('click', () => mudaMes(0));
+$('pSair').addEventListener('click', async () => { const t = token; token = ''; try { localStorage.removeItem(CHAVE); } catch (e) {} dados = null; mesSel = ''; diaSel = ''; await chama('painel_sair', { token: t }); mostraEntrada(); });
 let rz = 0; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (dados) grafico(); }, 150); });
 if (token) abre(); else mostraEntrada();
 </script>
