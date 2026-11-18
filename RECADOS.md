@@ -10,6 +10,7 @@ Ninguém no momento (livre).
 
 ## Recados
 
+- 2026-11-18 — `claude/hopeful-galileo-t00naw` — só `ferramentas/criativos/gerar.js` (o `index.html` não mudou): no vídeo `fase100_ilha`, a pedido do dono, **todas as construções começam no nível 1 e a pessoa deixa todas no nível 3**. Passo novo na ferramenta, `{ construirTodas: N }`: melhora todas as construções até o nível N, uma depois da outra, e a câmera desliza até as que estão fora da tela.
 - 2026-11-18 — `claude/hopeful-galileo-t00naw` — só `ferramentas/criativos/gerar.js` (o `index.html` não mudou): receita nova de vídeo **`tela_inicial`**, a pedido do dono — o menu parado, um passeio pelas abas (Canhão, Capitão, Ilha, Troféus) e o toque no JOGAR. Sem texto por cima: `node ferramentas/criativos/gerar.js --sem-legenda --sem-link --sem-chamada tela_inicial`.
 - 2026-11-18 — `claude/hopeful-galileo-t00naw` — só `ferramentas/criativos/gerar.js` (o `index.html` não mudou): receita nova de vídeo **`fase100_ilha`**, a pedido do dono — batalha na fase 100, depois a tela inicial, depois a ilha sendo construída (Casa do Tesouro e Forja até o nível 12). Para sair sem texto nenhum por cima: `node ferramentas/criativos/gerar.js --sem-legenda --sem-link --sem-chamada fase100_ilha`.
 - 2026-11-18 — `claude/hopeful-galileo-t00naw` — `index.html` (BUILD 72), a pedido do dono, para a divulgação ao público: **saiu o atalho de teste** (7 toques nas moedas do menu davam 10 milhões de moedas e 500 gemas). O presente de boas-vindas de 20 mil moedas (`PRESENTE`) continua, até o dono decidir.
