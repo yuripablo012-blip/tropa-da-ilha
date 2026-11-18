@@ -1235,7 +1235,7 @@ const CANNON = () => ({ x: G ? G.px : W / 2, y: H - 100 });
 const DEF = () => H - 205;
 const HITY = () => DEF() + 36; // onde o inimigo alcança o pirata e ataca (antes era na linha de defesa, um corpo de distância)
 const SHOW_FENCE = false;                  // linha que os piratas não podem passar
-const BUILD = 'Versão 71 · 18/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
+const BUILD = 'Versão 72 · 18/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
 const GANHO = 6; // multiplicador geral das moedas de batalha
 const coinMul = () => (1 + fireBonus()) * (1 + (P.vila ? VB().c : 0)) * (1 + canCoin()) * .7 * GANHO; // bônus de sequência, da vila e do canhão
 const ecoVal = () => { const n = P.level || 1; return (60 + 40 * n + .5 * n * n) * coinMul(); }; // quanto vale hoje, em moedas, um bom pedaço de fase (cerca de 1/4 do que uma fase paga)
@@ -1434,7 +1434,7 @@ const VLMAX = 9, VSTG = 6, vStg = (l) => l ? Math.min(VSTG, Math.ceil(l / 3)) : 
 function V() { if (!P.vila) P.vila = { i: 0, b: {}, t: Date.now(), v9: 1, z0: 1, inf: 1 }; if (!P.vila.v9) { for (const k in P.vila.b) P.vila.b[k] *= 3; P.vila.v9 = 1; } if (!P.vila.z0) { P.vila.b = {}; P.vila.z0 = 1; } if (!P.vila.inf) { if (P.vila.i > 0) for (const d of VDEF) P.vila.b[d.k] = (P.vila.b[d.k] || 0) + P.vila.i * 9; P.vila.inf = 1; } /* inf: níveis contínuos; cada ilha antiga vira +9 níveis */ return P.vila; } // v9: saves antigos (3 níveis) viram 3/6/9
 const vLv = (k) => V().b[k] || 0;
 const vTot = (k) => vLv(k) / 3; // bônus igual ao de antes no nível cheio; cada passo vale um terço
-const VTEST1 = false; // modo teste (tudo custa 1 moeda e 100 mil de brinde): desligado. Para testar, toque 7 vezes seguidas nas moedas do lobby.
+const VTEST1 = false; // modo teste (tudo custa 1 moeda e 100 mil de brinde): desligado. O atalho dos 7 toques nas moedas foi retirado para a divulgação ao público.
 const PRESENTE = 20000; // presente de boas-vindas: 20 mil moedas, UMA vez por aparelho, numa janela que aparece assim que a pessoa entra no jogo (0 = sem presente). Quem já recebeu um presente antes não recebe de novo
 function bemVindo() { if (!PRESENTE || P.presente || window.bemShown || !$('splash').classList.contains('hidden') || contaAberta()) return; window.bemShown = true; $('bemImg').innerHTML = ii('chest', ''); $('bemItems').innerHTML = `<div class="co-it" style="--c1:#e8a316;--c2:#fff2a0">${ii('coin', '')}<b>+${PRESENTE.toLocaleString('pt-BR')}</b><small>moedas</small></div>`; $('bemOv').classList.remove('hidden'); sfx('power'); }
 $('bemBtn').addEventListener('click', () => { if (P.presente) { $('bemOv').classList.add('hidden'); return; } P.coins = (Number(P.coins) || 0) + PRESENTE; P.presente = PRESENTE; save(); $('bemOv').classList.add('hidden'); sfx('big'); [784, 988, 1318].forEach((f, j) => setTimeout(() => beep(f, .12, 'triangle', .06), j * 90)); renderLobby(); });
@@ -2505,8 +2505,6 @@ function showPage(pg) {
   renderLobby();
   if (pg === 'vila') openVila();
 }
-let devTaps = 0, devT = 0;
-$('menuCoins').parentElement.addEventListener('click', () => { const n = Date.now(); devTaps = n - devT < 600 ? devTaps + 1 : 1; devT = n; if (devTaps >= 7) { devTaps = 0; P.coins += 10000000; P.gems = (P.gems || 0) + 500; save(); sfx('big'); renderLobby(); const el = $('menuCoins').parentElement; el.style.transition = 'transform .15s'; el.style.transform = 'scale(1.35)'; setTimeout(() => { el.style.transform = ''; }, 260); } }); // atalho de teste do dono: 7 toques rápidos nas moedas do menu = +10 milhões. REMOVER antes de divulgar ao público
 { const e = $('end'), p = document.createElement('div'); p.className = 'endpanel'; [...e.children].filter((c) => !['endTitle', 'endStars'].includes(c.id) && !c.classList.contains('endbtns')).forEach((c) => p.appendChild(c)); e.insertBefore(p, e.querySelector('.endbtns')); }
 function renderLobby() {
   if (typeof shopHud === 'function') shopHud();
