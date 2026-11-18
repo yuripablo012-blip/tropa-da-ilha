@@ -1073,10 +1073,11 @@ function ctAplica(agora) {
 }
 function ctEsquece() { CT = { ap: CT.ap }; ctGrava(); ctEst = ''; contaCard(); contaPorta(); } // a sessão não vale mais: pede para entrar de novo (o jogo do aparelho fica)
 // ao abrir o jogo: com conta, confere o que está no servidor; sem conta, pergunta se o servidor das contas existe
-let ctVisita = false;
+let ctVisita = false, ctJogouC = -1;
+function ctJogou() { const c = ctTem() ? 1 : 0; if (!ctNet || ctJogouC === c) return; ctJogouC = c; ctCall('jogou', { c }, false, 8000); } // começou uma batalha: o painel conta quem jogou, com conta ou sem (uma vez por abertura do jogo)
 async function ctInicio() {
   if (!ctNet) return;
-  if (!ctVisita) { ctVisita = true; ctCall('visita', null, false, 8000); } // avisa o servidor que o jogo foi aberto (painel do dono); só a identificação anônima do aparelho vai junto
+  if (!ctVisita) { ctVisita = true; ctCall('visita', { c: ctTem() ? 1 : 0 }, false, 8000); setInterval(() => { if (!document.hidden) ctCall('pulso', { c: ctTem() ? 1 : 0 }, false, 8000); }, 120000); } // avisa o servidor que o jogo foi aberto e, a cada 2 minutos, que continua aberto (painel do dono); só a identificação anônima do aparelho vai junto
   ctPingT = Date.now();
   if (ctTem()) {
     const tok = CT.token, r = await ctCall('carregar', { token: tok });
@@ -1197,7 +1198,7 @@ const CANNON = () => ({ x: G ? G.px : W / 2, y: H - 100 });
 const DEF = () => H - 205;
 const HITY = () => DEF() + 36; // onde o inimigo alcança o pirata e ataca (antes era na linha de defesa, um corpo de distância)
 const SHOW_FENCE = false;                  // linha que os piratas não podem passar
-const BUILD = 'Versão 68 · 18/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
+const BUILD = 'Versão 69 · 18/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
 const GANHO = 6; // multiplicador geral das moedas de batalha
 const coinMul = () => (1 + fireBonus()) * (1 + (P.vila ? VB().c : 0)) * (1 + canCoin()) * .7 * GANHO; // bônus de sequência, da vila e do canhão
 const ecoVal = () => { const n = P.level || 1; return (60 + 40 * n + .5 * n * n) * coinMul(); }; // quanto vale hoje, em moedas, um bom pedaço de fase (cerca de 1/4 do que uma fase paga)
@@ -1253,6 +1254,7 @@ function tutStart() {
   }, 150) };
 }
 function startLevel() {
+  ctJogou();
   for (const k in HUDC) delete HUDC[k];
   const lives = stat.hp(P.hp);
   const LV = Math.min(P.sel || P.level, P.level);
