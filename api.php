@@ -465,6 +465,7 @@ if ($acao === 'apagar') {
   if (time() - $f['t'] > 900) $f = array('n' => 0, 't' => time());
   if ($f['n'] >= LIM_FALHA_CONTA) { solta($t); erro('muitas', 'Muitas tentativas. Espere 15 minutos e tente de novo.'); }
   if (!password_verify($senha, $conta['senha'])) { $f['n']++; $conta['falhas'] = $f; grava($arq, $conta); solta($t); erro('login', 'Senha errada.'); }
+  contas_criadas(false); // garante que o contador de contas já criadas existe antes de esta sumir
   @unlink($arq);
   solta($t);
   sai(array('ok' => true));
