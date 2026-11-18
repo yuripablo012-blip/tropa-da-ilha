@@ -25,6 +25,7 @@ const LIM_FALHA_IP = 60;     // senhas erradas por hora, por endereço
 const LIM_FALHA_CONTA = 10;  // senhas erradas em 15 minutos, por conta
 const PAINEL_CODIGO = '1b61bee8367877089c14dda2c3ed6e9e628108f4a4ecb63290de9bafc8155531'; // impressão digital (SHA-256) do código de primeiro acesso do painel; o código em si não está em lugar nenhum do projeto
 const PAINEL_DIAS = 30;      // sessão do painel
+const AP_TESTE = 'testedoclaude1'; // aparelho usado para conferir o site no ar: os sinais dele são aceitos mas nunca entram nos números do painel
 const LIM_VISITA_IP = 400;   // aberturas do jogo contadas por hora, por endereço
 const GUARDA = "<?php http_response_code(404); exit; ?>\n"; // primeira linha de cada arquivo de dados: se alguém abrir pelo navegador, não mostra nada
 
@@ -221,7 +222,7 @@ if ($acao === 'visita' || $acao === 'jogou' || $acao === 'pulso') {
   $tl = trava('limites');
   $livre = limite(subpasta('limites') . '/ip_' . ip_chave() . '.php', 'visita', LIM_VISITA_IP, true);
   solta($tl);
-  if ($livre) {
+  if ($livre && $ap !== AP_TESTE) {
     $id = $ap !== '' ? ap_id($ap) : null; $c = !empty($B['c']);
     if ($acao === 'visita') conta_stat('aberturas', $id ? ($c ? array('ap' => $id, 'apc' => $id) : array('ap' => $id)) : array());
     if ($acao === 'jogou' && $id) conta_stat('partidas', $c ? array('ap' => $id, 'apc' => $id, 'jg' => $id, 'jc' => $id) : array('ap' => $id, 'jg' => $id));
@@ -278,12 +279,12 @@ if ($acao === 'painel_dados') { // números de um mês (o atual, ou o pedido em 
   $hoje = date('Y-m-d');
   $mes = isset($B['mes']) && is_string($B['mes']) && preg_match('/^20\d\d-(0[1-9]|1[0-2])$/', $B['mes']) ? $B['mes'] : substr($hoje, 0, 7);
   $nd = (int) date('t', strtotime($mes . '-01'));
-  $dias = array(); $uAp = array(); $uApc = array(); $uJg = array(); $uJc = array(); $contas = 0;
+  $dias = array(); $uAp = array(); $uApc = array(); $uJg = array(); $uJc = array(); $contas = 0; $fora = ap_id(AP_TESTE);
   for ($n = 1; $n <= $nd; $n++) {
     $dia = sprintf('%s-%02d', $mes, $n);
     if ($dia > $hoje) break; // dias que ainda não chegaram não entram
     $d = le(dia_arq($dia));
-    $cj = function ($k) use ($d) { return $d && isset($d[$k]) && is_array($d[$k]) ? $d[$k] : array(); };
+    $cj = function ($k) use ($d, $fora) { $x = $d && isset($d[$k]) && is_array($d[$k]) ? $d[$k] : array(); unset($x[$fora]); return $x; }; // o aparelho de teste nunca conta
     $aps = $cj('ap'); $apc = array_intersect_key($cj('apc'), $aps); $jg = $cj('jg'); $jc = array_intersect_key($cj('jc'), $jg);
     $dias[] = array('dia' => $dia, 'pessoas' => count($aps), 'sem_cadastro' => count($aps) - count($apc), 'aberturas' => $d && isset($d['aberturas']) ? (int) $d['aberturas'] : 0, 'contas' => $d && isset($d['contas']) ? (int) $d['contas'] : 0,
       'jogaram' => count($jg), 'jogaram_com' => count($jc), 'jogaram_sem' => count($jg) - count($jc), 'salvaram' => count($cj('ativos')), 'entradas' => $d && isset($d['entradas']) ? (int) $d['entradas'] : 0);
@@ -295,7 +296,7 @@ if ($acao === 'painel_dados') { // números de um mês (o atual, ou o pedido em 
   $arqs = (array) @glob(subpasta('stats') . '/d_*.php'); sort($arqs);
   $primeiro = $arqs && preg_match('/d_(\d{4}-\d{2}-\d{2})\.php$/', $arqs[0], $m) ? $m[1] : $hoje; // primeiro dia com contagem
   $c = lista_contas();
-  $ag = le(subpasta('stats') . '/agora.php'); $online = 0; if ($ag) foreach ($ag as $v) if ($v >= time() - 300) $online++; // sinal nos últimos 5 minutos
+  $ag = le(subpasta('stats') . '/agora.php'); $online = 0; if ($ag) { unset($ag[$fora]); foreach ($ag as $v) if ($v >= time() - 300) $online++; } // sinal nos últimos 5 minutos
   sai(array('ok' => true, 'agora' => time(), 'hoje' => $hoje, 'mes' => $mes, 'primeiro' => $primeiro, 'dias' => $dias, 'mes_totais' => $totais, 'online' => $online, 'total_contas' => (int) $c['total'], 'jogadores' => $c['lista']));
 }
 
