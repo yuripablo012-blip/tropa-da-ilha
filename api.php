@@ -238,11 +238,7 @@ function painel_nova_sessao(&$adm) {
 
 /* ---------- Pedido ---------- */
 $acao = isset($_GET['a']) ? (string) $_GET['a'] : '';
-if ($acao === 'ping') { // também diz se o endereço que o PHP enxerga é o do visitante ('igual') ou o de um intermediário ('outro'), sem mostrar endereço nenhum: os limites por endereço dependem disso
-  pasta_dados(); contas_criadas(false);
-  $ra = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : ''; $xf = isset($_SERVER['HTTP_X_FORWARDED_FOR']) ? trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0]) : ''; $xr = isset($_SERVER['HTTP_X_REAL_IP']) ? trim($_SERVER['HTTP_X_REAL_IP']) : '';
-  sai(array('ok' => true, 'dados' => $GLOBALS['onde_dados'], 'endereco' => ($xf === '' && $xr === '') ? 'sem_cabecalho' : (($xf !== '' && $xf === $ra) || ($xr !== '' && $xr === $ra) ? 'igual' : 'outro')));
-}
+if ($acao === 'ping') { pasta_dados(); contas_criadas(false); sai(array('ok' => true, 'dados' => $GLOBALS['onde_dados'])); } // também deixa criado o contador de contas já criadas
 if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST') erro('pedido', 'Pedido inválido.');
 // Só o jogo e o painel, abertos neste mesmo site, falam com a api. Outro site não consegue mandar JSON nem se passar pela mesma origem,
 // então não dá para inflar os números nem travar senhas a partir das visitas de outra página.
