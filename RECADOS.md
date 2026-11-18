@@ -10,6 +10,7 @@ Ninguém no momento (livre).
 
 ## Recados
 
+- 2026-11-18 — `claude/hopeful-galileo-t00naw` — `painel.html`, a pedido do dono: o primeiro bloco de "Desde o começo" passa a dizer só **"Criaram conta"** (número igual: `total_contas`, contas já criadas).
 - 2026-11-18 — `claude/hopeful-galileo-t00naw` — `painel.html`, a pedido do dono: o bloco de "Desde o começo" que dizia "Pessoas que criaram conta" passa a dizer **"Criaram conta e estão jogando"**. O número é o mesmo de antes (`total_contas`, contas já criadas); só o texto mudou.
 - 2026-11-18 — `claude/hopeful-galileo-t00naw` — `api.php`: saiu do `ping` o campo de diagnóstico `endereco`. Ele serviu para confirmar, no site no ar, que o PHP da hospedagem enxerga o endereço de cada visitante (resposta `igual`), ou seja, os limites por endereço valem por visitante e não para o site inteiro. Conferido no ar depois do BUILD 70: jogo e painel abrem sem erro, `painel_dados` recusa quem não tem a senha, pedido sem JSON ou vindo de outro site é recusado, cabeçalhos de proteção do `painel.html` presentes.
 - 2026-11-18 — `claude/hopeful-galileo-t00naw` — painel, a pedido do dono: "Desde o começo" ganhou **Jogaram sem conta** e **Jogaram, no total**. `api.php` guarda em `stats/sempre.php` todos os aparelhos que já começaram uma batalha (`jg`) e os que já jogaram com conta (`jc`); o arquivo nasce da soma dos dias guardados e é atualizado a cada `jogou`; `painel_dados` devolve `sempre: { jogaram, jogaram_com, jogaram_sem }`.
