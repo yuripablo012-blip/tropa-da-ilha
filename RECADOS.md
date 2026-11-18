@@ -10,6 +10,7 @@ Ninguém no momento (livre).
 
 ## Recados
 
+- 2026-11-18 — `claude/hopeful-galileo-t00naw` — `painel.html`, a pedido do dono: no bloco de **Hoje**, o quarto número deixa de ser "Abriram o jogo" e passa a ser **"Com o jogo aberto agora"** (`online`). Quando o dono escolhe um dia que já passou, esse bloco volta a mostrar "Abriram o jogo" daquele dia. O bloco do mês e os números pequenos do calendário continuam mostrando quem abriu o jogo.
 - 2026-11-18 — `claude/hopeful-galileo-t00naw` — `painel.html`, a pedido do dono: o primeiro bloco de "Desde o começo" passa a dizer só **"Criaram conta"** (número igual: `total_contas`, contas já criadas).
 - 2026-11-18 — `claude/hopeful-galileo-t00naw` — `painel.html`, a pedido do dono: o bloco de "Desde o começo" que dizia "Pessoas que criaram conta" passa a dizer **"Criaram conta e estão jogando"**. O número é o mesmo de antes (`total_contas`, contas já criadas); só o texto mudou.
 - 2026-11-18 — `claude/hopeful-galileo-t00naw` — `api.php`: saiu do `ping` o campo de diagnóstico `endereco`. Ele serviu para confirmar, no site no ar, que o PHP da hospedagem enxerga o endereço de cada visitante (resposta `igual`), ou seja, os limites por endereço valem por visitante e não para o site inteiro. Conferido no ar depois do BUILD 70: jogo e painel abrem sem erro, `painel_dados` recusa quem não tem a senha, pedido sem JSON ou vindo de outro site é recusado, cabeçalhos de proteção do `painel.html` presentes.
