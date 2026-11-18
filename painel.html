@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Painel · Tropa da Ilha</title>
 <!-- Painel do dono do jogo: quantas pessoas criaram conta, quantas jogaram (com e sem conta) e quantas abriram o jogo,
-     por dia e por mês. O dono escolhe o mês e toca no dia que quer ver. Fala com o api.php (ações painel_*). Só abre com a senha do painel. -->
+     por dia e por mês. O dono escolhe o mês e toca no dia que quer ver. A pedido dele, a página é só isso: calendário e números. Fala com o api.php (ações painel_*). Só abre com a senha do painel. -->
 <style>
 :root { color-scheme: light; --page: #f3f2ee; --surface-1: #fcfcfb; --text-primary: #0b0b0b; --text-secondary: #52514e; --muted: #7a7872; --rule: #c3c2b7; --border: #e2e0d9; --series-1: #2a78d6; --danger: #b3261e; --btn: #0b0b0b; --btn-text: #fcfcfb; }
 @media (prefers-color-scheme: dark) { :root { color-scheme: dark; --page: #101010; --surface-1: #1a1a19; --text-primary: #f0efec; --text-secondary: #c3c2b7; --muted: #898781; --rule: #383835; --border: #2b2b29; --series-1: #3987e5; --danger: #e66767; --btn: #f0efec; --btn-text: #101010; } }
@@ -34,7 +34,7 @@ input:focus-visible, button:focus-visible, .alvo:focus-visible { outline: 2px so
 .mesnav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .mesnav h2 { font-size: 18px; }
 .mesnav .btn { min-width: 44px; min-height: 40px; font-size: 18px; padding: 4px 12px; }
-.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 12px; }
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin-top: 12px; }
 .cal .sem { text-align: center; font-size: 11.5px; color: var(--muted); padding: 2px 0 4px; }
 .cal button { border: 1px solid var(--border); background: var(--surface-1); border-radius: 10px; min-height: 48px; padding: 4px 0 3px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; line-height: 1.15; }
 .cal button b { font-size: 15px; font-weight: 600; }
@@ -46,41 +46,13 @@ input:focus-visible, button:focus-visible, .alvo:focus-visible { outline: 2px so
 .calpe { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
 /* número principal e blocos */
 .heroi .rotulo { color: var(--text-secondary); font-size: 15px; }
-.heroi .valor { font-size: 60px; line-height: 1.05; font-weight: 650; letter-spacing: -1px; margin-top: 4px; }
+.heroi .valor { font-size: clamp(38px, 15vw, 60px); line-height: 1.05; font-weight: 650; letter-spacing: -1px; margin-top: 4px; overflow-wrap: anywhere; }
 .secao { margin: 22px 2px 0; font-size: 14px; color: var(--text-secondary); font-weight: 600; }
-.blocos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+.blocos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 10px; }
 .bloco { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
 .bloco .rotulo { color: var(--text-secondary); font-size: 13.5px; line-height: 1.3; }
-.bloco .valor { font-size: 28px; font-weight: 650; margin-top: 4px; }
-/* gráfico */
-.grafico { position: relative; margin-top: 10px; }
-.grafico svg { display: block; width: 100%; height: 220px; overflow: visible; }
-.grafico .grade { stroke: var(--border); stroke-width: 1; }
-.grafico .base { stroke: var(--rule); stroke-width: 1; }
-.grafico text { fill: var(--muted); font-size: 11.5px; font-variant-numeric: tabular-nums; }
-.grafico text.val { fill: var(--text-primary); font-weight: 650; font-size: 12.5px; }
-.grafico text.selx { fill: var(--text-primary); font-weight: 650; }
-.grafico .barra { fill: var(--series-1); }
-.grafico .marca { fill: var(--text-primary); }
-.grafico .alvo { fill: transparent; cursor: pointer; outline: none; }
-.grafico g.dia:hover .barra, .grafico g.dia:focus-within .barra { fill-opacity: .72; }
-.dica { position: absolute; pointer-events: none; background: var(--text-primary); color: var(--page); border-radius: 8px; padding: 6px 10px; font-size: 13px; line-height: 1.3; white-space: nowrap; transform: translate(-50%, -100%); z-index: 2; }
-.dica b { display: block; font-size: 15px; }
-/* tabelas */
-.rola { overflow-x: auto; margin-top: 10px; }
-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-th, td { text-align: right; padding: 8px 5px; border-bottom: 1px solid var(--border); white-space: nowrap; font-variant-numeric: tabular-nums; }
-th { color: var(--text-secondary); font-weight: 600; font-size: 12.5px; }
-th:first-child, td:first-child { text-align: left; }
-tr:last-child td { border-bottom: 0; }
-#tDias tr { cursor: pointer; }
-#tDias tr.sel td { font-weight: 650; background: color-mix(in srgb, var(--series-1) 12%, transparent); }
-td.nome { font-variant-numeric: normal; font-weight: 600; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
-.vazio { color: var(--text-secondary); font-size: 14px; padding: 10px 0; }
-.mais { margin-top: 14px; }
-.mais summary { cursor: pointer; color: var(--text-secondary); font-size: 14px; padding: 8px 2px; width: fit-content; }
-.nota { color: var(--muted); font-size: 12.5px; margin-top: 16px; line-height: 1.5; }
-@media (min-width: 620px) { .blocos { grid-template-columns: repeat(4, 1fr); } .cal button { min-height: 54px; } }
+.bloco .valor { font-size: clamp(20px, 6.6vw, 28px); font-weight: 650; margin-top: 4px; overflow-wrap: anywhere; }
+@media (min-width: 620px) { .blocos { grid-template-columns: repeat(4, minmax(0, 1fr)); } .cal button { min-height: 54px; } }
 </style>
 </head>
 <body>
@@ -107,6 +79,7 @@ td.nome { font-variant-numeric: normal; font-weight: 600; max-width: 150px; over
       <div class="acoes"><button class="btn" id="pAtualiza" type="button">Atualizar</button><button class="btn" id="pSair" type="button">Sair</button></div>
     </div>
 
+    <div id="pCorpo" class="hidden">
     <!-- escolha do mês e do dia -->
     <div class="card">
       <div class="mesnav"><button class="btn" id="mAntes" type="button" aria-label="Mês anterior">‹</button><h2 id="mNome"></h2><button class="btn" id="mDepois" type="button" aria-label="Mês seguinte">›</button></div>
@@ -135,33 +108,11 @@ td.nome { font-variant-numeric: normal; font-weight: 600; max-width: 150px; over
     <h2 class="secao">Desde o começo</h2>
     <div class="blocos">
       <div class="bloco"><div class="rotulo">Pessoas que criaram conta</div><div class="valor" id="nTotal">0</div></div>
-      <div class="bloco"><div class="rotulo">Jogando agora</div><div class="valor" id="nAgora">0</div></div>
+      <div class="bloco"><div class="rotulo">Jogaram sem conta</div><div class="valor" id="sSem">0</div></div>
+      <div class="bloco"><div class="rotulo">Jogaram, no total</div><div class="valor" id="sJog">0</div></div>
+      <div class="bloco"><div class="rotulo">Com o jogo aberto agora</div><div class="valor" id="nAgora">0</div></div>
     </div>
-
-    <div class="card">
-      <h2>Pessoas que abriram o jogo por dia</h2>
-      <div class="sub" id="gSub"></div>
-      <div class="grafico" id="grafico"></div>
     </div>
-
-    <!-- o painel termina no gráfico; a tabela dos dias e a lista de jogadores ficam guardadas aqui, fechadas -->
-    <details class="mais">
-    <summary>Ver a tabela dos dias e os jogadores</summary>
-    <div class="card">
-      <h2>Dia a dia</h2>
-      <div class="sub" id="tSub"></div>
-      <div class="rola"><table><thead><tr><th>Dia</th><th>Abriram</th><th>Jogaram</th><th>Sem conta</th><th>Contas</th></tr></thead><tbody id="tDias"></tbody></table></div>
-    </div>
-
-    <div class="card">
-      <h2>Jogadores</h2>
-      <div class="sub">As 100 contas que jogaram por último</div>
-      <div class="rola"><table><thead><tr><th>Jogador</th><th>Fase</th><th>Moedas</th><th>Criou a conta</th><th>Jogou por último</th></tr></thead><tbody id="tJog"></tbody></table></div>
-      <div class="vazio hidden" id="jogVazio">Ainda não há contas.</div>
-    </div>
-
-    <p class="nota" id="pNota"></p>
-    </details>
   </section>
 </main>
 
@@ -176,12 +127,12 @@ async function chama(a, corpo) {
   try { const r = await fetch(API + '?a=' + a, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo || {}), cache: 'no-store' }); const j = JSON.parse(await r.text()); return j && typeof j.ok === 'boolean' ? j : null; } catch (e) { return null; }
 }
 const num = (n) => Number(n || 0).toLocaleString('pt-BR');
-const curto = (n) => { n = Number(n || 0); return n < 10000 ? num(Math.round(n)) : new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 }).format(n); };
 const SEM = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'], MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 const data = (d) => { const p = d.split('-'); return new Date(+p[0], +p[1] - 1, +p[2] || 1); };
 const diaTxt = (d, semana) => { const p = d.split('-'); return (semana ? SEM[data(d).getDay()] + ' ' : '') + p[2] + '/' + p[1]; };
 const mesTxt = (m) => MESES[+m.slice(5, 7) - 1] + ' de ' + m.slice(0, 4);
 const somaMes = (m, n) => { const d = new Date(+m.slice(0, 4), +m.slice(5, 7) - 1 + n, 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); };
+const breve = (n) => (n < 10000 ? num(n) : n < 1e6 ? Math.floor(n / 1000) + ' mil' : (Math.floor(n / 1e5) / 10).toLocaleString('pt-BR') + ' mi'); // número pequeno do calendário: 12 mil, 1,2 mi
 const quando = (t) => { if (!t) return '—'; const d = new Date(t * 1000), z = (x) => String(x).padStart(2, '0'); return z(d.getDate()) + '/' + z(d.getMonth() + 1) + ' ' + z(d.getHours()) + ':' + z(d.getMinutes()); };
 
 /* ---------- entrada ---------- */
@@ -197,14 +148,15 @@ function pintaEntrada() {
   $('eTroca').classList.toggle('hidden', !temSenha);
 }
 async function mostraEntrada(msg) {
-  clearInterval(timer); $('vPainel').classList.add('hidden'); $('vEntrar').classList.remove('hidden'); $('eErro').textContent = msg || '';
+  clearInterval(timer); $('vPainel').classList.add('hidden'); $('vEntrar').classList.remove('hidden'); $('eErro').textContent = msg || ''; $('fEntrar').classList.add('hidden');
   const r = await chama('painel_estado'); if (r) temSenha = !!r.tem_senha; else $('eErro').textContent = 'Sem conexão com o servidor. Confira a internet.';
-  pintaEntrada();
+  pintaEntrada(); $('fEntrar').classList.remove('hidden');
 }
 $('eTroca').addEventListener('click', () => { modoCodigo = !modoCodigo; $('eErro').textContent = ''; pintaEntrada(); });
 $('fEntrar').addEventListener('submit', async (e) => {
   e.preventDefault(); const cod = modoCodigo || !temSenha, senha = $('eSenha').value;
   if (cod && senha.length < 8) { $('eErro').textContent = 'A senha precisa ter pelo menos 8 letras ou números.'; return; }
+  if (cod && new TextEncoder().encode(senha).length > 64) { $('eErro').textContent = 'A senha ficou comprida demais. Use até 64 letras ou números.'; return; }
   if (!senha) { $('eErro').textContent = 'Digite a senha.'; return; }
   $('eBtn').disabled = true; $('eErro').textContent = '';
   const r = cod ? await chama('painel_criar', { codigo: $('eCod').value, senha }) : await chama('painel_entrar', { senha });
@@ -216,37 +168,56 @@ $('fEntrar').addEventListener('submit', async (e) => {
 });
 
 /* ---------- painel ---------- */
-async function carrega() {
+let pedido = 0, trocando = null; // só a resposta do pedido mais novo vale; "trocando" guarda o mês pedido enquanto a resposta não chega
+async function carrega(mes) { // mes: 'AAAA-MM' para trocar de mês, '' para o mês de hoje, nada para atualizar o que está na tela
+  if (typeof mes === 'string') trocando = mes;
+  const meu = ++pedido, alvo = trocando !== null ? trocando : mesSel;
   $('pAtualiza').disabled = true;
-  const r = await chama('painel_dados', mesSel ? { token, mes: mesSel } : { token });
+  const r = await chama('painel_dados', alvo ? { token, mes: alvo } : { token });
+  if (meu !== pedido) return false;
+  trocando = null;
   $('pAtualiza').disabled = false;
-  if (!r) { $('pQuando').textContent = 'Sem conexão. Mostrando os últimos números carregados.'; return !!dados; }
-  if (!r.ok) { token = ''; try { localStorage.removeItem(CHAVE); } catch (e) {} mostraEntrada(r.erro === 'sessao' ? '' : (r.msg || '')); return false; }
+  if (!r || (!r.ok && r.erro !== 'sessao')) { // sem conexão ou erro passageiro do servidor: fica onde está (mês e dia não mudam) e continua dentro do painel
+    $('pQuando').textContent = dados ? 'Sem conexão. Mostrando os últimos números carregados.' : 'Sem conexão. Os números ainda não foram carregados. Toque em Atualizar.';
+    return false;
+  }
+  if (!r.ok) { token = ''; try { localStorage.removeItem(CHAVE); } catch (e) {} dados = null; mostraEntrada(''); return false; } // a sessão acabou: pede a senha de novo
+  if (!dados || r.mes !== dados.mes) diaSel = ''; // mês novo na tela
   dados = r; mesSel = r.mes;
-  if (!diaSel || diaSel.slice(0, 7) !== r.mes) { // mês novo: fica no dia de hoje, ou no último dia do mês que tem número
+  if (!diaSel || diaSel.slice(0, 7) !== r.mes) { // fica no dia de hoje, ou no último dia do mês que tem número
     const comDado = r.dias.filter((x) => x.pessoas || x.contas || x.jogaram);
     diaSel = r.mes === r.hoje.slice(0, 7) ? r.hoje : (comDado.length ? comDado[comDado.length - 1].dia : (r.dias.length ? r.dias[r.dias.length - 1].dia : r.mes + '-01'));
   }
   pinta(); return true;
 }
 function escolhe(dia) { diaSel = dia; pinta(); }
-async function mudaMes(n) { const m = n === 0 ? '' : somaMes(mesSel, n); mesSel = m; diaSel = ''; await carrega(); }
+async function mudaMes(n) { // parte sempre do mês que está na tela e não passa do primeiro mês com contagem nem do mês de hoje
+  if (!dados) return carrega('');
+  const m = n === 0 ? '' : somaMes(dados.mes, n);
+  if (m && (m < dados.primeiro.slice(0, 7) || m > dados.hoje.slice(0, 7))) return;
+  if (n === 0 && dados.mes === dados.hoje.slice(0, 7)) { escolhe(dados.hoje); return; } // já está no mês de hoje: só volta para o dia de hoje
+  await carrega(m);
+}
 function pinta() {
   const d = dados, zero = { pessoas: 0, contas: 0, jogaram: 0, jogaram_com: 0, jogaram_sem: 0, sem_cadastro: 0 }, x = d.dias.find((q) => q.dia === diaSel) || zero, eHoje = diaSel === d.hoje, t = d.mes_totais;
   $('pQuando').textContent = 'Atualizado em ' + quando(d.agora);
   // calendário
   $('mNome').textContent = mesTxt(d.mes).replace(/^./, (c) => c.toUpperCase()); $('mAntes').disabled = d.mes <= d.primeiro.slice(0, 7); $('mDepois').disabled = d.mes >= d.hoje.slice(0, 7); $('mHoje').disabled = eHoje;
-  const cal = $('cal'); cal.textContent = '';
+  $('pCorpo').classList.remove('hidden');
+  const foco = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.dia : ''; // quem escolhe o dia pelo teclado continua no mesmo botão
+  let alvoFoco = null; const cal = $('cal'); cal.textContent = '';
   for (const s of SEM) { const e = document.createElement('div'); e.className = 'sem'; e.textContent = s; cal.appendChild(e); }
   const nd = new Date(+d.mes.slice(0, 4), +d.mes.slice(5, 7), 0).getDate(), vazios = data(d.mes + '-01').getDay();
   for (let i = 0; i < vazios; i++) cal.appendChild(document.createElement('div'));
   for (let n = 1; n <= nd; n++) {
     const dia = d.mes + '-' + String(n).padStart(2, '0'), q = d.dias.find((z) => z.dia === dia), b = document.createElement('button'), nb = document.createElement('b'), sm = document.createElement('small');
-    b.type = 'button'; nb.textContent = n; sm.textContent = q && q.pessoas ? num(q.pessoas) : ''; b.appendChild(nb); b.appendChild(sm);
+    b.type = 'button'; b.dataset.dia = dia; nb.textContent = n; sm.textContent = q && q.pessoas ? breve(q.pessoas) : ''; b.appendChild(nb); b.appendChild(sm);
     b.disabled = dia > d.hoje; if (dia === d.hoje) b.classList.add('hoje'); if (dia === diaSel) { b.classList.add('sel'); b.setAttribute('aria-pressed', 'true'); }
     b.setAttribute('aria-label', diaTxt(dia, true) + (q ? ': ' + num(q.pessoas) + ' pessoas abriram o jogo' : ''));
     b.addEventListener('click', () => escolhe(dia)); cal.appendChild(b);
+    if (dia === foco) alvoFoco = b;
   }
+  if (alvoFoco) alvoFoco.focus({ preventScroll: true }); // só depois do calendário inteiro montado, e sem rolar a página (a atualização automática não pode tirar a tela do lugar)
   // números do dia escolhido
   const nomeDia = eHoje ? 'hoje' : 'em ' + diaTxt(diaSel, true);
   $('hRot').textContent = 'Pessoas que jogaram ' + nomeDia + ', no total';
@@ -256,51 +227,18 @@ function pinta() {
   // mês e total
   $('sMes').textContent = 'No mês de ' + mesTxt(d.mes);
   $('mContas').textContent = num(t.contas); $('mSem').textContent = num(t.jogaram_sem); $('mJog').textContent = num(t.jogaram); $('mAbr').textContent = num(t.pessoas);
-  $('nTotal').textContent = num(d.total_contas); $('nAgora').textContent = num(d.online);
-  // dia a dia do mês (do mais novo para o mais velho); tocar na linha escolhe o dia
-  const tb = $('tDias'); tb.textContent = ''; $('tSub').textContent = mesTxt(d.mes); $('gSub').textContent = mesTxt(d.mes) + '. Toque numa barra para escolher o dia.';
-  for (const q of d.dias.slice().reverse()) { const tr = document.createElement('tr'); if (q.dia === diaSel) tr.className = 'sel'; for (const v of [diaTxt(q.dia, true), num(q.pessoas), num(q.jogaram), num(q.jogaram_sem), num(q.contas)]) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); } tr.addEventListener('click', () => escolhe(q.dia)); tb.appendChild(tr); }
-  if (!tb.children.length) { const tr = document.createElement('tr'), td = document.createElement('td'); td.colSpan = 5; td.className = 'vazio'; td.style.textAlign = 'left'; td.textContent = 'Sem números neste mês.'; tr.appendChild(td); tb.appendChild(tr); }
-  // jogadores (nomes vêm dos jogadores: sempre como texto)
-  const tj = $('tJog'); tj.textContent = '';
-  for (const j of d.jogadores) { const tr = document.createElement('tr'); [[j.nome, 'nome'], [num(j.fase)], [curto(j.moedas)], [quando(j.criada)], [quando(j.visto)]].forEach(([v, c]) => { const td = document.createElement('td'); td.textContent = v; if (c) { td.className = c; td.title = v; } tr.appendChild(td); }); tj.appendChild(tr); }
-  $('jogVazio').classList.toggle('hidden', d.jogadores.length > 0);
-  $('pNota').textContent = 'Cada pessoa é um aparelho diferente: a mesma pessoa no celular e no computador conta duas vezes, e quem limpa os dados do navegador conta de novo. "Jogaram" é quem começou pelo menos uma batalha no dia. No mês, cada pessoa conta uma vez só, mesmo que tenha vindo em vários dias. "Jogando agora" é quem estava com o jogo aberto nos últimos 5 minutos. "Sem conta" só acontece quando o servidor das contas não respondeu e a pessoa escolheu jogar assim mesmo, porque o jogo pede a conta antes de jogar. Os dias viram à meia-noite de Brasília. A contagem começou em ' + diaTxt(d.primeiro) + '/' + d.primeiro.slice(0, 4) + '.';
-  grafico();
-}
-function grafico() {
-  const box = $('grafico'), d = dados.dias, NS = 'http://www.w3.org/2000/svg'; box.textContent = '';
-  if (!d.length) { const v = document.createElement('div'); v.className = 'vazio'; v.textContent = 'Sem números neste mês.'; box.appendChild(v); return; }
-  const nd = new Date(+dados.mes.slice(0, 4), +dados.mes.slice(5, 7), 0).getDate();
-  const W = Math.max(280, box.clientWidth), H = 220, mL = 34, mR = 8, mT = 22, mB = 30, pw = W - mL - mR, ph = H - mT - mB;
-  const max = Math.max(1, ...d.map((x) => x.pessoas)), p10 = Math.pow(10, Math.floor(Math.log10(max))), passo = max <= 4 ? 1 : max <= 10 ? 2 : p10 * (max / p10 <= 2 ? .5 : max / p10 <= 5 ? 1 : 2), topo = Math.max(passo * 2, Math.ceil(max / passo) * passo);
-  const y = (v) => mT + ph - v / topo * ph, faixa = pw / nd, bw = Math.min(24, Math.max(3, faixa - 2)); // o mês inteiro tem lugar no eixo; os dias que ainda não chegaram ficam vazios
-  const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Pessoas que abriram o jogo por dia em ' + mesTxt(dados.mes) + '. A tabela abaixo tem os mesmos números.');
-  const el = (n, a, pai) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); (pai || svg).appendChild(e); return e; };
-  for (let v = 0; v <= topo + 1e-9; v += topo / 2) { el('line', { x1: mL, x2: W - mR, y1: y(v), y2: y(v), class: v === 0 ? 'base' : 'grade' }); const t = el('text', { x: mL - 8, y: y(v) + 4, 'text-anchor': 'end' }); t.textContent = num(Math.round(v)); }
-  const iMax = d.reduce((m, x, i) => (x.pessoas > d[m].pessoas ? i : m), 0);
-  const dica = document.createElement('div'); dica.className = 'dica hidden'; box.appendChild(svg); box.appendChild(dica);
-  for (let n = 1; n <= nd; n++) if (n === 1 || n % 5 === 0) { const dia = dados.mes + '-' + String(n).padStart(2, '0'); if (dia === diaSel) continue; const t = el('text', { x: mL + faixa * (n - 1) + faixa / 2, y: H - 10, 'text-anchor': 'middle' }); t.textContent = n; }
-  d.forEach((x, i) => {
-    const n = +x.dia.slice(8), g = el('g', { class: 'dia' }), cx = mL + faixa * (n - 1) + faixa / 2, h = x.pessoas / topo * ph, x0 = cx - bw / 2, yb = mT + ph, r = Math.min(4, h, bw / 2), sel = x.dia === diaSel;
-    if (h > 0) el('path', { class: 'barra', d: 'M' + x0 + ',' + yb + ' V' + (yb - h + r) + ' Q' + x0 + ',' + (yb - h) + ' ' + (x0 + r) + ',' + (yb - h) + ' H' + (x0 + bw - r) + ' Q' + (x0 + bw) + ',' + (yb - h) + ' ' + (x0 + bw) + ',' + (yb - h + r) + ' V' + yb + ' Z' }, g);
-    if ((sel || i === iMax) && x.pessoas > 0) { const t = el('text', { class: 'val', x: cx, y: yb - h - 6, 'text-anchor': 'middle' }, g); t.textContent = num(x.pessoas); } // só o dia escolhido e o maior levam o número; os outros estão no toque e na tabela
-    if (sel) { const t = el('text', { class: 'selx', x: cx, y: H - 10, 'text-anchor': 'middle' }, g); t.textContent = n; el('rect', { class: 'marca', x: cx - Math.max(bw, 10) / 2, y: yb + 3, width: Math.max(bw, 10), height: 2, rx: 1 }, g); } // o dia escolhido: número do dia em destaque e um traço embaixo
-    const alvo = el('rect', { class: 'alvo', x: cx - faixa / 2, y: mT, width: faixa, height: ph + mB, tabindex: 0, role: 'button', 'aria-label': diaTxt(x.dia, true) + ': ' + num(x.pessoas) + ' pessoas. Toque para ver esse dia.' }, g);
-    const mostra = () => { dica.textContent = ''; const b = document.createElement('b'); b.textContent = num(x.pessoas) + (x.pessoas === 1 ? ' pessoa' : ' pessoas'); dica.appendChild(b); dica.appendChild(document.createTextNode(diaTxt(x.dia, true))); dica.classList.remove('hidden'); const esc = box.clientWidth / W; dica.style.left = Math.max(60, Math.min(box.clientWidth - 60, cx * esc)) + 'px'; dica.style.top = (Math.max(mT, yb - h) - 8) + 'px'; };
-    const some = () => dica.classList.add('hidden');
-    alvo.addEventListener('pointerenter', mostra); alvo.addEventListener('pointerleave', some); alvo.addEventListener('focus', mostra); alvo.addEventListener('blur', some);
-    alvo.addEventListener('click', () => escolhe(x.dia)); alvo.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); escolhe(x.dia); } });
-  });
+  const sp = d.sempre || { jogaram: 0, jogaram_sem: 0 };
+  $('nTotal').textContent = num(d.total_contas); $('sSem').textContent = num(sp.jogaram_sem); $('sJog').textContent = num(sp.jogaram); $('nAgora').textContent = num(d.online);
 }
 async function abre() {
   $('vEntrar').classList.add('hidden'); $('vPainel').classList.remove('hidden');
-  if (await carrega()) { clearInterval(timer); timer = setInterval(() => { if (!document.hidden) carrega(); }, 60000); }
+  if (!dados) { $('pCorpo').classList.add('hidden'); $('pQuando').textContent = 'Carregando os números…'; }
+  clearInterval(timer); timer = setInterval(() => { if (!document.hidden && token) carrega(); }, 60000); // atualiza sozinho a cada minuto, mesmo que a primeira tentativa tenha falhado
+  await carrega();
 }
-$('pAtualiza').addEventListener('click', carrega);
+$('pAtualiza').addEventListener('click', () => carrega());
 $('mAntes').addEventListener('click', () => mudaMes(-1)); $('mDepois').addEventListener('click', () => mudaMes(1)); $('mHoje').addEventListener('click', () => mudaMes(0));
 $('pSair').addEventListener('click', async () => { const t = token; token = ''; try { localStorage.removeItem(CHAVE); } catch (e) {} dados = null; mesSel = ''; diaSel = ''; await chama('painel_sair', { token: t }); mostraEntrada(); });
-let rz = 0; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (dados) grafico(); }, 150); });
 if (token) abre(); else mostraEntrada();
 </script>
 </body>

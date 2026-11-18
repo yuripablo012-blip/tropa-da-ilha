@@ -11,3 +11,14 @@
 <IfModule mod_alias.c>
   RedirectMatch 404 ^/dados_contas(/|$)
 </IfModule>
+
+# Painel do dono: não pode ser aberto dentro de outra página, não manda o endereço para outros sites
+# e só carrega o que está nele mesmo (nada de fora).
+<IfModule mod_headers.c>
+  <Files "painel.html">
+    Header set X-Frame-Options "DENY"
+    Header set Referrer-Policy "no-referrer"
+    Header set X-Content-Type-Options "nosniff"
+    Header set Content-Security-Policy "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+  </Files>
+</IfModule>
