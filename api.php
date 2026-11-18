@@ -179,6 +179,23 @@ function marca_agora($id) { // devolve a hora do sinal anterior deste aparelho (
   solta($t);
   return $antes;
 }
+/* Desde o começo: todos os aparelhos que já começaram uma batalha (jg) e os que já jogaram com conta (jc), em stats/sempre.php.
+   "Jogaram sem conta desde o começo" = jogaram e nunca jogaram com conta. Na primeira vez o arquivo nasce da soma de todos os dias guardados. */
+function sempre_monta() {
+  $jg = array(); $jc = array();
+  foreach ((array) @glob(subpasta('stats') . '/d_*.php') as $f) { $x = le($f); if (!$x) continue; if (isset($x['jg']) && is_array($x['jg'])) $jg += $x['jg']; if (isset($x['jc']) && is_array($x['jc'])) $jc += $x['jc']; }
+  return array('jg' => $jg, 'jc' => $jc);
+}
+function sempre_le() { $d = le(subpasta('stats') . '/sempre.php'); if (!$d || !isset($d['jg']) || !is_array($d['jg']) || !isset($d['jc']) || !is_array($d['jc'])) return null; return $d; }
+function sempre_marca($id, $c) { // chamada a cada batalha avisada; só grava quando o aparelho é novo na lista
+  $t = trava('stats');
+  $d = sempre_le(); $mudou = false;
+  if (!$d) { $d = sempre_monta(); $mudou = true; }
+  if (!isset($d['jg'][$id]) && count($d['jg']) < 500000) { $d['jg'][$id] = 1; $mudou = true; }
+  if ($c && !isset($d['jc'][$id]) && count($d['jc']) < 500000) { $d['jc'][$id] = 1; $mudou = true; }
+  if ($mudou) grava(subpasta('stats') . '/sempre.php', $d);
+  solta($t);
+}
 /* Total de contas que existem agora. Conta os arquivos na hora, sem guardar o resultado, para nunca ficar atrasado. */
 function total_contas() { return count((array) @glob(pasta_dados() . '/contas/*/c_*.php')); }
 /* Quantas contas já foram criadas desde o começo. Diferente do total acima, não diminui quando um jogador apaga a conta.
@@ -244,7 +261,7 @@ if ($acao === 'visita' || $acao === 'jogou' || $acao === 'pulso') {
   if ($ap !== AP_TESTE) {
     $id = $ap !== '' ? ap_id($ap) : null; $c = !empty($B['c']);
     if ($acao === 'visita') conta_stat('aberturas', $id ? ($c ? array('ap' => $id, 'apc' => $id) : array('ap' => $id)) : array());
-    if ($acao === 'jogou' && $id) conta_stat('partidas', $c ? array('ap' => $id, 'apc' => $id, 'jg' => $id, 'jc' => $id) : array('ap' => $id, 'jg' => $id));
+    if ($acao === 'jogou' && $id) { conta_stat('partidas', $c ? array('ap' => $id, 'apc' => $id, 'jg' => $id, 'jc' => $id) : array('ap' => $id, 'jg' => $id)); sempre_marca($id, $c); }
     if ($id) {
       $antes = marca_agora($id);
       // jogo aberto desde ontem (ou versão antiga do jogo que só manda pulso): no primeiro sinal do dia a pessoa entra nos que abriram hoje
@@ -331,7 +348,10 @@ if ($acao === 'painel_dados') { // números de um mês (o atual, ou o pedido em 
   $arqs = (array) @glob(subpasta('stats') . '/d_*.php'); sort($arqs);
   $primeiro = $arqs && preg_match('/d_(\d{4}-\d{2}-\d{2})\.php$/', $arqs[0], $m) ? $m[1] : $hoje; // primeiro dia com contagem
   $ag = le(subpasta('stats') . '/agora.php'); $online = 0; if ($ag) { unset($ag[$fora]); foreach ($ag as $v) if ($v >= time() - 300) $online++; } // sinal nos últimos 5 minutos
-  sai(array('ok' => true, 'agora' => time(), 'hoje' => $hoje, 'mes' => $mes, 'primeiro' => $primeiro, 'dias' => $dias, 'mes_totais' => $totais, 'online' => $online, 'total_contas' => contas_criadas(false)));
+  $sp = sempre_le(); if (!$sp) $sp = sempre_monta(); unset($sp['jg'][$fora], $sp['jc'][$fora]); // desde o começo, sem o aparelho de teste
+  $spc = count(array_intersect_key($sp['jc'], $sp['jg']));
+  $sempre = array('jogaram' => count($sp['jg']), 'jogaram_com' => $spc, 'jogaram_sem' => count($sp['jg']) - $spc);
+  sai(array('ok' => true, 'agora' => time(), 'hoje' => $hoje, 'mes' => $mes, 'primeiro' => $primeiro, 'dias' => $dias, 'mes_totais' => $totais, 'sempre' => $sempre, 'online' => $online, 'total_contas' => contas_criadas(false)));
 }
 
 if ($acao === 'criar') {

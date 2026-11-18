@@ -108,6 +108,8 @@ input:focus-visible, button:focus-visible, .alvo:focus-visible { outline: 2px so
     <h2 class="secao">Desde o começo</h2>
     <div class="blocos">
       <div class="bloco"><div class="rotulo">Pessoas que criaram conta</div><div class="valor" id="nTotal">0</div></div>
+      <div class="bloco"><div class="rotulo">Jogaram sem conta</div><div class="valor" id="sSem">0</div></div>
+      <div class="bloco"><div class="rotulo">Jogaram, no total</div><div class="valor" id="sJog">0</div></div>
       <div class="bloco"><div class="rotulo">Com o jogo aberto agora</div><div class="valor" id="nAgora">0</div></div>
     </div>
     </div>
@@ -222,7 +224,8 @@ function pinta() {
   // mês e total
   $('sMes').textContent = 'No mês de ' + mesTxt(d.mes);
   $('mContas').textContent = num(t.contas); $('mSem').textContent = num(t.jogaram_sem); $('mJog').textContent = num(t.jogaram); $('mAbr').textContent = num(t.pessoas);
-  $('nTotal').textContent = num(d.total_contas); $('nAgora').textContent = num(d.online);
+  const sp = d.sempre || { jogaram: 0, jogaram_sem: 0 };
+  $('nTotal').textContent = num(d.total_contas); $('sSem').textContent = num(sp.jogaram_sem); $('sJog').textContent = num(sp.jogaram); $('nAgora').textContent = num(d.online);
 }
 async function abre() {
   $('vEntrar').classList.add('hidden'); $('vPainel').classList.remove('hidden');
