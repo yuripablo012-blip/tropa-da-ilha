@@ -1042,7 +1042,7 @@ async function ctCall(a, body, keep, ms) {
   let tm = 0;
   try {
     const ctl = window.AbortController ? new AbortController() : null; if (ctl) tm = setTimeout(() => ctl.abort(), ms || 12000);
-    const r = await fetch(API + '?a=' + a, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ ap: CT.ap }, body || {})), cache: 'no-store', keepalive: !!keep, signal: ctl ? ctl.signal : undefined });
+    const r = await fetch(API + '?a=' + a, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ ap: ctApOk ? CT.ap : '' }, body || {})), cache: 'no-store', keepalive: !!keep, signal: ctl ? ctl.signal : undefined });
     const j = JSON.parse(await r.text()); clearTimeout(tm);
     return j && typeof j.ok === 'boolean' ? j : null;
   } catch (e) { clearTimeout(tm); return null; }
@@ -1078,12 +1078,13 @@ function ctEsquece() { CT = { ap: CT.ap }; ctGrava(); ctEst = ''; contaCard(); c
    Um sinal só vale quando o servidor confirma; se falhar (internet ruim, servidor fora), fica pendente e vai de novo na próxima chance.
    A resposta traz o dia do servidor: com o jogo aberto na virada do dia, a pessoa volta a contar no dia novo. */
 let ctSinDia = '', ctVisOk = false, ctJogOk = -1, ctJogPend = -1, ctSinBusy = false, ctPulsoT = 0, ctSinOn = false;
-const ctSinC = () => (ctTem() ? 1 : 0), ctSinB = (c) => (ctApOk ? { c } : { c, ap: '' });
+const ctSinC = () => (ctTem() ? 1 : 0), ctSinB = (c) => ({ c });
+let ctSinT = 0, ctJogT = 0; // quando o servidor confirmou pela última vez o dia atual, e quando começou a última batalha
 async function ctSinais() {
   if (!ctNet || ctSinBusy) return; ctSinBusy = true; let falhou = true;
   try {
-    if (!ctVisOk) { const r = await ctCall('visita', ctSinB(ctSinC()), false, 8000); if (!r || !r.ok) return; ctVisOk = true; if (r.dia) ctSinDia = r.dia; }
-    if (ctJogPend > ctJogOk) { const c = ctJogPend, r = await ctCall('jogou', ctSinB(c), false, 8000); if (!r || !r.ok) return; ctJogOk = c; if (ctJogPend <= c) ctJogPend = -1; if (r.dia) ctSinDia = r.dia; } // c = como a batalha foi jogada (0 sem conta, 1 com conta), mesmo que a conta tenha sido criada depois
+    if (!ctVisOk) { const r = await ctCall('visita', ctSinB(ctSinC()), false, 8000); if (!r || !r.ok) return; ctVisOk = true; if (r.dia) { ctSinDia = r.dia; ctSinT = Date.now(); } }
+    if (ctJogPend > ctJogOk) { const c = ctJogPend, r = await ctCall('jogou', ctSinB(c), false, 8000); if (!r || !r.ok) return; ctJogOk = c; if (ctJogPend <= c) ctJogPend = -1; if (r.dia) { ctSinDia = r.dia; ctSinT = Date.now(); } } // c = como a batalha foi jogada (0 sem conta, 1 com conta), mesmo que a conta tenha sido criada depois
     falhou = false;
   } finally { ctSinBusy = false; if (!falhou && ctJogPend > ctJogOk) setTimeout(ctSinais, 0); } // chegou uma batalha nova enquanto este envio estava no ar
 }
@@ -1091,9 +1092,13 @@ async function ctPulso() {
   if (!ctNet || document.hidden) return; ctPulsoT = Date.now();
   await ctSinais();
   const r = await ctCall('pulso', ctSinB(ctSinC()), false, 8000);
-  if (r && r.ok && r.dia && ctSinDia && r.dia !== ctSinDia) { ctSinDia = r.dia; ctVisOk = false; ctJogOk = -1; if (G && G.state !== 'end') ctJogPend = Math.max(ctJogPend, ctSinC()); ctSinais(); } // virou o dia com o jogo aberto
+  if (!r || !r.ok || !r.dia) return;
+  if (ctSinDia && r.dia !== ctSinDia) { // virou o dia com o jogo aberto: a pessoa volta a contar no dia novo
+    const jogouDepois = (G && G.state !== 'end') || ctJogT > ctSinT; // batalha em andamento, ou começada depois da última vez em que o servidor ainda dizia o dia antigo
+    ctSinDia = r.dia; ctSinT = Date.now(); ctVisOk = false; ctJogOk = -1; if (jogouDepois) ctJogPend = Math.max(ctJogPend, ctSinC()); ctSinais();
+  } else { ctSinDia = r.dia; ctSinT = Date.now(); }
 }
-function ctJogou() { if (!ctNet) return; const c = ctSinC(); if (c > ctJogOk) ctJogPend = Math.max(ctJogPend, c); if (Date.now() - ctPulsoT > 60000) ctPulso(); else ctSinais(); } // começou uma batalha
+function ctJogou() { if (!ctNet) return; ctJogT = Date.now(); const c = ctSinC(); if (c > ctJogOk) ctJogPend = Math.max(ctJogPend, c); if (Date.now() - ctPulsoT > 60000) ctPulso(); else ctSinais(); } // começou uma batalha
 async function ctInicio() {
   if (!ctNet) return;
   if (!ctSinOn) { ctSinOn = true; setInterval(ctPulso, 120000); document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - ctPulsoT > 60000) ctPulso(); }); addEventListener('online', () => ctSinais()); }
