@@ -216,6 +216,23 @@ async function passo(page, p) {
     }
     await page.evaluate(() => AD.dedo(null));
   }
+  if (p.construirTodas) { // melhora TODAS as construções até o nível "ate", uma depois da outra, indo sempre para a mais perto da anterior
+    const lista = await page.evaluate(() => [...document.querySelectorAll('#vLab .vlab[data-k]')].map((e) => { const q = e.getBoundingClientRect(); return { k: e.dataset.k, x: q.x + q.width / 2, y: q.y + q.height / 2 }; }));
+    const ordem = []; let cur = lista.slice().sort((m, n) => (m.y + m.x * .3) - (n.y + n.x * .3))[0];
+    while (cur) { ordem.push(cur.k); lista.splice(lista.indexOf(cur), 1); const c = cur; cur = lista.slice().sort((m, n) => Math.hypot(m.x - c.x, m.y - c.y) - Math.hypot(n.x - c.x, n.y - c.y))[0]; }
+    for (const k of ordem) for (let i = 0; i < 20; i++) {
+      if (!i) await page.evaluate((k) => new Promise((ok) => { /* construção fora da parte visível da ilha: a câmera desliza até ela, como quem arrasta a ilha com o dedo */
+        const q = document.querySelector('#vLab .vlab[data-k="' + k + '"]').getBoundingClientRect(), x = q.x + q.width / 2, y = q.y + q.height / 2;
+        const dx = Math.max(44, Math.min(innerWidth - 44, x)) - x, dy = Math.max(120, Math.min(innerHeight - 215, y)) - y; if (Math.abs(dx) + Math.abs(dy) < 2) return ok();
+        const px = VS.px, py = VS.py, t0 = performance.now(); (function anda() { const u = Math.min(1, (performance.now() - t0) / 420), e = u * u * (3 - 2 * u); VS.px = px + dx * e; VS.py = py + dy * e; VS.cam = null; if (u < 1) requestAnimationFrame(anda); else setTimeout(ok, 120); })();
+      }), k);
+      const r = await page.evaluate((k) => { const q = document.querySelector('#vLab .vlab[data-k="' + k + '"]').getBoundingClientRect(); return { lv: vLv(k), x: q.x + q.width / 2, y: q.y + q.height + 30 }; }, k);
+      if (r.lv >= p.construirTodas) break;
+      await page.evaluate(([x, y]) => AD.dedo(x, y), [r.x, r.y]); await espera(130);
+      await page.evaluate((k) => vBuild(k), k); await espera(p.pausa != null ? p.pausa : 300);
+    }
+    await page.evaluate(() => AD.dedo(null));
+  }
   if (p.leg != null) await page.evaluate((t) => AD.leg(t), p.leg);
   if (p.anel !== undefined) await page.evaluate((s) => AD.anel(s), p.anel);
   if (p.tag != null) await page.evaluate((t) => AD.tag(t), p.tag);
@@ -296,12 +313,12 @@ const CRIATIVOS = [
     ['roteiro', { antes: [{ js: 'VS.S0 = 0; VS.dirty = true' }, { pagina: 'vila' }, { pagina: 'play' }], passos: [{ espera: 1.5 }, { toca: 'button[data-pg="vila"]', pausa: 120 }] }],
     ['roteiro', { jogador: { fase: 2, nivel: 2, tier: 0, vila: 1, moedas: 640 }, antes: [{ js: 'VDEF.forEach((d) => { P.vila.b[d.k] = (d.u || 1) <= 2 ? 1 : 0; }); save(); VS.S0 = 0; VS.dirty = true' }, { pagina: 'vila' }], passos: [{ leg: 'Ontem' }, { zoom: 1.12, dur: 2.9 }] }],
     ['roteiro', { jogador: { fase: 20, nivel: 22, vila: 10, moedas: 18400 }, antes: [{ js: 'VS.S0 = 0; VS.dirty = true' }, { pagina: 'vila' }], passos: [{ leg: 'Hoje. 1 dia depois.' }, { zoom: 1.3, dur: 3.6 }, { tag: BIO }, { zoom: .88, dur: 2.2 }] }]] },
-  /* ----- Sem texto nenhum por cima: batalha na fase 100, a tela inicial e a ilha sendo construída -----
+  /* ----- Sem texto nenhum por cima: batalha na fase 100, a tela inicial e a ilha sendo construída (todas as construções saem do nível 1 e vão para o nível 3) -----
      Gerar com --sem-legenda --sem-link --sem-chamada para sair só o jogo, sem etiqueta de link. */
   { nome: 'fase100_ilha', organico: true, jogador: { fase: 100, nivel: 100, tier: 8, vila: 5, moedas: 5e6 }, cenas: [
     ['batalha', { aquece: 3.1, dur: 10.5, poderes: [{ t: 2.2, id: 'rate', direto: true }, { t: 6.4, id: 'dmg', direto: true }] }],
-    ['roteiro', { antes: [{ js: 'VS.S0 = 0; VS.dirty = true' }, { pagina: 'vila' }, { pagina: 'play' }], passos: [{ espera: 2.4 }, { toca: 'button[data-pg="vila"]', pausa: 900, semDedo: true }] }],
-    ['roteiro', { antes: [{ pagina: 'vila' }], passos: [{ espera: .8 }, { zoom: 1.9, dur: 1.3 }, { foco: 'tes' }, { espera: .5 }, { construir: 'tes', ate: 12, pausa: 300 }, { espera: .7 }, { foco: 'fer' }, { espera: .5 }, { construir: 'fer', ate: 12, pausa: 300 }, { espera: .7 }, { zoom: .55, dur: 2 }, { espera: 1.2 }] }]] },
+    ['roteiro', { antes: [{ js: 'VDEF.forEach((d) => { P.vila.b[d.k] = 1; }); P.vila.i = 0; save(); VS.S0 = 0; VS.dirty = true' }, { pagina: 'vila' }, { pagina: 'play' }], passos: [{ espera: 2.4 }, { toca: 'button[data-pg="vila"]', pausa: 900, semDedo: true }] }],
+    ['roteiro', { antes: [{ pagina: 'vila' }], passos: [{ espera: 1.6 }, { construirTodas: 3, pausa: 270 }, { espera: 1.8 }] }]] },
   /* ----- Sem texto nenhum por cima: só a tela inicial — o menu parado, um passeio pelas abas e o toque no JOGAR ----- */
   { nome: 'tela_inicial', organico: true, jogador: { fase: 100, nivel: 100, tier: 8, vila: 12, moedas: 5e6 }, cenas: [
     ['roteiro', { antes: [{ js: 'VS.S0 = 0; VS.dirty = true; /* a aba Capitão mostra a conta como no site (aqui o jogo roda sem servidor) */ CT.nome = "CapitaoDaIlha"; CT.token = "video"; CT.sujo = 0; ctEst = "salvo"; contaCard()' }, { pagina: 'vila' }, { pagina: 'play' }], passos: [{ espera: 3.6 },
