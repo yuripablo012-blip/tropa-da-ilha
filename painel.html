@@ -168,12 +168,14 @@ $('fEntrar').addEventListener('submit', async (e) => {
 });
 
 /* ---------- painel ---------- */
-let pedido = 0; // só a resposta do pedido mais novo vale: uma resposta atrasada não puxa a tela de volta
+let pedido = 0, trocando = null; // só a resposta do pedido mais novo vale; "trocando" guarda o mês pedido enquanto a resposta não chega
 async function carrega(mes) { // mes: 'AAAA-MM' para trocar de mês, '' para o mês de hoje, nada para atualizar o que está na tela
-  const meu = ++pedido, alvo = typeof mes === 'string' ? mes : mesSel;
+  if (typeof mes === 'string') trocando = mes;
+  const meu = ++pedido, alvo = trocando !== null ? trocando : mesSel;
   $('pAtualiza').disabled = true;
   const r = await chama('painel_dados', alvo ? { token, mes: alvo } : { token });
   if (meu !== pedido) return false;
+  trocando = null;
   $('pAtualiza').disabled = false;
   if (!r || (!r.ok && r.erro !== 'sessao')) { // sem conexão ou erro passageiro do servidor: fica onde está (mês e dia não mudam) e continua dentro do painel
     $('pQuando').textContent = dados ? 'Sem conexão. Mostrando os últimos números carregados.' : 'Sem conexão. Os números ainda não foram carregados. Toque em Atualizar.';
@@ -203,7 +205,7 @@ function pinta() {
   $('mNome').textContent = mesTxt(d.mes).replace(/^./, (c) => c.toUpperCase()); $('mAntes').disabled = d.mes <= d.primeiro.slice(0, 7); $('mDepois').disabled = d.mes >= d.hoje.slice(0, 7); $('mHoje').disabled = eHoje;
   $('pCorpo').classList.remove('hidden');
   const foco = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.dia : ''; // quem escolhe o dia pelo teclado continua no mesmo botão
-  const cal = $('cal'); cal.textContent = '';
+  let alvoFoco = null; const cal = $('cal'); cal.textContent = '';
   for (const s of SEM) { const e = document.createElement('div'); e.className = 'sem'; e.textContent = s; cal.appendChild(e); }
   const nd = new Date(+d.mes.slice(0, 4), +d.mes.slice(5, 7), 0).getDate(), vazios = data(d.mes + '-01').getDay();
   for (let i = 0; i < vazios; i++) cal.appendChild(document.createElement('div'));
@@ -213,8 +215,9 @@ function pinta() {
     b.disabled = dia > d.hoje; if (dia === d.hoje) b.classList.add('hoje'); if (dia === diaSel) { b.classList.add('sel'); b.setAttribute('aria-pressed', 'true'); }
     b.setAttribute('aria-label', diaTxt(dia, true) + (q ? ': ' + num(q.pessoas) + ' pessoas abriram o jogo' : ''));
     b.addEventListener('click', () => escolhe(dia)); cal.appendChild(b);
-    if (dia === foco) b.focus();
+    if (dia === foco) alvoFoco = b;
   }
+  if (alvoFoco) alvoFoco.focus({ preventScroll: true }); // só depois do calendário inteiro montado, e sem rolar a página (a atualização automática não pode tirar a tela do lugar)
   // números do dia escolhido
   const nomeDia = eHoje ? 'hoje' : 'em ' + diaTxt(diaSel, true);
   $('hRot').textContent = 'Pessoas que jogaram ' + nomeDia + ', no total';

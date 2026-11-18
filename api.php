@@ -308,7 +308,7 @@ if ($acao === 'painel_entrar') {
   $lim = subpasta('limites') . '/ip_' . ip_chave() . '.php';
   $t = trava('painel'); // uma tentativa de cada vez: a conferência do limite e a soma do erro acontecem juntas, mesmo com muitos pedidos ao mesmo tempo
   $tl = trava('limites'); $livre = limite($lim, 'painel', LIM_PAINEL_IP, false); solta($tl);
-  if (!$livre) { solta($t); erro('muitas', 'Muitas tentativas. Espere um pouco e tente de novo.'); }
+  if (!$livre) { solta($t); erro('muitas', 'Muitas senhas erradas neste endereço. Espere até uma hora e tente de novo.'); }
   $adm = le(painel_arq());
   if (!$adm) { solta($t); erro('sem_senha', 'O painel ainda não tem senha. Use o código de primeiro acesso.'); }
   $f = isset($adm['falhas']) ? $adm['falhas'] : array('n' => 0, 't' => 0);
