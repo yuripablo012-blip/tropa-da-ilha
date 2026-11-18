@@ -302,6 +302,11 @@ const CRIATIVOS = [
     ['batalha', { aquece: 3.1, dur: 10.5, poderes: [{ t: 2.2, id: 'rate', direto: true }, { t: 6.4, id: 'dmg', direto: true }] }],
     ['roteiro', { antes: [{ js: 'VS.S0 = 0; VS.dirty = true' }, { pagina: 'vila' }, { pagina: 'play' }], passos: [{ espera: 2.4 }, { toca: 'button[data-pg="vila"]', pausa: 900, semDedo: true }] }],
     ['roteiro', { antes: [{ pagina: 'vila' }], passos: [{ espera: .8 }, { zoom: 1.9, dur: 1.3 }, { foco: 'tes' }, { espera: .5 }, { construir: 'tes', ate: 12, pausa: 300 }, { espera: .7 }, { foco: 'fer' }, { espera: .5 }, { construir: 'fer', ate: 12, pausa: 300 }, { espera: .7 }, { zoom: .55, dur: 2 }, { espera: 1.2 }] }]] },
+  /* ----- Sem texto nenhum por cima: só a tela inicial — o menu parado, um passeio pelas abas e o toque no JOGAR ----- */
+  { nome: 'tela_inicial', organico: true, jogador: { fase: 100, nivel: 100, tier: 8, vila: 12, moedas: 5e6 }, cenas: [
+    ['roteiro', { antes: [{ js: 'VS.S0 = 0; VS.dirty = true; /* a aba Capitão mostra a conta como no site (aqui o jogo roda sem servidor) */ CT.nome = "CapitaoDaIlha"; CT.token = "video"; CT.sujo = 0; ctEst = "salvo"; contaCard()' }, { pagina: 'vila' }, { pagina: 'play' }], passos: [{ espera: 3.6 },
+      { toca: 'button[data-pg="cannon"]', pausa: 1700 }, { toca: 'button[data-pg="hero"]', pausa: 1700 }, { toca: 'button[data-pg="vila"]', pausa: 2300 }, { toca: 'button[data-pg="troph"]', pausa: 1700 },
+      { toca: 'button[data-pg="play"]', pausa: 1900 }, { toca: '#play', pausa: 200, semDedo: true }, { espera: 2.4 }] }]] },
   // imagens paradas (para anúncio de imagem e capa): sai um .jpg em vez de vídeo
   { nome: 'imagens', jogador: { fase: 40, nivel: 24, vila: 9, moedas: 5e8 }, soFotos: true, cenas: [
     ['batalha', { dur: 1.1, foto: { nome: 'img_batalha', titulo: 'Defenda a ponte!', sub: 'Jogo de pirata no navegador' } }],
