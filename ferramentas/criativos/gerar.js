@@ -87,13 +87,13 @@ async function camada(page) {
 }
 
 /* ---------- gravação: quadros da tela + o instante de cada um ---------- */
-async function gravador(page) {
+async function gravador(page, cadaN = 1) { // cadaN = 2 guarda um quadro sim, um não (30 por segundo): para gravações de vários minutos não encherem a memória
   const cdp = await page.context().newCDPSession(page), quadros = [];
   cdp.on('Page.screencastFrame', (f) => { quadros.push({ d: Buffer.from(f.data, 'base64'), t: f.metadata.timestamp }); cdp.send('Page.screencastFrameAck', { sessionId: f.sessionId }).catch(() => {}); });
   let ligado = false;
   return {
     quadros,
-    liga: async () => { if (!ligado) { ligado = true; await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 93, maxWidth: TELA.width * ESCALA, maxHeight: TELA.height * ESCALA, everyNthFrame: 1 }); } },
+    liga: async () => { if (!ligado) { ligado = true; await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 93, maxWidth: TELA.width * ESCALA, maxHeight: TELA.height * ESCALA, everyNthFrame: cadaN }); } },
     desliga: async () => { if (ligado) { ligado = false; await cdp.send('Page.stopScreencast'); await espera(120); } },
   };
 }
@@ -407,6 +407,9 @@ const CRIATIVOS = [
   /* ----- Sem texto: a fase 200 INTEIRA, até a vitória. A matança passa acelerada; cada vez que o poder carrega, volta à velocidade normal e mostra o dedo tocando no botão, as cartas e a escolha ----- */
   { nome: 'fase200_ate_o_fim', organico: true, jogador: { fase: 200, nivel: 250, tier: 13, vila: 30, moedas: 4e7 }, cenas: [
     ['batalha', { aquece: 2.2, acelera: 14, acDepois: 2, naCarga: ['dmg', 'rate'], calma: 1.7, pausaCartas: 1, finalCalmo: 30, ateFim: true, dur: 170, depois: 3.2 }]] },
+  /* ----- Sem texto: a fase 200 INTEIRA na velocidade normal, sem acelerar nada (uns 5 minutos), com o poder solto pelo botão e pelas cartas toda vez que carrega ----- */
+  { nome: 'fase200_completa_normal', organico: true, cadaN: 2, jogador: { fase: 200, nivel: 250, tier: 13, vila: 30, moedas: 4e7 }, cenas: [
+    ['batalha', { aquece: 2.2, naCarga: ['dmg', 'rate'], calma: 1.5, pausaCartas: 1.2, ateFim: true, dur: 540, depois: 3.4 }]] },
   // imagens paradas (para anúncio de imagem e capa): sai um .jpg em vez de vídeo
   { nome: 'imagens', jogador: { fase: 40, nivel: 24, vila: 9, moedas: 5e8 }, soFotos: true, cenas: [
     ['batalha', { dur: 1.1, foto: { nome: 'img_batalha', titulo: 'Defenda a ponte!', sub: 'Jogo de pirata no navegador' } }],
@@ -425,7 +428,7 @@ const CRIATIVOS = [
     if (c.organico) await page.evaluate(() => { AD.org = true; });
     for (const [tipo, op] of c.cenas) {
       if (op.jogador) await jogador(page, Object.assign({}, c.jogador, op.jogador));
-      const rec = await gravador(page);
+      const rec = await gravador(page, c.cadaN || 1);
       if (tipo === 'batalha') await cenaBatalha(page, rec, op);
       else if (tipo === 'roteiro') await cenaRoteiro(page, rec, op);
       else if (tipo === 'fim') await cenaFim(page, rec, op);
