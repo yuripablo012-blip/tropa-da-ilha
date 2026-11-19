@@ -153,7 +153,8 @@ async function acelerador(page, n) {
 // batalha: o robô segura o dedo na tela e mira no inimigo mais perto; poderes = [{ t: segundos, id: 'rate' | 'dmg' | 'heart' }]
 // Durante o "aquece" (não gravado) o robô não atira, para a ponte encher. Com chefe: true vai direto para a onda do chefe,
 // espera ele entrar e o traz para o meio da ponte, e o robô mira nele.
-async function cenaBatalha(page, rec, { fase = 20, aquece = 4.3, dur = 8, poderes = [], chefe = false, hook, sub, hookDur = 3, foto, legendas = [], acelera = 0, ateFim = false, depois = 0, legFim, ouro, vidas, pausaCartas = .95, miraErrada = false, continua = false, linha = 0, para = null, naCarga = null, calma = 2.6, acDepois = 0, finalCalmo = 0, dedoCarta = false, saltaAte = 0 } = {}) {
+async function cenaBatalha(page, rec, { fase = 20, aquece = 4.3, dur = 8, poderes = [], chefe = false, hook, sub, hookDur = 3, foto, legendas = [], acelera = 0, ateFim = false, depois = 0, legFim, ouro, vidas, pausaCartas = .95, miraErrada = false, continua = false, linha = 0, para = null, naCarga = null, calma = 2.6, acDepois = 0, finalCalmo = 0, dedoCarta = false, saltaAte = 0, vidasIni = 0, poderNaVida = null } = {}) {
+  // vidasIni: a batalha já começa com poucas vidas (a tela pulsa, como no jogo). poderNaVida: { vidas, id, max, depois } — o poder é solto quando as vidas caem até "vidas" (ou aos "max" segundos), e a cena acaba "depois" segundos mais tarde.
   // dedoCarta: mostra o dedo indo até o botão do poder e até a carta escolhida, com calma. saltaAte (com continua): pula a fase, fora da gravação, até faltarem esses inimigos.
   // naCarga: ['dmg', 'rate', ...] — toda vez que o poder carrega DE VERDADE, o dedo toca no botão, as cartas aparecem e ele escolhe (na ordem da lista, em roda);
   //   com acelera, essa parte e os "calma" segundos seguintes passam na velocidade normal, para o poder aparecer direito. acDepois: só acelera depois de tantos segundos.
@@ -169,13 +170,14 @@ async function cenaBatalha(page, rec, { fase = 20, aquece = 4.3, dur = 8, podere
   const ini = Date.now();
   for (;;) {
     const agora = (Date.now() - ini) / 1000;
-    if (!gravando && agora >= aquece) { gravando = true; t0 = Date.now(); if (!linha) await page.mouse.down(); if (acelera > 1) { acAgora = acDepois ? 1 : acelera; await page.evaluate((m) => { window.__acManual = m; }, naCarga ? 1 : 0); await acelerador(page, acAgora); } await page.evaluate(([h, s, d]) => { AD.limpa(); AD.hook(h, s, d); }, [hook || '', sub || '', hookDur]); await rec.liga(); }
+    if (!gravando && agora >= aquece) { gravando = true; t0 = Date.now(); if (vidasIni) await page.evaluate((n) => { G.lives = n; }, vidasIni); /* as vidas baixas valem a partir do começo da gravação */ if (!linha) await page.mouse.down(); if (acelera > 1) { acAgora = acDepois ? 1 : acelera; await page.evaluate((m) => { window.__acManual = m; }, naCarga ? 1 : 0); await acelerador(page, acAgora); } await page.evaluate(([h, s, d]) => { AD.limpa(); AD.hook(h, s, d); }, [hook || '', sub || '', hookDur]); await rec.liga(); }
     const t = gravando ? (Date.now() - t0) / 1000 : -1;
     if (gravando && t >= dur) break;
     if (gravando && ouro && t >= ouro.t) { ouro = null; ouroOn = true; await page.evaluate(ONDA_DE_OURO); }
     while (gravando && legs.length && t >= legs[0].t) { const l = legs.shift(); await page.evaluate(MOSTRA, l); }
-    const s = await page.evaluate(([chefe, ouro]) => { if (!G) return { s: 'fim' }; const vivos = G.enemies.filter((e) => !e.dead && e.t !== 'barrel').sort((a, b) => b.y - a.y), perto = vivos[0], bs = chefe && vivos.find((e) => e.boss || e.t === 'boss'), au = ouro && vivos.find((e) => e.kind === 'gold'), bomba = vivos.find((e) => e.kind === 'bomb' && e.y >= (e.stopY || 0) - 40), en = au || (bs && !(perto && perto.y > H * .55) ? bs : perto); return { s: G.state, x: en ? en.x / W : null, y: perto ? perto.y / H : 0, bx: bomba ? bomba.x / W : null, carga: G.charge, faltam: (G.fut || 0) + G.spawnQ.filter((q) => q.t !== 'barrel').length + vivos.length }; }, [chefe, ouroOn]);
+    const s = await page.evaluate(([chefe, ouro]) => { if (!G) return { s: 'fim' }; const vivos = G.enemies.filter((e) => !e.dead && e.t !== 'barrel').sort((a, b) => b.y - a.y), perto = vivos[0], bs = chefe && vivos.find((e) => e.boss || e.t === 'boss'), au = ouro && vivos.find((e) => e.kind === 'gold'), bomba = vivos.find((e) => e.kind === 'bomb' && e.y >= (e.stopY || 0) - 40), en = au || (bs && !(perto && perto.y > H * .55) ? bs : perto); return { s: G.state, x: en ? en.x / W : null, y: perto ? perto.y / H : 0, bx: bomba ? bomba.x / W : null, vidas: G.lives, carga: G.charge, faltam: (G.fut || 0) + G.spawnQ.filter((q) => q.t !== 'barrel').length + vivos.length }; }, [chefe, ouroOn]);
     if (s.s === 'fim' || s.s === 'end') { acabou = true; break; }
+    if (gravando && poderNaVida && s.s === 'run' && (s.vidas <= poderNaVida.vidas || t >= (poderNaVida.max || 8))) { fila.unshift({ t: 0, id: poderNaVida.id || 'dmg' }); dur = t + 2.4 + (poderNaVida.depois || 4.5); poderNaVida = null; } // no aperto: solta o poder agora
     if (s.s === 'pick') { // mostra as cartas um instante e escolhe
       await page.mouse.up(); await page.evaluate(() => { AD.dedo(null); AD.hook(''); }); await espera(pausaCartas * 1000);
       if (naCarga || dedoCarta) { await page.evaluate((id) => { const c = document.querySelector('#cards [data-pw="' + id + '"]') || document.querySelector('#cards [data-pw]'); if (c) { const r = c.getBoundingClientRect(); AD.dedo(r.x + r.width / 2, r.y + r.height * .55); } }, escolha || 'rate'); await espera(350); } // o dedo vai até a carta antes de escolher
@@ -418,6 +420,9 @@ const CRIATIVOS = [
   { nome: 'fase200_20s', organico: true, jogador: { fase: 200, nivel: 250, tier: 13, vila: 30, moedas: 4e7 }, cenas: [
     ['batalha', { aquece: 4.4, dur: 12, dedoCarta: true, pausaCartas: .9, poderes: [{ t: 1, id: 'dmg' }, { t: 5.4, id: 'rate' }] }],
     ['batalha', { continua: true, saltaAte: 3, aquece: .3, ateFim: true, dur: 30, depois: 3.4 }]] },
+  /* ----- Sem texto: "quase perdi" — fase 200, o canhão com pouquíssimas vidas, a horda em cima dele e a tela pulsando; no aperto o dedo solta o poder (botão, cartas, corrente) e a ponte fica limpa ----- */
+  { nome: 'quase_perdi', organico: true, jogador: { fase: 200, nivel: 250, tier: 13, vila: 30, moedas: 4e7 }, cenas: [
+    ['batalha', { aquece: 3.5, dur: 30, vidasIni: 7, dedoCarta: true, pausaCartas: .9, poderNaVida: { vidas: 3, id: 'dmg', max: 8, depois: 4.6 } }]] },
   // imagens paradas (para anúncio de imagem e capa): sai um .jpg em vez de vídeo
   { nome: 'imagens', jogador: { fase: 40, nivel: 24, vila: 9, moedas: 5e8 }, soFotos: true, cenas: [
     ['batalha', { dur: 1.1, foto: { nome: 'img_batalha', titulo: 'Defenda a ponte!', sub: 'Jogo de pirata no navegador' } }],
