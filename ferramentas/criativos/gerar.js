@@ -423,6 +423,10 @@ const CRIATIVOS = [
   /* ----- Sem texto: "quase perdi" — fase 200, o canhão com pouquíssimas vidas, a horda em cima dele e a tela pulsando; no aperto o dedo solta o poder (botão, cartas, corrente) e a ponte fica limpa ----- */
   { nome: 'quase_perdi', organico: true, jogador: { fase: 200, nivel: 250, tier: 13, vila: 30, moedas: 4e7 }, cenas: [
     ['batalha', { aquece: 3.5, dur: 30, vidasIni: 7, dedoCarta: true, pausaCartas: .9, poderNaVida: { vidas: 3, id: 'dmg', max: 8, depois: 4.6 } }]] },
+  /* ----- Sem texto: o "quase perdi" até a VITÓRIA — o aperto com 1 vida, o poder que salva e, na mesma batalha, o fim da fase 200 (o meio é pulado fora da gravação) ----- */
+  { nome: 'quase_perdi_vitoria', organico: true, jogador: { fase: 200, nivel: 250, tier: 13, vila: 30, moedas: 4e7 }, cenas: [
+    ['batalha', { aquece: 3.5, dur: 30, vidasIni: 8, dedoCarta: true, pausaCartas: .9, poderNaVida: { vidas: 4, id: 'dmg', max: 8, depois: 4.6 } }],
+    ['batalha', { continua: true, saltaAte: 3, aquece: .3, ateFim: true, dur: 30, depois: 3.6 }]] },
   // imagens paradas (para anúncio de imagem e capa): sai um .jpg em vez de vídeo
   { nome: 'imagens', jogador: { fase: 40, nivel: 24, vila: 9, moedas: 5e8 }, soFotos: true, cenas: [
     ['batalha', { dur: 1.1, foto: { nome: 'img_batalha', titulo: 'Defenda a ponte!', sub: 'Jogo de pirata no navegador' } }],
