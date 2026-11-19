@@ -216,10 +216,16 @@ async function passo(page, p) {
     }
     await page.evaluate(() => AD.dedo(null));
   }
+  if (p.nivelTodas != null) await page.evaluate((n) => { /* a ilha inteira passa para o nível n de uma vez, com a poeira e o brilho da obra (para mostrar a ilha crescendo em saltos) */
+    const v = V(); VDEF.forEach((d) => { v.b[d.k] = n; }); v.i = Math.floor(Math.max(0, n - 1) / 9); v.t = Date.now(); save();
+    if (VS.rdy) { renderVila(); vilaHud(); VACT().forEach((d) => { VS.anim[d.k] = VS.t; for (let j = 0; j < 10; j++) { const a = Math.random() * 6.28, q = 1 + Math.random() * 2.5; VS.dust.push({ x: d.x, y: GY + .3, z: d.z, vx: Math.cos(a) * q, vy: 1 + Math.random() * 2, vz: Math.sin(a) * q, t: 0, life: .8 }); } }); }
+    VS.dirty = true;
+  }, p.nivelTodas);
   if (p.construirTodas) { // melhora TODAS as construções até o nível "ate", uma depois da outra, indo sempre para a mais perto da anterior
     const lista = await page.evaluate(() => [...document.querySelectorAll('#vLab .vlab[data-k]')].map((e) => { const q = e.getBoundingClientRect(); return { k: e.dataset.k, x: q.x + q.width / 2, y: q.y + q.height / 2 }; }));
     const ordem = []; let cur = lista.slice().sort((m, n) => (m.y + m.x * .3) - (n.y + n.x * .3))[0];
     while (cur) { ordem.push(cur.k); lista.splice(lista.indexOf(cur), 1); const c = cur; cur = lista.slice().sort((m, n) => Math.hypot(m.x - c.x, m.y - c.y) - Math.hypot(n.x - c.x, n.y - c.y))[0]; }
+    if (ordem.indexOf('nav') >= 0 && ordem.indexOf('nav') < ordem.indexOf('cais')) { ordem.splice(ordem.indexOf('cais'), 1); ordem.splice(ordem.indexOf('nav'), 0, 'cais'); } /* o navio só atraca com o cais pronto */
     for (const k of ordem) for (let i = 0; i < 20; i++) {
       if (!i) for (const l of p.legs || []) if (l.n === ordem.indexOf(k)) await page.evaluate((t) => AD.leg(t), l.texto); /* a legenda troca depois de n construções prontas */
       if (!i) await page.evaluate((k) => new Promise((ok) => { /* construção fora da parte visível da ilha: a câmera desliza até ela, como quem arrasta a ilha com o dedo */
@@ -230,7 +236,7 @@ async function passo(page, p) {
       const r = await page.evaluate((k) => { const q = document.querySelector('#vLab .vlab[data-k="' + k + '"]').getBoundingClientRect(); return { lv: vLv(k), x: q.x + q.width / 2, y: q.y + q.height + 30 }; }, k);
       if (r.lv >= p.construirTodas) break;
       await page.evaluate(([x, y]) => AD.dedo(x, y), [r.x, r.y]); await espera(130);
-      await page.evaluate((k) => vBuild(k), k); await espera(p.pausa != null ? p.pausa : 300);
+      const subiu = await page.evaluate((k) => { const l = vLv(k); vBuild(k); return vLv(k) > l; }, k); await espera(p.pausa != null ? p.pausa : 300); if (!subiu) break; /* sem moedas ou travada: segue para a próxima */
     }
     await page.evaluate(() => AD.dedo(null));
   }
@@ -261,6 +267,10 @@ async function cenaFim(page, rec, { texto = 'Defenda a ponte e construa sua ilha
    Cenas: ['batalha', {...}]  ['roteiro', {...}]  ['fim', {...}]. Textos curtos: a chamada fica 3 segundos na tela. */
 const BIO = 'Jogue grátis · link na bio';
 const MELHORA = (k) => [{ toca: '[data-buy="' + k + '"]', vezes: 2, pausa: 330 }];
+// cena pronta: a tela inicial parada e o toque na aba Ilha; "js" prepara a ilha antes (níveis das construções)
+const ILHA_PRONTA = (js) => ['roteiro', { antes: [{ js: (js || '') + 'VS.S0 = 0; VS.dirty = true' }, { pagina: 'vila' }, { pagina: 'play' }], passos: [{ espera: 2 }, { toca: 'button[data-pg="vila"]', pausa: 900, semDedo: true }] }];
+// a aba Capitão mostra a conta como no site (na ferramenta o jogo roda sem servidor, e sem isto apareceria "jogando sem conta")
+const CONTA_NO_VIDEO = (nome) => 'CT.nome = "' + nome + '"; CT.token = "video"; CT.sujo = 0; ctEst = "salvo"; contaCard()';
 const CRIATIVOS = [
   { nome: 'horda', jogador: { fase: 40, nivel: 24 }, cenas: [
     ['batalha', { hook: 'Defenda a ponte!', sub: 'Segure e atire', dur: 11, poderes: [{ t: 3.2, id: 'rate' }, { t: 7, id: 'dmg' }] }],
@@ -322,7 +332,7 @@ const CRIATIVOS = [
     ['roteiro', { antes: [{ pagina: 'vila' }], passos: [{ espera: 1.6 }, { construirTodas: 3, pausa: 270 }, { espera: 1.8 }] }]] },
   /* ----- Sem texto nenhum por cima: só a tela inicial — o menu parado, um passeio pelas abas e o toque no JOGAR ----- */
   { nome: 'tela_inicial', organico: true, jogador: { fase: 100, nivel: 100, tier: 8, vila: 12, moedas: 5e6 }, cenas: [
-    ['roteiro', { antes: [{ js: 'VS.S0 = 0; VS.dirty = true; /* a aba Capitão mostra a conta como no site (aqui o jogo roda sem servidor) */ CT.nome = "CapitaoDaIlha"; CT.token = "video"; CT.sujo = 0; ctEst = "salvo"; contaCard()' }, { pagina: 'vila' }, { pagina: 'play' }], passos: [{ espera: 3.6 },
+    ['roteiro', { antes: [{ js: 'VS.S0 = 0; VS.dirty = true; ' + CONTA_NO_VIDEO('CapitaoDaIlha') }, { pagina: 'vila' }, { pagina: 'play' }], passos: [{ espera: 3.6 },
       { toca: 'button[data-pg="cannon"]', pausa: 1700 }, { toca: 'button[data-pg="hero"]', pausa: 1700 }, { toca: 'button[data-pg="vila"]', pausa: 2300 }, { toca: 'button[data-pg="troph"]', pausa: 1700 },
       { toca: 'button[data-pg="play"]', pausa: 1900 }, { toca: '#play', pausa: 200, semDedo: true }, { espera: 2.4 }] }]] },
   /* ----- Sem texto nenhum por cima: 5 segundos da ilha com todas as construções no nível 10 (nível 10 já é a 2ª categoria da vila) ----- */
@@ -335,6 +345,48 @@ const CRIATIVOS = [
     ['roteiro', { antes: [{ js: 'VDEF.forEach((d) => { P.vila.b[d.k] = 1; }); P.vila.i = 0; save(); VS.S0 = 0; VS.dirty = true' }, { pagina: 'vila' }, { pagina: 'play' }], passos: [{ leg: 'O segredo não é o\u00a0canhão' }, { espera: 1.3 }, { leg: 'É a minha ilha' }, { espera: 1.1 }, { toca: 'button[data-pg="vila"]', pausa: 900, semDedo: true }] }],
     ['roteiro', { antes: [{ pagina: 'vila' }], passos: [{ leg: 'Comecei com tudo no\u00a0nível\u00a01' }, { espera: 1.6 }, { construirTodas: 3, pausa: 270, legs: [{ n: 5, texto: 'Cada construção dá um bônus diferente' }, { n: 11, texto: 'Mais dano, mais tiros, mais moedas' }] }, { espera: 1.8 }] }],
     ['roteiro', { antes: [{ js: 'VDEF.forEach((d) => { P.vila.b[d.k] = 10; }); P.vila.i = 1; save(); VS.S0 = 0; VS.dirty = true' }, { pagina: 'play' }, { pagina: 'vila' }, { espera: .6 }], passos: [{ leg: 'Minha ilha depois de\u00a01\u00a0dia', tag: BIO }, { espera: 5 }] }]] },
+  /* ----- 10 vídeos SEM TEXTO NENHUM para Reels (Instagram, Facebook) e TikTok, no estilo do fase100_ilha, cada um com uma ideia diferente -----
+     Não têm chamada, legenda nem etiqueta de link: saem limpos mesmo sem as opções --sem-*. */
+  { nome: 'st01_fase1_fase100', organico: true, jogador: { fase: 100, nivel: 100, tier: 8, vila: 10, moedas: 5e6 }, cenas: [
+    ['batalha', { jogador: { fase: 1, nivel: 0, tier: 0, moedas: 0 }, aquece: 3.2, dur: 4.2 }],
+    ['batalha', { jogador: { fase: 100, nivel: 100, tier: 8, moedas: 5e6 }, aquece: 2.5, dur: 8.5, poderes: [{ t: 1.8, id: 'rate', direto: true }, { t: 5.2, id: 'dmg', direto: true }] }],
+    ILHA_PRONTA('VDEF.forEach((d) => { P.vila.b[d.k] = 10; }); P.vila.i = 1; save(); '),
+    ['roteiro', { antes: [{ pagina: 'vila' }], passos: [{ espera: .6 }, { zoom: 1.25, dur: 3.4 }, { espera: .5 }] }]] },
+  { nome: 'st02_chefe_tesouro', organico: true, jogador: { fase: 30, nivel: 44, vila: 2, moedas: 5e6 }, cenas: [
+    ['batalha', { chefe: true, aquece: 1.5, dur: 10, poderes: [{ t: 3, id: 'dmg', direto: true }, { t: 6.5, id: 'rate', direto: true }] }],
+    ILHA_PRONTA('P.vila.b.tes = 1; save(); '),
+    ['roteiro', { antes: [{ pagina: 'vila' }], passos: [{ espera: .6 }, { zoom: 2.1, dur: 1.2 }, { foco: 'tes' }, { espera: .4 }, { construir: 'tes', ate: 16, pausa: 250 }, { espera: .8 }, { zoom: .5, dur: 1.8 }, { espera: .8 }] }]] },
+  { nome: 'st03_onda_de_ouro', organico: true, jogador: { fase: 12, nivel: 18, vila: 11, moedas: 1250 }, cenas: [
+    ['batalha', { aquece: 2.2, dur: 10.5, ouro: { t: 1.3 } }],
+    ['roteiro', { antes: [{ js: 'VS.S0 = 0; VS.dirty = true' }, { pagina: 'vila' }, { pagina: 'play' }, { renda: 8 }], passos: [{ espera: 2 }, { toca: 'button[data-pg="vila"]', pausa: 1300, semDedo: true }, { espera: .9 }, { toca: '.vbubble', pausa: 500, semDedo: true }, { espera: 1.6 }, { zoom: 1.2, dur: 2.4 }] }]] },
+  { nome: 'st04_escolha_do_poder', organico: true, jogador: { fase: 40, nivel: 30, tier: 3, vila: 7, moedas: 240000 }, cenas: [
+    ['batalha', { aquece: 4.2, dur: 13, pausaCartas: 1.6, poderes: [{ t: .8, id: 'dmg' }, { t: 5.2, id: 'rate' }, { t: 9.4, id: 'dmg' }] }],
+    ['roteiro', { antes: [{ js: 'VS.S0 = 0; VS.dirty = true' }, { pagina: 'vila' }, { pagina: 'play' }], passos: [{ espera: 1.6 }, { toca: 'button[data-pg="cannon"]', pausa: 2000 }, { toca: 'button[data-pg="vila"]', pausa: 1000, semDedo: true }, { zoom: 1.15, dur: 2.4 }] }]] },
+  { nome: 'st05_ilha_crescendo', organico: true, jogador: { fase: 50, nivel: 50, tier: 4, vila: 1, moedas: 5e6 }, cenas: [
+    ['batalha', { aquece: 3, dur: 5.5, poderes: [{ t: 2, id: 'dmg', direto: true }] }],
+    ['roteiro', { antes: [{ js: 'VS.S0 = 0; VS.dirty = true' }, { nivelTodas: 16 }, { pagina: 'vila' }, { nivelTodas: 13 }, { espera: .7 }, { nivelTodas: 10 }, { espera: .7 }, { nivelTodas: 7 }, { espera: .7 }, { nivelTodas: 4 }, { espera: .7 }, { nivelTodas: 1 }, { espera: .7 }, { pagina: 'play' }], passos: [{ espera: 1.8 }, { toca: 'button[data-pg="vila"]', pausa: 900, semDedo: true }] }],
+    ['roteiro', { antes: [{ pagina: 'vila' }], passos: [{ espera: 1.5 }, { nivelTodas: 4 }, { espera: 1.9 }, { nivelTodas: 7 }, { espera: 1.9 }, { nivelTodas: 10 }, { espera: 1.9 }, { nivelTodas: 13 }, { espera: 1.9 }, { nivelTodas: 16 }, { espera: 2.8 }] }]] },
+  { nome: 'st06_capita', organico: true, jogador: { fase: 50, nivel: 50, tier: 4, vila: 3, moedas: 5e6, ela: true }, cenas: [
+    ['batalha', { aquece: 3, dur: 7, poderes: [{ t: 2, id: 'rate', direto: true }, { t: 5, id: 'dmg', direto: true }] }],
+    ['roteiro', { antes: [{ js: 'VDEF.forEach((d) => { P.vila.b[d.k] = 3; }); P.vila.i = 0; save(); VS.S0 = 0; VS.dirty = true; ' + CONTA_NO_VIDEO('CapitaDaIlha') }, { pagina: 'vila' }, { pagina: 'play' }], passos: [{ espera: 1.6 }, { toca: 'button[data-pg="hero"]', pausa: 1900 }, { toca: 'button[data-pg="vila"]', pausa: 1000, semDedo: true }] }],
+    ['roteiro', { antes: [{ pagina: 'vila' }], passos: [{ espera: 1 }, { construirTodas: 4, pausa: 300 }, { espera: 1.8 }] }]] },
+  { nome: 'st07_vitoria_e_bau', organico: true, jogador: { fase: 5, nivel: 40, tier: 3, vila: 4, moedas: 3000 }, cenas: [
+    ['batalha', { aquece: 2.6, acelera: 3, ateFim: true, dur: 24, depois: 2.8 }],
+    ['roteiro', { antes: [{ js: 'VS.S0 = 0; VS.dirty = true' }, { pagina: 'vila' }, { zoom: 1.15, dur: .1 }, { pagina: 'play' }], passos: [{ espera: 1.6 }, { toca: 'button[data-pg="vila"]', pausa: 1000, semDedo: true }, { ficha: 'tes', pausa: 700 }, { toca: '#vShBuy', vezes: 5, pausa: 340 }, { espera: .4 }, { toca: '#vShClose', pausa: 250, semDedo: true }, { zoom: .9, dur: 1.4 }, { espera: .6 }] }]] },
+  { nome: 'st08_ilha_do_zero', organico: true, jogador: { fase: 3, nivel: 3, tier: 0, vila: 1, moedas: 6000 }, cenas: [
+    ['batalha', { aquece: 3.2, dur: 5 }],
+    ['roteiro', { antes: [{ js: 'VDEF.forEach((d) => { P.vila.b[d.k] = 0; }); P.vila.i = 0; save(); VS.S0 = 0; VS.dirty = true' }, { pagina: 'vila' }, { pagina: 'play' }], passos: [{ espera: 1.8 }, { toca: 'button[data-pg="vila"]', pausa: 900, semDedo: true }] }],
+    ['roteiro', { antes: [{ pagina: 'vila' }], passos: [{ espera: 1.4 }, { construirTodas: 1, pausa: 340 }, { espera: 2 }] }]] },
+  { nome: 'st09_perdeu_evoluiu_venceu', organico: true, jogador: { fase: 28, nivel: 13, tier: 2, vila: 5, moedas: 20000 }, cenas: [
+    ['batalha', { aquece: 8, miraErrada: true, ateFim: true, dur: 12, depois: 2.2 }],
+    ['roteiro', { antes: [{ pagina: 'cannon' }], passos: [{ espera: 1.2 }, ...MELHORA('dmg'), ...MELHORA('rate'), ...MELHORA('hp'), { espera: .5 }, { toca: '#shBtn', pausa: 2800, semDedo: true }] }],
+    ['batalha', { aquece: 2.8, dur: 8, poderes: [{ t: 1, id: 'rate', direto: true }, { t: 3.6, id: 'dmg', direto: true }] }]] },
+  { nome: 'st10_tour_rapido', organico: true, jogador: { fase: 70, nivel: 70, tier: 6, vila: 8, moedas: 5e8 }, cenas: [
+    ['roteiro', { antes: [{ js: 'VS.S0 = 0; VS.dirty = true' }, { pagina: 'vila' }, { zoom: 1.15, dur: .1 }, { pagina: 'play' }], passos: [{ espera: 1.5 }, { toca: '#play', pausa: 200, semDedo: true }, { espera: .9 }] }],
+    ['batalha', { aquece: 3, dur: 5, poderes: [{ t: 1.5, id: 'rate', direto: true }] }],
+    ['roteiro', { antes: [{ js: 'P.dmg = P.rate = P.hp = SK().cap - 3; save()' }, { pagina: 'cannon' }], passos: [{ espera: .8 }, ...MELHORA('dmg'), ...MELHORA('rate'), { espera: .5 }] }],
+    ['roteiro', { antes: [{ pagina: 'vila' }], passos: [{ espera: .5 }, { ficha: 'tes', pausa: 600 }, { toca: '#vShBuy', vezes: 5, pausa: 330 }, { toca: '#vShClose', pausa: 200, semDedo: true }, { zoom: .9, dur: 1.2 }] }],
+    ['batalha', { chefe: true, aquece: 1.5, dur: 5, poderes: [{ t: 1, id: 'dmg', direto: true }] }]] },
   // imagens paradas (para anúncio de imagem e capa): sai um .jpg em vez de vídeo
   { nome: 'imagens', jogador: { fase: 40, nivel: 24, vila: 9, moedas: 5e8 }, soFotos: true, cenas: [
     ['batalha', { dur: 1.1, foto: { nome: 'img_batalha', titulo: 'Defenda a ponte!', sub: 'Jogo de pirata no navegador' } }],
