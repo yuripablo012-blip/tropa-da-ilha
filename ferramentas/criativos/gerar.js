@@ -471,6 +471,12 @@ const CRIATIVOS = [
     ['batalha', { jogador: { fase: 60, nivel: 6, tier: 0 }, aquece: 3.6, dur: 4.6 }],
     ['batalha', { jogador: { fase: 60, nivel: 40, tier: 3 }, aquece: 3.6, dur: 4.8 }],
     ['batalha', { jogador: { fase: 60, nivel: 110, tier: 8 }, aquece: 3.6, dur: 6 }]] },
+  // o "perdeu, evoluiu, venceu" começando pela tela inicial: o menu parado, o toque no JOGAR e só então a batalha (gravado sem texto; o texto e a música entram depois)
+  { nome: 'tp4_menu_perdeu_evoluiu_venceu', organico: true, jogador: { fase: 28, nivel: 13, tier: 2, vila: 5, moedas: 20000 }, cenas: [
+    ['roteiro', { antes: [{ pagina: 'play' }], passos: [{ espera: 2 }, { toca: '#play', pausa: 200, semDedo: true }, { espera: .7 }] }],
+    ['batalha', { continua: true, aquece: 4.6, miraErrada: true, ateFim: true, dur: 12, depois: 2.2 }],
+    ['roteiro', { antes: [{ pagina: 'cannon' }], passos: [{ espera: 1.2 }, ...MELHORA('dmg'), ...MELHORA('rate'), ...MELHORA('hp'), { espera: .5 }, { toca: '#shBtn', pausa: 2800, semDedo: true }] }],
+    ['batalha', { aquece: 2.8, dur: 8, poderes: [{ t: 1, id: 'rate', direto: true }, { t: 3.6, id: 'dmg', direto: true }] }]] },
   // imagens paradas (para anúncio de imagem e capa): sai um .jpg em vez de vídeo
   { nome: 'imagens', jogador: { fase: 40, nivel: 24, vila: 9, moedas: 5e8 }, soFotos: true, cenas: [
     ['batalha', { dur: 1.1, foto: { nome: 'img_batalha', titulo: 'Defenda a ponte!', sub: 'Jogo de pirata no navegador' } }],
