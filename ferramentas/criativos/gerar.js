@@ -458,6 +458,19 @@ const CRIATIVOS = [
     ['batalha', { aquece: 3.2, dur: 30, vidasIni: 6, dedoCarta: true, pausaCartas: .9, poderNaVida: { vidas: 3, id: 'heart', max: 7, depois: 1.2 } }],
     ['batalha', { continua: true, aquece: .05, dur: 7, dedoCarta: true, pausaCartas: .9, poderes: [{ t: 3.6, id: 'heart' }] }],
     FIM_DA_FASE] },
+  /* ----- 3 Reels gravados sem texto (o texto e a música entram depois, por cima do vídeo): a pergunta, a falha engraçada e o mesmo jogo com 3 canhões ----- */
+  // a pergunta: no aperto, o poder carrega e as três cartas ficam uns 3 segundos na tela ("qual você escolheria?"); depois a escolha, a virada e a vitória
+  { nome: 'tp1_qual_carta', organico: true, jogador: { fase: 120, nivel: 150, tier: 8, vila: 22, moedas: 1.2e7 }, cenas: [
+    ['batalha', { aquece: 3.5, dur: 30, vidasIni: 7, dedoCarta: true, pausaCartas: 3, poderNaVida: { vidas: 4, id: 'dmg', max: 7, depois: 6.4 } }],
+    FIM_DA_FASE] },
+  // a falha engraçada: canhão fraco mirando sempre para o lado errado, até a tela de derrota
+  { nome: 'tp2_falha', organico: true, jogador: { fase: 8, nivel: 2, tier: 0, vila: 2, moedas: 320 }, cenas: [
+    ['batalha', { aquece: 2.6, miraErrada: true, ateFim: true, dur: 18, depois: 2.8 }]] },
+  // o mesmo jogo com 3 canhões: a mesma fase com o canhão de bronze, com o Dragão de Ouro e com o Mítico (sem poder nenhum, só a força do canhão)
+  { nome: 'tp3_tres_canhoes', organico: true, jogador: { fase: 60, nivel: 6, tier: 0, vila: 10, moedas: 250000 }, cenas: [
+    ['batalha', { jogador: { fase: 60, nivel: 6, tier: 0 }, aquece: 3.6, dur: 4.6 }],
+    ['batalha', { jogador: { fase: 60, nivel: 40, tier: 3 }, aquece: 3.6, dur: 4.8 }],
+    ['batalha', { jogador: { fase: 60, nivel: 110, tier: 8 }, aquece: 3.6, dur: 6 }]] },
   // imagens paradas (para anúncio de imagem e capa): sai um .jpg em vez de vídeo
   { nome: 'imagens', jogador: { fase: 40, nivel: 24, vila: 9, moedas: 5e8 }, soFotos: true, cenas: [
     ['batalha', { dur: 1.1, foto: { nome: 'img_batalha', titulo: 'Defenda a ponte!', sub: 'Jogo de pirata no navegador' } }],
