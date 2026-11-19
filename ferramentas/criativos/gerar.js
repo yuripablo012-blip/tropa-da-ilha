@@ -142,7 +142,7 @@ async function acelerador(page, n) {
           if (G.state !== 'run') break;
           if (window.__acPara && (G.fut || 0) + G.spawnQ.filter((q) => q.t !== 'barrel').length + G.enemies.filter((e) => e.t !== 'barrel' && !e.dead).length <= window.__acPara) { window.__ac = 1; window.__acPara = 0; break; } /* chegou no ponto: volta à velocidade normal */
           const en = G.enemies.filter((e) => !e.dead && e.t !== 'barrel').sort((a, b) => b.y - a.y)[0]; if (en) G.tpx = Math.max(50, Math.min(W - 50, en.x));
-          if (G.charge >= 1 && window.__acManual) break; /* poder carregado: quem solta é o dedo, na velocidade normal */ if (G.charge >= 1) { G.charge = 0; const p = POWERS.find((x) => x.id === ids[k++ % 3]); if ((G.pw[p.id] || 0) < p.max) { p.ap(); G.pw[p.id] = (G.pw[p.id] || 0) + 1; } p.cast(); renderPw(); }
+          if (G.charge >= 1 && window.__acManual) break; /* poder carregado: quem solta é o dedo, na velocidade normal */ if (G.charge >= 1 && !(window.__acPara && (G.fut || 0) + G.spawnQ.filter((q) => q.t !== 'barrel').length + G.enemies.filter((e) => e.t !== 'barrel' && !e.dead).length <= window.__acPara + 70)) { /* perto do ponto de parar não solta mais poder, para nenhum efeito sobrar na tela quando a gravação voltar */ G.charge = 0; const p = POWERS.find((x) => x.id === ids[k++ % 3]); if ((G.pw[p.id] || 0) < p.max) { p.ap(); G.pw[p.id] = (G.pw[p.id] || 0) + 1; } p.cast(); renderPw(); }
           G.holding = true; tryFire(); update(1 / 60);
         }
       } catch (e) {}
@@ -446,6 +446,17 @@ const CRIATIVOS = [
   { nome: 'rl5_do_menu_a_vitoria', organico: true, jogador: { fase: 300, nivel: 380, tier: 20, vila: 40, moedas: 2e8, ela: true }, cenas: [
     ['roteiro', { antes: [{ pagina: 'play' }], passos: [{ espera: 1.6 }, { toca: '#play', pausa: 200, semDedo: true }, { espera: .7 }] }],
     ['batalha', { aquece: 4.2, dur: 11.5, dedoCarta: true, pausaCartas: .9, poderes: [{ t: 1, id: 'dmg' }, { t: 5.4, id: 'rate' }] }],
+    FIM_DA_FASE] },
+  /* ----- 3 Reels sem texto, um para cada poder do jogo (só aquele poder aparece no vídeo, solto duas vezes pelo botão e pelas cartas), todos até a vitória ----- */
+  { nome: 'pd1_bala_de_corrente', organico: true, jogador: { fase: 120, nivel: 150, tier: 8, vila: 22, moedas: 1.2e7 }, cenas: [
+    ['batalha', { aquece: 4.2, dur: 11.5, dedoCarta: true, pausaCartas: .9, poderes: [{ t: 1.1, id: 'dmg' }, { t: 6, id: 'dmg' }] }],
+    FIM_DA_FASE] },
+  { nome: 'pd2_artilheiro_veloz', organico: true, jogador: { fase: 250, nivel: 310, tier: 16, vila: 35, moedas: 9e7 }, cenas: [
+    ['batalha', { aquece: 4, dur: 12, dedoCarta: true, pausaCartas: .9, poderes: [{ t: 1.1, id: 'rate' }, { t: 6.6, id: 'rate' }] }],
+    FIM_DA_FASE] },
+  { nome: 'pd3_rum_de_cura', organico: true, jogador: { fase: 180, nivel: 225, tier: 12, vila: 28, moedas: 3e7 }, cenas: [
+    ['batalha', { aquece: 3.2, dur: 30, vidasIni: 6, dedoCarta: true, pausaCartas: .9, poderNaVida: { vidas: 3, id: 'heart', max: 7, depois: 1.2 } }],
+    ['batalha', { continua: true, aquece: .05, dur: 7, dedoCarta: true, pausaCartas: .9, poderes: [{ t: 3.6, id: 'heart' }] }],
     FIM_DA_FASE] },
   // imagens paradas (para anúncio de imagem e capa): sai um .jpg em vez de vídeo
   { nome: 'imagens', jogador: { fase: 40, nivel: 24, vila: 9, moedas: 5e8 }, soFotos: true, cenas: [
