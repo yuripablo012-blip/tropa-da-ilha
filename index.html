@@ -1023,7 +1023,7 @@ for (const k of ['level', 'coins', 'dmg', 'rate', 'hp', 'tier', 'xp', 'hlv', 'ki
 P.level = Math.max(1, Math.floor(P.level)); P.hlv = Math.max(1, Math.floor(P.hlv)); P.tier = Math.floor(P.tier);
 /* ---------- Conta do jogador ----------
    O progresso continua salvo no aparelho, como sempre. Com conta, cada save() também vai para o servidor (api.php),
-   e ao abrir o jogo vale o que está na conta. Sem servidor (arquivo aberto direto, prévia, sem internet na primeira vez) o jogo funciona sem conta.
+   e ao abrir o jogo vale o que está na conta. Com o jogo aberto direto do arquivo (sem servidor nenhum) ele funciona sem conta; no site, sem conta não se joga.
    CT (localStorage 'tropa_conta'): nome, token (sessão), rev (versão do save que este aparelho conhece), sujo (há mudança ainda não enviada), ap (identificação deste aparelho). */
 const CONTA_K = 'tropa_conta', API = 'api.php';
 let CT = {}; try { const c = JSON.parse(localStorage.getItem(CONTA_K) || '{}'); if (c && typeof c === 'object' && !Array.isArray(c)) CT = c; } catch (e) {}
@@ -1235,7 +1235,7 @@ const CANNON = () => ({ x: G ? G.px : W / 2, y: H - 100 });
 const DEF = () => H - 205;
 const HITY = () => DEF() + 36; // onde o inimigo alcança o pirata e ataca (antes era na linha de defesa, um corpo de distância)
 const SHOW_FENCE = false;                  // linha que os piratas não podem passar
-const BUILD = 'Versão 72 · 18/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
+const BUILD = 'Versão 73 · 19/11'; // aparece na tela de pausa, para conferir se o celular abriu a versão mais nova. Aumente a cada publicação
 const GANHO = 6; // multiplicador geral das moedas de batalha
 const coinMul = () => (1 + fireBonus()) * (1 + (P.vila ? VB().c : 0)) * (1 + canCoin()) * .7 * GANHO; // bônus de sequência, da vila e do canhão
 const ecoVal = () => { const n = P.level || 1; return (60 + 40 * n + .5 * n * n) * coinMul(); }; // quanto vale hoje, em moedas, um bom pedaço de fase (cerca de 1/4 do que uma fase paga)
@@ -1439,7 +1439,7 @@ const PRESENTE = 20000; // presente de boas-vindas: 20 mil moedas, UMA vez por a
 function bemVindo() { if (!PRESENTE || P.presente || window.bemShown || !$('splash').classList.contains('hidden') || contaAberta()) return; window.bemShown = true; $('bemImg').innerHTML = ii('chest', ''); $('bemItems').innerHTML = `<div class="co-it" style="--c1:#e8a316;--c2:#fff2a0">${ii('coin', '')}<b>+${PRESENTE.toLocaleString('pt-BR')}</b><small>moedas</small></div>`; $('bemOv').classList.remove('hidden'); sfx('power'); }
 $('bemBtn').addEventListener('click', () => { if (P.presente) { $('bemOv').classList.add('hidden'); return; } P.coins = (Number(P.coins) || 0) + PRESENTE; P.presente = PRESENTE; save(); $('bemOv').classList.add('hidden'); sfx('big'); [784, 988, 1318].forEach((f, j) => setTimeout(() => beep(f, .12, 'triangle', .06), j * 90)); renderLobby(); });
 /* ---------- Conta do jogador: tela ---------- */
-let ctModo = 'criar', ctManual = false, ctOcupado = false, ctFalhou = false, ctSemConta = false;
+let ctModo = 'criar', ctManual = false, ctOcupado = false, ctFalhou = false;
 const contaAberta = () => !$('contaOv').classList.contains('hidden');
 const ctProg = () => (P.wins || 0) > 0 || (P.level || 1) > 1; // este aparelho já tem jogo
 function contaAbre(modo, manual) { ctModo = modo || 'criar'; ctManual = !!manual; ctFalhou = false; $('ctErr').textContent = ''; $('ctSenha').value = ''; $('ctSenha').type = 'password'; $('ctOlho').textContent = 'mostrar'; ctPinta(); $('contaOv').classList.remove('hidden'); $('contaOv').scrollTop = 0; }
@@ -1459,21 +1459,20 @@ function ctPinta() {
   $('ctDica').textContent = m === 'criar' ? 'Anote sua senha. Sem ela não dá para recuperar a conta.' : '';
   const b = $('ctBtn'); b.textContent = ctOcupado ? 'AGUARDE…' : m === 'criar' ? 'CRIAR E JOGAR' : m === 'entrar' ? 'ENTRAR' : m === 'sair' ? 'SAIR' : 'APAGAR'; b.disabled = ctOcupado;
   b.classList.toggle('green', form); b.classList.toggle('red', m === 'apagar');
-  $('ctVoltar').classList.toggle('hidden', form && !(esp && ctFalhou)); $('ctVoltar').textContent = form && !ctManual ? 'Jogar sem conta por enquanto' : 'Voltar';
+  $('ctVoltar').classList.toggle('hidden', form && !(ctManual && esp && ctFalhou)); $('ctVoltar').textContent = 'Voltar'; // na tela de criar ou entrar não existe saída: sem conta não se joga (o "Voltar" só aparece para quem abriu a tela por conta própria e o servidor não respondeu)
 }
 // chamada quando o menu aparece: quem não tem conta vê a tela de conta de imediato, antes de jogar.
-// Só dá para jogar sem conta quando o servidor das contas não responde (sem internet, prévia) e a pessoa escolhe isso
+// Não existe jogar sem conta: se o servidor das contas não responde, a tela fica com o aviso e o "Tentar de novo" até a conta ser criada (ou a pessoa entrar)
 function contaPorta() {
   if (!$('splash').classList.contains('hidden') || G) return;
   if (ctPend) { ctAplica(); return; }
   if (ctTem() || contaAberta() || !ctNet) return;
-  if (ctSemConta && ctSrv !== 'sim') { if (Date.now() - ctPingT > 30000) ctInicio(); return; } // jogando sem conta: de vez em quando confere se o servidor voltou
   contaAbre('criar');
   if (ctSrv === 'nao') { if (Date.now() - ctPingT > 3000) { ctSrv = 'talvez'; ctPinta(); ctInicio(); } else { ctFalhou = true; ctPinta(); } }
 }
 function contaPronta() { // o servidor respondeu (ou não) à pergunta "você existe?"
   if (contaAberta() && (ctModo === 'criar' || ctModo === 'entrar')) { ctFalhou = ctSrv !== 'sim'; ctPinta(); }
-  else if (ctSrv === 'sim') { ctSemConta = false; contaPorta(); }
+  else if (ctSrv === 'sim') contaPorta();
 }
 async function ctSubmete() {
   if (ctOcupado) return;
@@ -1518,7 +1517,8 @@ function contaCard() {
 $('ctForm').addEventListener('submit', (e) => { e.preventDefault(); ctSubmete(); });
 document.querySelectorAll('#ctTabs button').forEach((b) => b.addEventListener('click', () => { if (ctOcupado) return; ctModo = b.dataset.m; $('ctErr').textContent = ''; ctPinta(); }));
 $('ctOlho').addEventListener('click', () => { const s = $('ctSenha'), v = s.type === 'password'; s.type = v ? 'text' : 'password'; $('ctOlho').textContent = v ? 'ocultar' : 'mostrar'; });
-$('ctVoltar').addEventListener('click', () => { if (ctOcupado) return; const sem = (ctModo === 'criar' || ctModo === 'entrar') && !ctManual; contaFecha(); if (sem) { ctSemConta = true; if (!G) showMenu(); } });
+$('ctVoltar').addEventListener('click', () => { if (ctOcupado || ((ctModo === 'criar' || ctModo === 'entrar') && !ctManual)) return; contaFecha(); }); // a tela de criar ou entrar que o jogo abriu sozinho não fecha sem conta
+addEventListener('online', () => { if (contaAberta() && (ctModo === 'criar' || ctModo === 'entrar') && ctFalhou && !ctOcupado) $('ctDeNovo').click(); }); // a internet voltou: tenta de novo sozinho
 $('ctDeNovo').addEventListener('click', () => { ctFalhou = false; ctSrv = 'talvez'; ctPinta(); ctInicio(); });
 $('ctCard').addEventListener('click', (e) => { const b = e.target.closest('[data-ct]'); if (!b) return; const a = b.dataset.ct; beep(520, .05, 'triangle', .05);
   if (a === 'criar') { if (ctSrv !== 'sim') { ctSrv = ctNet ? 'talvez' : 'nao'; } contaAbre('criar', true); if (ctSrv === 'talvez') ctInicio(); else if (ctSrv === 'nao') { ctFalhou = true; ctPinta(); } }

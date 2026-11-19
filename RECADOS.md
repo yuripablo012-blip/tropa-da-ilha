@@ -6,10 +6,12 @@ Mural compartilhado. Recado mais novo em cima. Formato:
 
 ## Quem está com o `index.html`
 
-Ninguém no momento (livre).
+Ninguém no momento (livre). Última mexida: 2026-11-19, `claude/hopeful-galileo-t00naw`, BUILD 73 — saiu a opção de jogar sem conta.
 
 ## Recados
 
+- 2026-11-19 — `claude/hopeful-galileo-t00naw` — `painel.html`, a pedido do dono: saíram os três blocos **"Jogaram sem conta"** e a linha "X com conta e Y sem conta" (para jogar é preciso ter conta, então era sempre zero). Cada parte do painel ficou com 3 blocos: lado a lado no PC; no celular, dois em cima e o terceiro na linha inteira. O `api.php` não mudou e continua contando o campo `jogaram_sem` (o autoteste usa).
+- 2026-11-19 — `claude/hopeful-galileo-t00naw` — `index.html` (BUILD 73), a pedido do dono: **saiu a opção de jogar sem conta**. Antes, quando o servidor das contas não respondia, a tela de conta mostrava "Jogar sem conta por enquanto"; agora só mostra o aviso e "Tentar de novo" (e tenta sozinha quando a internet volta). Quem já tem conta continua jogando sem internet como antes. Com o jogo aberto direto do arquivo (`file://`, usado pela ferramenta de vídeos) não existe servidor e a tela de conta continua não aparecendo. Consequência: a prévia do jogo fora do site (sem `api.php`) não deixa mais jogar.
 - 2026-11-19 — `claude/hopeful-galileo-t00naw` — só `ferramentas/criativos/gerar.js` (o `index.html` não mudou): receita `tp4_menu_perdeu_evoluiu_venceu`, a pedido do dono — o "perdeu, evoluiu, venceu" começando pela tela inicial (o menu parado, o toque no JOGAR e só então a batalha).
 - 2026-11-19 — `claude/hopeful-galileo-t00naw` — `api.php` e `painel.html` (o `index.html` não mudou), a pedido do dono: o painel ganhou a parte **"Quem criou conta"**, com o nome de cada conta, quando foi criada e quando foi vista por último, da mais nova para a mais antiga (até 500). Ação nova `painel_contas`, que só responde com a sessão do painel (a senha do dono); não devolve senha nem jogo salvo, e lê só o começo de cada arquivo de conta para continuar rápida. A lista abre quando o dono toca em "Ver os nomes" (não entra na atualização automática de 1 minuto).
 - 2026-11-19 — `claude/hopeful-galileo-t00naw` — só `ferramentas/criativos/gerar.js` (o `index.html` não mudou): 3 receitas de Reels, a pedido do dono — `tp1_qual_carta` (no aperto, as três cartas ficam 3 s na tela, depois a escolha e a vitória), `tp2_falha` (canhão fraco mirando errado até a derrota) e `tp3_tres_canhoes` (a fase 60 com o canhão de bronze, com o Dragão de Ouro e com o Mítico). São gravadas sem texto; o texto e a música o dono pede por fora e entram por cima do vídeo.
