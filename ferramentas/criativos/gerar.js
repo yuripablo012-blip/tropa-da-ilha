@@ -221,6 +221,7 @@ async function passo(page, p) {
     const ordem = []; let cur = lista.slice().sort((m, n) => (m.y + m.x * .3) - (n.y + n.x * .3))[0];
     while (cur) { ordem.push(cur.k); lista.splice(lista.indexOf(cur), 1); const c = cur; cur = lista.slice().sort((m, n) => Math.hypot(m.x - c.x, m.y - c.y) - Math.hypot(n.x - c.x, n.y - c.y))[0]; }
     for (const k of ordem) for (let i = 0; i < 20; i++) {
+      if (!i) for (const l of p.legs || []) if (l.n === ordem.indexOf(k)) await page.evaluate((t) => AD.leg(t), l.texto); /* a legenda troca depois de n construções prontas */
       if (!i) await page.evaluate((k) => new Promise((ok) => { /* construção fora da parte visível da ilha: a câmera desliza até ela, como quem arrasta a ilha com o dedo */
         const q = document.querySelector('#vLab .vlab[data-k="' + k + '"]').getBoundingClientRect(), x = q.x + q.width / 2, y = q.y + q.height / 2;
         const dx = Math.max(44, Math.min(innerWidth - 44, x)) - x, dy = Math.max(120, Math.min(innerHeight - 215, y)) - y; if (Math.abs(dx) + Math.abs(dy) < 2) return ok();
@@ -327,6 +328,13 @@ const CRIATIVOS = [
   /* ----- Sem texto nenhum por cima: 5 segundos da ilha com todas as construções no nível 10 (nível 10 já é a 2ª categoria da vila) ----- */
   { nome: 'ilha_nivel10', organico: true, jogador: { fase: 100, nivel: 100, tier: 8, vila: 10, moedas: 5e6 }, cenas: [
     ['roteiro', { antes: [{ js: 'VDEF.forEach((d) => { P.vila.b[d.k] = 10; }); P.vila.i = 1; save(); VS.S0 = 0; VS.dirty = true' }, { pagina: 'vila' }, { espera: .6 }], passos: [{ espera: 5 }] }]] },
+  /* ----- O mesmo vídeo da fase 100 com a ilha, agora COM texto para gerar curiosidade, terminando na ilha com tudo no nível 10 ("depois de 1 dia") -----
+     O "1 dia" segue a conta do próprio jogo (ferramentas/modelo_economia.js): em um dia de jogo a vila chega por volta do nível 10 a 12. */
+  { nome: 'fase100_ilha_1dia', organico: true, jogador: { fase: 100, nivel: 100, tier: 8, vila: 5, moedas: 5e6 }, cenas: [
+    ['batalha', { hook: '1.000 piratas. 1\u00a0canhão.', sub: 'Essa é a fase 100', hookDur: 3.4, aquece: 2.5, dur: 10.5, poderes: [{ t: 2.2, id: 'rate', direto: true }, { t: 6.4, id: 'dmg', direto: true }], legendas: [{ t: 4.6, texto: 'O segredo não é o\u00a0canhão' }] }],
+    ['roteiro', { antes: [{ js: 'VDEF.forEach((d) => { P.vila.b[d.k] = 1; }); P.vila.i = 0; save(); VS.S0 = 0; VS.dirty = true' }, { pagina: 'vila' }, { pagina: 'play' }], passos: [{ leg: 'O segredo não é o\u00a0canhão' }, { espera: 1.3 }, { leg: 'É a minha ilha' }, { espera: 1.1 }, { toca: 'button[data-pg="vila"]', pausa: 900, semDedo: true }] }],
+    ['roteiro', { antes: [{ pagina: 'vila' }], passos: [{ leg: 'Comecei com tudo no\u00a0nível\u00a01' }, { espera: 1.6 }, { construirTodas: 3, pausa: 270, legs: [{ n: 5, texto: 'Cada construção dá um bônus diferente' }, { n: 11, texto: 'Mais dano, mais tiros, mais moedas' }] }, { espera: 1.8 }] }],
+    ['roteiro', { antes: [{ js: 'VDEF.forEach((d) => { P.vila.b[d.k] = 10; }); P.vila.i = 1; save(); VS.S0 = 0; VS.dirty = true' }, { pagina: 'play' }, { pagina: 'vila' }, { espera: .6 }], passos: [{ leg: 'Minha ilha depois de\u00a01\u00a0dia', tag: BIO }, { espera: 5 }] }]] },
   // imagens paradas (para anúncio de imagem e capa): sai um .jpg em vez de vídeo
   { nome: 'imagens', jogador: { fase: 40, nivel: 24, vila: 9, moedas: 5e8 }, soFotos: true, cenas: [
     ['batalha', { dur: 1.1, foto: { nome: 'img_batalha', titulo: 'Defenda a ponte!', sub: 'Jogo de pirata no navegador' } }],
