@@ -32,7 +32,7 @@ As sessões não conversam direto. Há dois canais, ambos no GitHub:
 
 - `index.html` — o jogo completo, arquivo único.
 - `api.php` — contas dos jogadores no site (criar conta, entrar, guardar o progresso). Os dados das contas ficam na hospedagem, fora do repositório.
-- `painel.html` — painel do dono (visitas, contas e jogadores por dia), protegido por senha.
+- `painel.html` — painel do dono (visitas, contas e jogadores por dia, e os nomes de quem criou conta), protegido por senha.
 - `sprites/` — imagens da ilha recortadas.
 - `ferramentas/sprlib.py` — script de recorte das imagens.
 - `VTEST1 = true` no `index.html` é modo de teste (tudo custa 1 moeda). Trocar para `false` antes de publicar.
