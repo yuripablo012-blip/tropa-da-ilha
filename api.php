@@ -28,6 +28,7 @@ const PAINEL_CODIGO = '1b61bee8367877089c14dda2c3ed6e9e628108f4a4ecb63290de9bafc
 const PAINEL_DIAS = 30;      // sessão do painel sem uso por esse tempo é esquecida
 const LIM_PAINEL_IP = 8;     // senhas erradas do painel por hora, por endereço
 const LIM_PAINEL_GERAL = 40; // senhas erradas do painel em 15 minutos, somando todos os endereços
+const PAINEL_NOMES_MAX = 500; // quantas contas (as mais novas) a lista de nomes do painel mostra de uma vez
 const AP_TESTE = 'testedoclaude1'; // aparelho usado para conferir o site no ar: os sinais dele são aceitos mas nunca entram nos números do painel
 const LIM_VISITA_IP = 1500;  // sinais de abertura (e, à parte, de batalha) por hora, por endereço
 const LIM_PULSO_IP = 30000;  // sinais de "continua aberto" por hora, por endereço (30 por hora por jogador)
@@ -261,6 +262,25 @@ function contas_criadas($somar) {
   return (int) $d['criadas'];
 }
 /* Painel: uma senha só, guardada embaralhada em painel.php na pasta de dados. O primeiro acesso exige o código cuja impressão digital é PAINEL_CODIGO. */
+/* Lista de contas para o painel do dono: o nome, quando a conta foi criada e a última vez que o arquivo dela foi gravado (entrou ou salvou o jogo).
+   Só o começo de cada arquivo é lido — o nome e a data de criação são as primeiras coisas dele —, para a lista continuar rápida com muitas contas.
+   A senha (que já fica embaralhada) e o jogo salvo nunca saem daqui. */
+function contas_lista($max) {
+  $l = array();
+  foreach ((array) @glob(pasta_dados() . '/contas/*/c_*.php') as $arq) {
+    $f = @fopen($arq, 'rb'); if (!$f) continue;
+    $ini = (string) @fread($f, 700); fclose($f);
+    $p = strpos($ini, "\n"); if ($p !== false) $ini = substr($ini, $p + 1);
+    $nome = null; $criada = 0;
+    if (preg_match('/^\{"nome":("(?:[^"\\\\]|\\\\.)*"),"senha":"[^"]*","criada":(\d+)/', $ini, $m)) { $nome = json_decode($m[1]); $criada = (int) $m[2]; }
+    else { $c = le($arq); if ($c && isset($c['nome'])) { $nome = $c['nome']; $criada = isset($c['criada']) ? (int) $c['criada'] : 0; } } // arquivo gravado em outra ordem: lê inteiro
+    if (!is_string($nome) || $nome === '') continue;
+    $visto = (int) @filemtime($arq);
+    $l[] = array('n' => $nome, 'c' => $criada > 0 ? $criada : $visto, 'v' => $visto);
+  }
+  usort($l, function ($a, $b) { return $b['c'] !== $a['c'] ? $b['c'] - $a['c'] : strcmp($a['n'], $b['n']); }); // a mais nova primeiro
+  return array('total' => count($l), 'contas' => array_slice($l, 0, $max));
+}
 function painel_arq() { return pasta_dados() . '/painel.php'; }
 function painel_usados() { $u = le(pasta_dados() . '/painel_usados.php'); return $u && isset($u['h']) && is_array($u['h']) ? $u['h'] : array(); } // impressões digitais dos códigos já gastos, guardadas fora do painel.php
 function painel_sessao(&$adm, $token) {
@@ -384,6 +404,12 @@ if ($acao === 'painel_dados') { // números de um mês (o atual, ou o pedido em 
   $n['ok'] = true; $n['total_contas'] = contas_criadas(false);
   $n['versao'] = (int) @filemtime(__DIR__ . '/painel.html'); // quando a página do painel mudou no servidor: uma página aberta numa versão velha se recarrega sozinha
   sai($n);
+}
+
+if ($acao === 'painel_contas') { // nomes de quem criou conta, da conta mais nova para a mais antiga; só com a sessão do painel (a senha do dono)
+  $t = trava('painel'); $adm = null; painel_sessao($adm, isset($B['token']) ? $B['token'] : null); solta($t);
+  $r = contas_lista(PAINEL_NOMES_MAX); $r['ok'] = true;
+  sai($r);
 }
 
 if ($acao === 'criar') {

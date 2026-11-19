@@ -52,6 +52,12 @@ input:focus-visible, button:focus-visible, .alvo:focus-visible { outline: 2px so
 .heroi .rotulo { color: var(--text-secondary); font-size: 15px; }
 .heroi .valor { font-size: clamp(38px, 15vw, 60px); line-height: 1.05; font-weight: 650; letter-spacing: -1px; margin-top: 4px; overflow-wrap: anywhere; }
 .secao { margin: 22px 0 0; font-size: 14px; color: var(--text-primary); font-weight: 600; width: fit-content; background: var(--vidro); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; }
+.ctopo { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.clista { margin-top: 12px; max-height: 60vh; overflow: auto; border-top: 1px solid var(--border); }
+.clinha { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 10px 2px; border-bottom: 1px solid var(--border); }
+.clinha:last-child { border-bottom: 0; }
+.cnome { font-weight: 600; font-size: 15.5px; overflow-wrap: anywhere; }
+.cdata { color: var(--text-secondary); font-size: 12.5px; text-align: right; white-space: nowrap; line-height: 1.45; }
 .blocos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 10px; }
 .bloco { background: var(--vidro); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
 .bloco .rotulo { color: var(--text-secondary); font-size: 13.5px; line-height: 1.3; }
@@ -115,6 +121,12 @@ input:focus-visible, button:focus-visible, .alvo:focus-visible { outline: 2px so
       <div class="bloco"><div class="rotulo">Jogaram sem conta</div><div class="valor" id="sSem">0</div></div>
       <div class="bloco"><div class="rotulo">Jogaram, no total</div><div class="valor" id="sJog">0</div></div>
       <div class="bloco"><div class="rotulo">Com o jogo aberto agora</div><div class="valor" id="nAgora">0</div></div>
+    </div>
+
+    <h2 class="secao">Quem criou conta</h2>
+    <div class="card" id="cContas">
+      <div class="ctopo"><span class="sub" id="cResumo">Os nomes das contas criadas no jogo. Só você vê esta lista.</span><button class="btn" id="cVer" type="button">Ver os nomes</button></div>
+      <div class="clista hidden" id="cLista"></div>
     </div>
     </div>
   </section>
@@ -244,6 +256,28 @@ function pinta() {
   const sp = d.sempre || { jogaram: 0, jogaram_sem: 0 };
   $('nTotal').textContent = num(d.total_contas); $('sSem').textContent = num(sp.jogaram_sem); $('sJog').textContent = num(sp.jogaram); $('nAgora').textContent = num(d.online);
 }
+/* ---------- nomes de quem criou conta ---------- */
+function limpaContas() { $('cLista').textContent = ''; $('cLista').classList.add('hidden'); $('cResumo').textContent = 'Os nomes das contas criadas no jogo. Só você vê esta lista.'; $('cVer').textContent = 'Ver os nomes'; }
+async function verContas() {
+  $('cVer').disabled = true; $('cResumo').textContent = 'Carregando os nomes…';
+  const r = await chama('painel_contas', { token });
+  $('cVer').disabled = false;
+  if (!r || (!r.ok && r.erro !== 'sessao')) { $('cResumo').textContent = 'Sem conexão. Toque de novo para tentar.'; return; }
+  if (!r.ok) { token = ''; try { localStorage.removeItem(CHAVE); } catch (e) {} dados = null; limpaContas(); mostraEntrada(''); return; } // a sessão acabou: pede a senha de novo
+  const L = $('cLista'), lista = Array.isArray(r.contas) ? r.contas : []; L.textContent = '';
+  lista.forEach((c) => { // o nome entra sempre como texto puro, nunca como código da página
+    const li = document.createElement('div'), n = document.createElement('div'), d = document.createElement('div'), d1 = document.createElement('div'), d2 = document.createElement('div');
+    li.className = 'clinha'; n.className = 'cnome'; d.className = 'cdata';
+    n.textContent = String(c.n); d1.textContent = 'criou em ' + quando(c.c); d2.textContent = 'visto por último ' + quando(c.v);
+    d.appendChild(d1); d.appendChild(d2); li.appendChild(n); li.appendChild(d); L.appendChild(li);
+  });
+  L.classList.toggle('hidden', !lista.length);
+  const t = Number(r.total || 0);
+  $('cResumo').textContent = !t ? 'Ninguém criou conta ainda.' : (t === 1 ? '1 conta criada.' : num(t) + ' contas criadas, da mais nova para a mais antiga.') + (t > lista.length ? ' Mostrando as ' + num(lista.length) + ' mais novas.' : '');
+  $('cVer').textContent = 'Atualizar os nomes';
+}
+$('cVer').addEventListener('click', verContas);
+
 async function abre() {
   $('vEntrar').classList.add('hidden'); $('vPainel').classList.remove('hidden');
   if (!dados) { $('pCorpo').classList.add('hidden'); $('pQuando').textContent = 'Carregando os números…'; }
@@ -252,7 +286,7 @@ async function abre() {
 }
 $('pAtualiza').addEventListener('click', () => carrega());
 $('mAntes').addEventListener('click', () => mudaMes(-1)); $('mDepois').addEventListener('click', () => mudaMes(1)); $('mHoje').addEventListener('click', () => mudaMes(0));
-$('pSair').addEventListener('click', async () => { const t = token; token = ''; try { localStorage.removeItem(CHAVE); } catch (e) {} dados = null; mesSel = ''; diaSel = ''; await chama('painel_sair', { token: t }); mostraEntrada(); });
+$('pSair').addEventListener('click', async () => { const t = token; token = ''; try { localStorage.removeItem(CHAVE); } catch (e) {} dados = null; mesSel = ''; diaSel = ''; limpaContas(); await chama('painel_sair', { token: t }); mostraEntrada(); });
 if (token) abre(); else mostraEntrada();
 </script>
 </body>
