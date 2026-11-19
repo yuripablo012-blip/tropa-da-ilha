@@ -290,6 +290,8 @@ const MELHORA = (k) => [{ toca: '[data-buy="' + k + '"]', vezes: 2, pausa: 330 }
 const ILHA_PRONTA = (js) => ['roteiro', { antes: [{ js: (js || '') + 'VS.S0 = 0; VS.dirty = true' }, { pagina: 'vila' }, { pagina: 'play' }], passos: [{ espera: 2 }, { toca: 'button[data-pg="vila"]', pausa: 900, semDedo: true }] }];
 // a aba Capitão mostra a conta como no site (na ferramenta o jogo roda sem servidor, e sem isto apareceria "jogando sem conta")
 const CONTA_NO_VIDEO = (nome) => 'CT.nome = "' + nome + '"; CT.token = "video"; CT.sujo = 0; ctEst = "salvo"; contaCard()';
+// cena pronta: segue a mesma batalha, pula o meio da fase fora da gravação e mostra os últimos piratas e a tela de vitória
+const FIM_DA_FASE = ['batalha', { continua: true, saltaAte: 3, aquece: .3, ateFim: true, dur: 30, depois: 3.6 }];
 const CRIATIVOS = [
   { nome: 'horda', jogador: { fase: 40, nivel: 24 }, cenas: [
     ['batalha', { hook: 'Defenda a ponte!', sub: 'Segure e atire', dur: 11, poderes: [{ t: 3.2, id: 'rate' }, { t: 7, id: 'dmg' }] }],
@@ -427,6 +429,24 @@ const CRIATIVOS = [
   { nome: 'quase_perdi_vitoria', organico: true, jogador: { fase: 200, nivel: 250, tier: 13, vila: 30, moedas: 4e7 }, cenas: [
     ['batalha', { aquece: 3.5, dur: 30, vidasIni: 8, dedoCarta: true, pausaCartas: .9, poderNaVida: { vidas: 4, id: 'dmg', max: 8, depois: 4.6 } }],
     ['batalha', { continua: true, saltaAte: 3, aquece: .3, ateFim: true, dur: 30, depois: 3.6 }]] },
+  /* ----- 5 Reels sem texto no estilo do quase_perdi_vitoria: uma situação de batalha, o poder solto pelo botão e pelas cartas, e a vitória no fim (o meio da fase é pulado fora da gravação).
+     São jogo de verdade: uma gravação pode terminar em derrota antes da hora (o vídeo sai curto); nesse caso é só gravar de novo. ----- */
+  { nome: 'rl1_no_aperto_rajada', organico: true, jogador: { fase: 150, nivel: 190, tier: 10, vila: 25, moedas: 2e7 }, cenas: [
+    ['batalha', { aquece: 3.5, dur: 30, vidasIni: 8, dedoCarta: true, pausaCartas: .9, poderNaVida: { vidas: 4, id: 'rate', max: 8, depois: 5 } }],
+    FIM_DA_FASE] },
+  { nome: 'rl2_rum_de_cura', organico: true, jogador: { fase: 100, nivel: 125, tier: 7, vila: 20, moedas: 8e6 }, cenas: [
+    ['batalha', { aquece: 3.5, dur: 30, vidasIni: 6, dedoCarta: true, pausaCartas: .9, poderNaVida: { vidas: 3, id: 'heart', max: 7, depois: 1.6 } }],
+    ['batalha', { continua: true, aquece: .05, dur: 6.5, dedoCarta: true, pausaCartas: .9, poderes: [{ t: 1.2, id: 'dmg' }] }],
+    FIM_DA_FASE] },
+  { nome: 'rl3_chefao', organico: true, jogador: { fase: 80, nivel: 80, tier: 6, vila: 15, moedas: 3e6 }, cenas: [
+    ['batalha', { chefe: true, aquece: 1.5, dedoCarta: true, pausaCartas: .9, poderes: [{ t: 2.4, id: 'dmg' }, { t: 7, id: 'rate' }], ateFim: true, dur: 26, depois: 3.6 }]] },
+  { nome: 'rl4_onda_de_ouro', organico: true, jogador: { fase: 60, nivel: 75, tier: 5, vila: 12, moedas: 900000 }, cenas: [
+    ['batalha', { aquece: 2.2, dur: 9.5, ouro: { t: 1.2 }, dedoCarta: true, pausaCartas: .9, poderes: [{ t: 3.2, id: 'dmg' }] }],
+    FIM_DA_FASE] },
+  { nome: 'rl5_do_menu_a_vitoria', organico: true, jogador: { fase: 300, nivel: 380, tier: 20, vila: 40, moedas: 2e8, ela: true }, cenas: [
+    ['roteiro', { antes: [{ pagina: 'play' }], passos: [{ espera: 1.6 }, { toca: '#play', pausa: 200, semDedo: true }, { espera: .7 }] }],
+    ['batalha', { aquece: 4.2, dur: 11.5, dedoCarta: true, pausaCartas: .9, poderes: [{ t: 1, id: 'dmg' }, { t: 5.4, id: 'rate' }] }],
+    FIM_DA_FASE] },
   // imagens paradas (para anúncio de imagem e capa): sai um .jpg em vez de vídeo
   { nome: 'imagens', jogador: { fase: 40, nivel: 24, vila: 9, moedas: 5e8 }, soFotos: true, cenas: [
     ['batalha', { dur: 1.1, foto: { nome: 'img_batalha', titulo: 'Defenda a ponte!', sub: 'Jogo de pirata no navegador' } }],
