@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Painel · Tropa da Ilha</title>
-<!-- Painel do dono do jogo: quantas pessoas criaram conta, quantas jogaram (com e sem conta) e quantas abriram o jogo,
+<!-- Painel do dono do jogo: quantas pessoas criaram conta, quantas jogaram e quantas abriram o jogo (para jogar é preciso ter conta, então não existe mais "sem conta"),
      por dia e por mês. O dono escolhe o mês e toca no dia que quer ver. A pedido dele, a página é só isso: calendário e números. Fala com o api.php (ações painel_*). Só abre com a senha do painel. -->
 <style>
 :root { color-scheme: light; --veu: rgba(243,242,238,.22); --vidro: rgba(252,252,251,.74); --page: #f3f2ee; --surface-1: #fcfcfb; --text-primary: #0b0b0b; --text-secondary: #52514e; --muted: #7a7872; --rule: #c3c2b7; --border: #e2e0d9; --series-1: #2a78d6; --danger: #b3261e; --btn: #0b0b0b; --btn-text: #fcfcfb; }
@@ -62,7 +62,8 @@ input:focus-visible, button:focus-visible, .alvo:focus-visible { outline: 2px so
 .bloco { background: var(--vidro); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
 .bloco .rotulo { color: var(--text-secondary); font-size: 13.5px; line-height: 1.3; }
 .bloco .valor { font-size: clamp(20px, 6.6vw, 28px); font-weight: 650; margin-top: 4px; overflow-wrap: anywhere; }
-@media (min-width: 620px) { .blocos { grid-template-columns: repeat(4, minmax(0, 1fr)); } .cal button { min-height: 54px; } }
+@media (max-width: 619px) { .blocos .bloco:last-child:nth-child(odd) { grid-column: 1 / -1; } } /* no celular são duas colunas: com três blocos, o último ocupa a linha inteira */
+@media (min-width: 620px) { .blocos { grid-template-columns: repeat(3, minmax(0, 1fr)); } .cal button { min-height: 54px; } }
 </style>
 </head>
 <body>
@@ -97,12 +98,11 @@ input:focus-visible, button:focus-visible, .alvo:focus-visible { outline: 2px so
       <div class="calpe"><span class="sub">Toque num dia para ver os números dele. O número pequeno é quantas pessoas abriram o jogo.</span><button class="btn" id="mHoje" type="button">Hoje</button></div>
     </div>
 
-    <div class="card heroi"><div class="rotulo" id="hRot">Pessoas que jogaram hoje, no total</div><div class="valor" id="nJogaram">0</div><div class="sub" id="nJogaramSub"></div></div>
+    <div class="card heroi"><div class="rotulo" id="hRot">Pessoas que jogaram hoje, no total</div><div class="valor" id="nJogaram">0</div></div>
 
     <h2 class="secao" id="sDia">Hoje</h2>
     <div class="blocos">
       <div class="bloco"><div class="rotulo">Criaram conta</div><div class="valor" id="nContas">0</div></div>
-      <div class="bloco"><div class="rotulo">Jogaram sem conta</div><div class="valor" id="nSem">0</div></div>
       <div class="bloco"><div class="rotulo">Jogaram com conta</div><div class="valor" id="nCom">0</div></div>
       <div class="bloco"><div class="rotulo">Com o jogo aberto agora</div><div class="valor" id="nAbriram">0</div></div>
     </div>
@@ -110,7 +110,6 @@ input:focus-visible, button:focus-visible, .alvo:focus-visible { outline: 2px so
     <h2 class="secao" id="sMes">No mês</h2>
     <div class="blocos">
       <div class="bloco"><div class="rotulo">Criaram conta</div><div class="valor" id="mContas">0</div></div>
-      <div class="bloco"><div class="rotulo">Jogaram sem conta</div><div class="valor" id="mSem">0</div></div>
       <div class="bloco"><div class="rotulo">Jogaram, no total</div><div class="valor" id="mJog">0</div></div>
       <div class="bloco"><div class="rotulo">Com o jogo aberto agora</div><div class="valor" id="mAbr">0</div></div>
     </div>
@@ -118,7 +117,6 @@ input:focus-visible, button:focus-visible, .alvo:focus-visible { outline: 2px so
     <h2 class="secao">Desde o começo</h2>
     <div class="blocos">
       <div class="bloco"><div class="rotulo">Criaram conta</div><div class="valor" id="nTotal">0</div></div>
-      <div class="bloco"><div class="rotulo">Jogaram sem conta</div><div class="valor" id="sSem">0</div></div>
       <div class="bloco"><div class="rotulo">Jogaram, no total</div><div class="valor" id="sJog">0</div></div>
       <div class="bloco"><div class="rotulo">Com o jogo aberto agora</div><div class="valor" id="nAgora">0</div></div>
     </div>
@@ -246,15 +244,15 @@ function pinta() {
   // números do dia escolhido
   const nomeDia = eHoje ? 'hoje' : 'em ' + diaTxt(diaSel, true);
   $('hRot').textContent = 'Pessoas que jogaram ' + nomeDia + ', no total';
-  $('nJogaram').textContent = num(x.jogaram); $('nJogaramSub').textContent = num(x.jogaram_com) + ' com conta e ' + num(x.jogaram_sem) + ' sem conta';
+  $('nJogaram').textContent = num(x.jogaram);
   $('sDia').textContent = eHoje ? 'Hoje' : 'No dia ' + diaTxt(diaSel, true);
-  $('nContas').textContent = num(x.contas); $('nSem').textContent = num(x.jogaram_sem); $('nCom').textContent = num(x.jogaram_com);
+  $('nContas').textContent = num(x.contas); $('nCom').textContent = num(x.jogaram_com);
   $('nAbriram').textContent = num(d.online); // quarto bloco: quem está com o jogo aberto agora (a pedido do dono, em todos os blocos, no lugar de "abriram o jogo")
   // mês e total
   $('sMes').textContent = 'No mês de ' + mesTxt(d.mes);
-  $('mContas').textContent = num(t.contas); $('mSem').textContent = num(t.jogaram_sem); $('mJog').textContent = num(t.jogaram); $('mAbr').textContent = num(d.online);
+  $('mContas').textContent = num(t.contas); $('mJog').textContent = num(t.jogaram); $('mAbr').textContent = num(d.online);
   const sp = d.sempre || { jogaram: 0, jogaram_sem: 0 };
-  $('nTotal').textContent = num(d.total_contas); $('sSem').textContent = num(sp.jogaram_sem); $('sJog').textContent = num(sp.jogaram); $('nAgora').textContent = num(d.online);
+  $('nTotal').textContent = num(d.total_contas); $('sJog').textContent = num(sp.jogaram); $('nAgora').textContent = num(d.online);
 }
 /* ---------- nomes de quem criou conta ---------- */
 function limpaContas() { $('cLista').textContent = ''; $('cLista').classList.add('hidden'); $('cResumo').textContent = 'Os nomes das contas criadas no jogo. Só você vê esta lista.'; $('cVer').textContent = 'Ver os nomes'; }
