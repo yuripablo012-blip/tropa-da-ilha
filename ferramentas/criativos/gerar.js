@@ -205,6 +205,12 @@ async function cenaBatalha(page, rec, { fase = 20, aquece = 4.3, dur = 8, podere
 async function passo(page, p) {
   if (p.pagina) { await page.evaluate((pg) => { if (G) showMenu(); showPage(pg); }, p.pagina); if (p.pagina === 'vila') { await page.waitForFunction(() => VS.rdy, null, { timeout: 60000 }); await espera(700); } else await espera(350); }
   if (p.js) await page.evaluate(p.js);
+  if (p.reabre) { // o jogo abrindo: guarda o jogo, recarrega a página (a tela de carregamento aparece na gravação) e espera o menu
+    const org = await page.evaluate(() => { save(); return !!(window.AD && window.AD.org); });
+    await page.reload(); await page.waitForFunction(() => typeof P !== 'undefined' && document.getElementById('splash').classList.contains('hidden'), null, { timeout: 60000 });
+    await camada(page); if (org) await page.evaluate(() => { AD.org = true; }); // a camada do dedo e dos textos some com a página: põe de novo
+    await espera(p.pausa != null ? p.pausa : 300);
+  }
   if (p.ficha) { await page.evaluate((k) => openVSheet(k), p.ficha); await espera(p.pausa || 600); }
   if (p.zoom) await page.evaluate(([f, dur]) => new Promise((ok) => { const s0 = VS.S, s1 = s0 * f, t0 = performance.now(); (function q() { const u = Math.min(1, (performance.now() - t0) / (dur * 1000)), e = u * u * (3 - 2 * u), ns = s0 + (s1 - s0) * e, k = ns / VS.S; VS.px *= k; VS.py *= k; VS.S = ns; VS.cam = null; if (u < 1) requestAnimationFrame(q); else ok(); })(); }), [p.zoom, p.dur || 2]);
   if (p.toca) for (let i = 0; i < (p.vezes || 1); i++) {
@@ -477,6 +483,16 @@ const CRIATIVOS = [
     ['batalha', { continua: true, aquece: 4.6, miraErrada: true, ateFim: true, dur: 12, depois: 2.2 }],
     ['roteiro', { antes: [{ pagina: 'cannon' }], passos: [{ espera: 1.2 }, ...MELHORA('dmg'), ...MELHORA('rate'), ...MELHORA('hp'), { espera: .5 }, { toca: '#shBtn', pausa: 2800, semDedo: true }] }],
     ['batalha', { aquece: 2.8, dur: 8, poderes: [{ t: 1, id: 'rate', direto: true }, { t: 3.6, id: 'dmg', direto: true }] }]] },
+  /* ----- Sem texto: o jogo abrindo (tela de carregamento e menu), a fase 300 até a vitória (o meio da fase é pulado fora da gravação), o baú da vitória
+     e a vila sendo construída do nível 1 ao nível 3. Pedido do dono.
+     Com um canhão tão forte, o trecho pulado às vezes passa do fim da fase e a vitória fica de fora (o vídeo sai com uns 42 s em vez de 53): nesse caso é só gravar de novo. ----- */
+  { nome: 'tp5_abre_fase300_vila', organico: true, jogador: { fase: 300, nivel: 380, tier: 20, vila: 1, moedas: 2e8 }, cenas: [
+    ['roteiro', { antes: [{ js: 'VDEF.forEach((d) => { P.vila.b[d.k] = 1; }); P.vila.i = 0; save(); VS.S0 = 0; VS.dirty = true' }], passos: [{ reabre: true }, { espera: .5 }] }],
+    ['roteiro', { antes: [{ pagina: 'vila' }, { pagina: 'play' }], passos: [{ espera: 1.5 }, { toca: '#play', pausa: 200, semDedo: true }, { espera: .7 }] }],
+    ['batalha', { aquece: 4.2, dur: 11.5, dedoCarta: true, pausaCartas: .9, poderes: [{ t: 1, id: 'dmg' }, { t: 5.4, id: 'rate' }] }],
+    FIM_DA_FASE,
+    ['roteiro', { passos: [{ toca: '#next', pausa: 1000 }, { toca: '#coBtn', pausa: 2000 }, { toca: '#coBtn', pausa: 1000 }, { toca: 'button[data-pg="vila"]', pausa: 1100, semDedo: true }] }],
+    ['roteiro', { antes: [{ pagina: 'vila' }], passos: [{ espera: 1.4 }, { construirTodas: 3, pausa: 270 }, { espera: 1.8 }] }]] },
   // imagens paradas (para anúncio de imagem e capa): sai um .jpg em vez de vídeo
   { nome: 'imagens', jogador: { fase: 40, nivel: 24, vila: 9, moedas: 5e8 }, soFotos: true, cenas: [
     ['batalha', { dur: 1.1, foto: { nome: 'img_batalha', titulo: 'Defenda a ponte!', sub: 'Jogo de pirata no navegador' } }],
