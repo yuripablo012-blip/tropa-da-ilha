@@ -141,7 +141,7 @@ async function acelerador(page, n) {
         if (window.__ac > 1 && G && G.state === 'run') for (let i = 1; i < window.__ac; i++) {
           if (G.state !== 'run') break;
           const en = G.enemies.filter((e) => !e.dead && e.t !== 'barrel').sort((a, b) => b.y - a.y)[0]; if (en) G.tpx = Math.max(50, Math.min(W - 50, en.x));
-          if (G.charge >= 1) { G.charge = 0; const p = POWERS.find((x) => x.id === ids[k++ % 3]); if ((G.pw[p.id] || 0) < p.max) { p.ap(); G.pw[p.id] = (G.pw[p.id] || 0) + 1; } p.cast(); renderPw(); }
+          if (G.charge >= 1 && window.__acManual) break; /* poder carregado: quem solta é o dedo, na velocidade normal */ if (G.charge >= 1) { G.charge = 0; const p = POWERS.find((x) => x.id === ids[k++ % 3]); if ((G.pw[p.id] || 0) < p.max) { p.ap(); G.pw[p.id] = (G.pw[p.id] || 0) + 1; } p.cast(); renderPw(); }
           G.holding = true; tryFire(); update(1 / 60);
         }
       } catch (e) {}
@@ -152,36 +152,47 @@ async function acelerador(page, n) {
 // batalha: o robô segura o dedo na tela e mira no inimigo mais perto; poderes = [{ t: segundos, id: 'rate' | 'dmg' | 'heart' }]
 // Durante o "aquece" (não gravado) o robô não atira, para a ponte encher. Com chefe: true vai direto para a onda do chefe,
 // espera ele entrar e o traz para o meio da ponte, e o robô mira nele.
-async function cenaBatalha(page, rec, { fase = 20, aquece = 4.3, dur = 8, poderes = [], chefe = false, hook, sub, hookDur = 3, foto, legendas = [], acelera = 0, ateFim = false, depois = 0, legFim, ouro, vidas, pausaCartas = .95, miraErrada = false, continua = false, linha = 0, para = null } = {}) {
+async function cenaBatalha(page, rec, { fase = 20, aquece = 4.3, dur = 8, poderes = [], chefe = false, hook, sub, hookDur = 3, foto, legendas = [], acelera = 0, ateFim = false, depois = 0, legFim, ouro, vidas, pausaCartas = .95, miraErrada = false, continua = false, linha = 0, para = null, naCarga = null, calma = 2.6, acDepois = 0, finalCalmo = 0 } = {}) {
+  // naCarga: ['dmg', 'rate', ...] — toda vez que o poder carrega DE VERDADE, o dedo toca no botão, as cartas aparecem e ele escolhe (na ordem da lista, em roda);
+  //   com acelera, essa parte e os "calma" segundos seguintes passam na velocidade normal, para o poder aparecer direito. acDepois: só acelera depois de tantos segundos.
+  //   finalCalmo: quando faltam esses inimigos, volta à velocidade normal até o fim da fase.
   // linha (fração da altura da tela): o canhão só atira quando a horda passa dessa linha e para quando ela recua; assim a horda fica sempre cheia na tela e morre no meio dela, sem chegar na zona de perigo
   // continua: segue a MESMA batalha da cena anterior (o canhão fica parado durante o "aquece", fora da gravação, e a horda junta de novo)
   if (!continua) await page.evaluate((chefe) => { startLevel(); document.getElementById('hint').classList.add('hidden'); if (chefe) { G.waves = [G.waves[G.waves.length - 1]]; G.wi = -1; G.spawnQ = []; G.enemies = []; nextWave(); } }, chefe);
   const Y = TELA.height * .88; await page.mouse.move(TELA.width / 2, Y);
   if (chefe) { await page.waitForFunction(() => G && G.enemies.some((e) => e.boss || e.t === 'boss'), null, { timeout: 15000 }).catch(() => {}); await page.evaluate(() => { const b = G.enemies.find((e) => e.boss || e.t === 'boss'); if (b) b.y = H * .34; }); }
-  const fila = poderes.slice().sort((a, b) => a.t - b.t), legs = legendas.slice().sort((a, b) => a.t - b.t); let t0 = 0, gravando = false, escolha = null, ouroOn = false, acabou = false, atirando = !linha, rajadaIni = 0;
+  const fila = poderes.slice().sort((a, b) => a.t - b.t), legs = legendas.slice().sort((a, b) => a.t - b.t); let t0 = 0, gravando = false, escolha = null, ouroOn = false, acabou = false, atirando = !linha, rajadaIni = 0, acAgora = 1, calmaAte = 0, kCarga = 0;
+  const veloc = async (n) => { if (n !== acAgora) { acAgora = n; await page.evaluate((n) => { window.__ac = n; }, n); } };
   const ini = Date.now();
   for (;;) {
     const agora = (Date.now() - ini) / 1000;
-    if (!gravando && agora >= aquece) { gravando = true; t0 = Date.now(); if (!linha) await page.mouse.down(); if (acelera > 1) await acelerador(page, acelera); await page.evaluate(([h, s, d]) => { AD.limpa(); AD.hook(h, s, d); }, [hook || '', sub || '', hookDur]); await rec.liga(); }
+    if (!gravando && agora >= aquece) { gravando = true; t0 = Date.now(); if (!linha) await page.mouse.down(); if (acelera > 1) { acAgora = acDepois ? 1 : acelera; await page.evaluate((m) => { window.__acManual = m; }, naCarga ? 1 : 0); await acelerador(page, acAgora); } await page.evaluate(([h, s, d]) => { AD.limpa(); AD.hook(h, s, d); }, [hook || '', sub || '', hookDur]); await rec.liga(); }
     const t = gravando ? (Date.now() - t0) / 1000 : -1;
     if (gravando && t >= dur) break;
     if (gravando && ouro && t >= ouro.t) { ouro = null; ouroOn = true; await page.evaluate(ONDA_DE_OURO); }
     while (gravando && legs.length && t >= legs[0].t) { const l = legs.shift(); await page.evaluate(MOSTRA, l); }
-    const s = await page.evaluate(([chefe, ouro]) => { if (!G) return { s: 'fim' }; const vivos = G.enemies.filter((e) => !e.dead && e.t !== 'barrel').sort((a, b) => b.y - a.y), perto = vivos[0], bs = chefe && vivos.find((e) => e.boss || e.t === 'boss'), au = ouro && vivos.find((e) => e.kind === 'gold'), bomba = vivos.find((e) => e.kind === 'bomb' && e.y >= (e.stopY || 0) - 40), en = au || (bs && !(perto && perto.y > H * .55) ? bs : perto); return { s: G.state, x: en ? en.x / W : null, y: perto ? perto.y / H : 0, bx: bomba ? bomba.x / W : null }; }, [chefe, ouroOn]);
+    const s = await page.evaluate(([chefe, ouro]) => { if (!G) return { s: 'fim' }; const vivos = G.enemies.filter((e) => !e.dead && e.t !== 'barrel').sort((a, b) => b.y - a.y), perto = vivos[0], bs = chefe && vivos.find((e) => e.boss || e.t === 'boss'), au = ouro && vivos.find((e) => e.kind === 'gold'), bomba = vivos.find((e) => e.kind === 'bomb' && e.y >= (e.stopY || 0) - 40), en = au || (bs && !(perto && perto.y > H * .55) ? bs : perto); return { s: G.state, x: en ? en.x / W : null, y: perto ? perto.y / H : 0, bx: bomba ? bomba.x / W : null, carga: G.charge, faltam: (G.fut || 0) + G.spawnQ.filter((q) => q.t !== 'barrel').length + vivos.length }; }, [chefe, ouroOn]);
     if (s.s === 'fim' || s.s === 'end') { acabou = true; break; }
     if (s.s === 'pick') { // mostra as cartas um instante e escolhe
       await page.mouse.up(); await page.evaluate(() => { AD.dedo(null); AD.hook(''); }); await espera(pausaCartas * 1000);
+      if (naCarga) { await page.evaluate((id) => { const c = document.querySelector('#cards [data-pw="' + id + '"]') || document.querySelector('#cards [data-pw]'); if (c) { const r = c.getBoundingClientRect(); AD.dedo(r.x + r.width / 2, r.y + r.height * .55); } }, escolha || 'rate'); await espera(350); } // o dedo vai até a carta antes de escolher
       await page.evaluate((id) => { G.pickT = 0; const c = document.querySelector('#cards [data-pw="' + id + '"]') || document.querySelector('#cards [data-pw]'); if (c) c.click(); }, escolha || 'rate');
+      if (naCarga) { await page.evaluate(() => AD.dedo(null)); calmaAte = Date.now() + calma * 1000; }
       await espera(120); await page.mouse.move(TELA.width / 2, Y); if (gravando) await page.mouse.down(); continue;
     }
     if (gravando && fila.length && t >= fila[0].t && fila[0].direto && (!linha || fila[0].ja || (atirando && Date.now() - rajadaIni < 400))) { const id = fila.shift().id; await page.evaluate((id) => { const p = POWERS.find((x) => x.id === id); if (!p || !G || G.state !== 'run') return; if ((G.pw[id] || 0) < p.max) { p.ap(); G.pw[id] = (G.pw[id] || 0) + 1; } p.cast(); renderPw(); }, id); continue; } // poder direto, sem abrir as cartas
     if (gravando && fila.length && t >= fila[0].t && !fila[0].direto) { escolha = fila.shift().id; await page.mouse.up(); await page.evaluate((v) => { G.charge = 1; if (v) G.lives = v; }, vidas || 0); await espera(60); const b = await page.evaluate(() => { const r = document.getElementById('spBtn').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; }); await page.evaluate(([x, y]) => AD.dedo(x, y), b); await espera(220); await page.touchscreen.tap(b[0], b[1]); await espera(150); continue; }
-    if (gravando && acelera > 1) { await espera(70); continue; } // acelerado: quem mira é o acelerador, dentro do jogo
+    if (gravando && naCarga && naCarga.length && s.s === 'run' && s.carga >= 1 && Date.now() > calmaAte) { // o poder carregou: o dedo toca no botão do poder (as cartas abrem e a escolha é feita logo acima)
+      escolha = naCarga[kCarga++ % naCarga.length]; await veloc(1); calmaAte = Date.now() + 60000; await espera(250); await page.mouse.up();
+      const b = await page.evaluate(() => { const r = document.getElementById('spBtn').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; }); await page.evaluate(([x, y]) => AD.dedo(x, y), b); await espera(300); await page.touchscreen.tap(b[0], b[1]); await espera(150); continue;
+    }
+    if (gravando && acelera > 1) await veloc(t < acDepois || Date.now() < calmaAte || (finalCalmo && s.faltam <= finalCalmo) ? 1 : acelera);
+    if (gravando && acelera > 1 && acAgora > 1) { await espera(70); continue; } // acelerado: quem mira é o acelerador, dentro do jogo
     if (gravando && linha) { if (s.bx != null) s.x = s.bx; /* quem joga bomba morre primeiro */ const quer = s.bx != null || s.y > (atirando ? (para != null ? para : linha - .1) : linha); if (quer !== atirando) { atirando = quer; if (quer) { rajadaIni = Date.now(); await page.mouse.down(); } else await page.mouse.up(); } }
     if (gravando && s.x != null) { const x = Math.max(.14, Math.min(.86, miraErrada ? 1 - s.x : s.x)) * TELA.width; await page.mouse.move(x, Y, { steps: 2 }); await page.evaluate(([x, y]) => AD.dedo(x, y), [x, Y]); }
     await espera(70);
   }
-  await page.mouse.up(); if (acelera > 1) await page.evaluate(() => { window.__ac = 1; });
+  await page.mouse.up(); if (acelera > 1) await page.evaluate(() => { window.__ac = 1; window.__acManual = 0; });
   if (gravando && (acabou || ateFim) && depois) { await page.evaluate(() => AD.dedo(null)); if (legFim) await page.evaluate(MOSTRA, legFim); await espera(depois * 1000); } // mostra a tela de vitória ou derrota
   if (foto) await fotos(page, foto);
 }
@@ -393,6 +404,9 @@ const CRIATIVOS = [
   /* ----- Sem texto: 15 segundos da fase 200 (2.000 piratas), do caos à ponte limpa — a horda enche a tela e o canhão varre tudo com corrente e rajada ----- */
   { nome: 'fase200_satisfatorio', organico: true, jogador: { fase: 200, nivel: 160, tier: 9, vila: 30, moedas: 4e7 }, cenas: [
     ['batalha', { aquece: 4.9, dur: 15, poderes: [{ t: .4, id: 'dmg', direto: true }, { t: 4.2, id: 'rate', direto: true }, { t: 8.2, id: 'dmg', direto: true }, { t: 12.5, id: 'dmg', direto: true }] }]] },
+  /* ----- Sem texto: a fase 200 INTEIRA, até a vitória. A matança passa acelerada; cada vez que o poder carrega, volta à velocidade normal e mostra o dedo tocando no botão, as cartas e a escolha ----- */
+  { nome: 'fase200_ate_o_fim', organico: true, jogador: { fase: 200, nivel: 250, tier: 13, vila: 30, moedas: 4e7 }, cenas: [
+    ['batalha', { aquece: 2.2, acelera: 14, acDepois: 2, naCarga: ['dmg', 'rate'], calma: 1.7, pausaCartas: 1, finalCalmo: 30, ateFim: true, dur: 170, depois: 3.2 }]] },
   // imagens paradas (para anúncio de imagem e capa): sai um .jpg em vez de vídeo
   { nome: 'imagens', jogador: { fase: 40, nivel: 24, vila: 9, moedas: 5e8 }, soFotos: true, cenas: [
     ['batalha', { dur: 1.1, foto: { nome: 'img_batalha', titulo: 'Defenda a ponte!', sub: 'Jogo de pirata no navegador' } }],
